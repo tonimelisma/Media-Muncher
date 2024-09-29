@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3B4318422CA8F7130029CADD /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 3B4318402CA8F70D0029CADD /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3B4318142CA8F4350029CADD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		3B4318022CA8F4330029CADD /* Media Muncher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Media Muncher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B4318132CA8F4350029CADD /* Media MuncherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Media MuncherTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B43181D2CA8F4350029CADD /* Media MuncherUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Media MuncherUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B4318402CA8F70D0029CADD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -79,6 +84,7 @@
 				3B4318162CA8F4350029CADD /* Media MuncherTests */,
 				3B4318202CA8F4350029CADD /* Media MuncherUITests */,
 				3B4318032CA8F4330029CADD /* Products */,
+				3B4318402CA8F70D0029CADD /* README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B4318422CA8F7130029CADD /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
