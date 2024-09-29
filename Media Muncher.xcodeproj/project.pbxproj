@@ -1,0 +1,546 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		3B4318142CA8F4350029CADD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3B4317FA2CA8F4330029CADD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3B4318012CA8F4330029CADD;
+			remoteInfo = "Media Muncher";
+		};
+		3B43181E2CA8F4350029CADD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3B4317FA2CA8F4330029CADD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3B4318012CA8F4330029CADD;
+			remoteInfo = "Media Muncher";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		3B4318022CA8F4330029CADD /* Media Muncher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Media Muncher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B4318132CA8F4350029CADD /* Media MuncherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Media MuncherTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B43181D2CA8F4350029CADD /* Media MuncherUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Media MuncherUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		3B4318042CA8F4330029CADD /* Media Muncher */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Media Muncher";
+			sourceTree = "<group>";
+		};
+		3B4318162CA8F4350029CADD /* Media MuncherTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Media MuncherTests";
+			sourceTree = "<group>";
+		};
+		3B4318202CA8F4350029CADD /* Media MuncherUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Media MuncherUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3B4317FF2CA8F4330029CADD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3B4318102CA8F4350029CADD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3B43181A2CA8F4350029CADD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3B4317F92CA8F4330029CADD = {
+			isa = PBXGroup;
+			children = (
+				3B4318042CA8F4330029CADD /* Media Muncher */,
+				3B4318162CA8F4350029CADD /* Media MuncherTests */,
+				3B4318202CA8F4350029CADD /* Media MuncherUITests */,
+				3B4318032CA8F4330029CADD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3B4318032CA8F4330029CADD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3B4318022CA8F4330029CADD /* Media Muncher.app */,
+				3B4318132CA8F4350029CADD /* Media MuncherTests.xctest */,
+				3B43181D2CA8F4350029CADD /* Media MuncherUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3B4318012CA8F4330029CADD /* Media Muncher */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B4318272CA8F4350029CADD /* Build configuration list for PBXNativeTarget "Media Muncher" */;
+			buildPhases = (
+				3B4317FE2CA8F4330029CADD /* Sources */,
+				3B4317FF2CA8F4330029CADD /* Frameworks */,
+				3B4318002CA8F4330029CADD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3B4318042CA8F4330029CADD /* Media Muncher */,
+			);
+			name = "Media Muncher";
+			packageProductDependencies = (
+			);
+			productName = "Media Muncher";
+			productReference = 3B4318022CA8F4330029CADD /* Media Muncher.app */;
+			productType = "com.apple.product-type.application";
+		};
+		3B4318122CA8F4350029CADD /* Media MuncherTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B43182A2CA8F4350029CADD /* Build configuration list for PBXNativeTarget "Media MuncherTests" */;
+			buildPhases = (
+				3B43180F2CA8F4350029CADD /* Sources */,
+				3B4318102CA8F4350029CADD /* Frameworks */,
+				3B4318112CA8F4350029CADD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3B4318152CA8F4350029CADD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3B4318162CA8F4350029CADD /* Media MuncherTests */,
+			);
+			name = "Media MuncherTests";
+			packageProductDependencies = (
+			);
+			productName = "Media MuncherTests";
+			productReference = 3B4318132CA8F4350029CADD /* Media MuncherTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		3B43181C2CA8F4350029CADD /* Media MuncherUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B43182D2CA8F4350029CADD /* Build configuration list for PBXNativeTarget "Media MuncherUITests" */;
+			buildPhases = (
+				3B4318192CA8F4350029CADD /* Sources */,
+				3B43181A2CA8F4350029CADD /* Frameworks */,
+				3B43181B2CA8F4350029CADD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3B43181F2CA8F4350029CADD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3B4318202CA8F4350029CADD /* Media MuncherUITests */,
+			);
+			name = "Media MuncherUITests";
+			packageProductDependencies = (
+			);
+			productName = "Media MuncherUITests";
+			productReference = 3B43181D2CA8F4350029CADD /* Media MuncherUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3B4317FA2CA8F4330029CADD /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					3B4318012CA8F4330029CADD = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					3B4318122CA8F4350029CADD = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 3B4318012CA8F4330029CADD;
+					};
+					3B43181C2CA8F4350029CADD = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 3B4318012CA8F4330029CADD;
+					};
+				};
+			};
+			buildConfigurationList = 3B4317FD2CA8F4330029CADD /* Build configuration list for PBXProject "Media Muncher" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 3B4317F92CA8F4330029CADD;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3B4318032CA8F4330029CADD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3B4318012CA8F4330029CADD /* Media Muncher */,
+				3B4318122CA8F4350029CADD /* Media MuncherTests */,
+				3B43181C2CA8F4350029CADD /* Media MuncherUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3B4318002CA8F4330029CADD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3B4318112CA8F4350029CADD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3B43181B2CA8F4350029CADD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3B4317FE2CA8F4330029CADD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3B43180F2CA8F4350029CADD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3B4318192CA8F4350029CADD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3B4318152CA8F4350029CADD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3B4318012CA8F4330029CADD /* Media Muncher */;
+			targetProxy = 3B4318142CA8F4350029CADD /* PBXContainerItemProxy */;
+		};
+		3B43181F2CA8F4350029CADD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3B4318012CA8F4330029CADD /* Media Muncher */;
+			targetProxy = 3B43181E2CA8F4350029CADD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3B4318252CA8F4350029CADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		3B4318262CA8F4350029CADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		3B4318282CA8F4350029CADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Media Muncher/Media_Muncher.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Media Muncher/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "net.melisma.Media-Muncher";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3B4318292CA8F4350029CADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Media Muncher/Media_Muncher.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Media Muncher/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "net.melisma.Media-Muncher";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		3B43182B2CA8F4350029CADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "net.melisma.Media-MuncherTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Media Muncher.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Media Muncher";
+			};
+			name = Debug;
+		};
+		3B43182C2CA8F4350029CADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "net.melisma.Media-MuncherTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Media Muncher.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Media Muncher";
+			};
+			name = Release;
+		};
+		3B43182E2CA8F4350029CADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "net.melisma.Media-MuncherUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Media Muncher";
+			};
+			name = Debug;
+		};
+		3B43182F2CA8F4350029CADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "net.melisma.Media-MuncherUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Media Muncher";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3B4317FD2CA8F4330029CADD /* Build configuration list for PBXProject "Media Muncher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B4318252CA8F4350029CADD /* Debug */,
+				3B4318262CA8F4350029CADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3B4318272CA8F4350029CADD /* Build configuration list for PBXNativeTarget "Media Muncher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B4318282CA8F4350029CADD /* Debug */,
+				3B4318292CA8F4350029CADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3B43182A2CA8F4350029CADD /* Build configuration list for PBXNativeTarget "Media MuncherTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B43182B2CA8F4350029CADD /* Debug */,
+				3B43182C2CA8F4350029CADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3B43182D2CA8F4350029CADD /* Build configuration list for PBXNativeTarget "Media MuncherUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B43182E2CA8F4350029CADD /* Debug */,
+				3B43182F2CA8F4350029CADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3B4317FA2CA8F4330029CADD /* Project object */;
+}
