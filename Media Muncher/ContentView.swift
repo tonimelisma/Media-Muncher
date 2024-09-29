@@ -1,24 +1,27 @@
-//
-//  ContentView.swift
-//  Media Muncher
-//
-//  Created by Toni Melisma on 9/28/24.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject var coordinator = Coordinator(settings: Settings())
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ZStack {
+            if coordinator.currentView == .volumes {
+                VolumesView()
+            } else if coordinator.currentView == .mediaSelection {
+                MediaSelectionView()
+            }
         }
-        .padding()
+        .environmentObject(coordinator)
+        .sheet(isPresented: $coordinator.showSettings) {
+            SettingsView()
+                .environmentObject(coordinator.settings)
+                .environmentObject(coordinator)
+        }
     }
 }
 
-#Preview {
-    ContentView()
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
