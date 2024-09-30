@@ -5,8 +5,6 @@ MacOS app to automatically import photos and videos from inserted SD cards, USB 
 ## Todo
 
 ### MVP
-* Show list of detected volumes
-* Choose volume to import
 * Idempotent, don't overwrite
 * Error handling
 * Settings
