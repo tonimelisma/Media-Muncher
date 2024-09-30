@@ -1,4 +1,3 @@
-import Foundation
 import SwiftUI
 import AppKit
 
@@ -21,6 +20,10 @@ struct Media_MuncherApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {}
             SidebarCommands()
+        }
+        
+        Settings {
+            SettingsView()
         }
     }
 }

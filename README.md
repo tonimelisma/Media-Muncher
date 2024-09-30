@@ -26,3 +26,4 @@ MacOS app to automatically import photos and videos from inserted SD cards, USB 
   * Configure which volumes to import automatically (all, known, none)
   * Configure import file types (pics, videos, processed vs raw)
   * Delete source when imported
+  * Eject after importing
