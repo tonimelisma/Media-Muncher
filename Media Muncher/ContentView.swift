@@ -3,9 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject var volumesViewModel = VolumesViewModel()
-    @EnvironmentObject var settings: Settings
     @State private var selectedVolumeID: String?
-    @State private var showSettings = false
 
     var body: some View {
         NavigationView {
@@ -60,27 +58,11 @@ struct ContentView: View {
                     }
                 }
             }
-
-            ToolbarItem(placement: .automatic) {
-                Button(action: {
-                    showSettings = true
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "gearshape")
-                        Text("Settings")
-                            .font(.system(size: 13))
-                    }
-                }
-            }
         }
         .frame(minWidth: 800, minHeight: 600)
         .onAppear {
             print("ContentView appeared")
             volumesViewModel.loadVolumes()
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-                .environmentObject(settings)
         }
     }
 
@@ -159,6 +141,5 @@ struct MediaSelectionView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-            .environmentObject(Settings())
     }
 }

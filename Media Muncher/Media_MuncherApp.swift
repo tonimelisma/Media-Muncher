@@ -11,12 +11,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct Media_MuncherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    @StateObject private var settings = Settings()
         
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(settings)
         }
         .windowStyle(HiddenTitleBarWindowStyle())
         .windowToolbarStyle(.unified)
