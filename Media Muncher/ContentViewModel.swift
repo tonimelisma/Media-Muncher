@@ -1,26 +1,21 @@
 import SwiftUI
 
-class VolumeViewModel: ObservableObject {
+class ContentViewModel: ObservableObject {
     @Published var volumes: [Volume] = []
+    @Published var selectedVolumeID: String?
     private var mountObserver: NSObjectProtocol?
     private var unmountObserver: NSObjectProtocol?
-    
+
     init() {
         setupVolumeObserver()
         loadVolumes()
     }
-    
+
     deinit {
-        if let observer = mountObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-        if let observer = unmountObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
+        tearDownVolumeObserver()
     }
-    
+
     func loadVolumes() {
-        print("loadVolumes() called")
         let fileManager = FileManager.default
         guard let mountedVolumeURLs = fileManager.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) else {
             print("Failed to get mounted volume URLs")
@@ -44,18 +39,12 @@ class VolumeViewModel: ObservableObject {
                 return nil
             }
         }
-    }
-    
-    func ejectVolume(_ volume: Volume) {
-        let url = URL(fileURLWithPath: volume.devicePath)
-        do {
-            try NSWorkspace.shared.unmountAndEjectDevice(at: url)
-            self.loadVolumes()  // Reload volumes after ejection
-        } catch {
-            print("Error ejecting volume: \(error.localizedDescription)")
+        
+        if selectedVolumeID == nil, let firstVolume = volumes.first {
+            selectedVolumeID = firstVolume.id
         }
     }
-    
+
     private func setupVolumeObserver() {
         let notificationCenter = NotificationCenter.default
 
@@ -69,6 +58,15 @@ class VolumeViewModel: ObservableObject {
             forName: NSWorkspace.didUnmountNotification, object: nil, queue: nil
         ) { [weak self] _ in
             self?.loadVolumes()
+        }
+    }
+
+    private func tearDownVolumeObserver() {
+        if let observer = mountObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = unmountObserver {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 }

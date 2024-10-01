@@ -2,29 +2,22 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("defaultSavePath") private var defaultSavePath = NSHomeDirectory()
-    @AppStorage("autoEjectAfterCopy") private var autoEjectAfterCopy = false
-    @AppStorage("showNotifications") private var showNotifications = true
 
     var body: some View {
         Form {
-            Section(header: Text("General")) {
-                Toggle("Auto-eject after copying", isOn: $autoEjectAfterCopy)
-                Toggle("Show notifications", isOn: $showNotifications)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Import To:")
+                    .frame(width: 120, alignment: .trailing)
+                
+                FolderSelector(defaultSavePath: $defaultSavePath, showAdvancedSettings: false)
             }
             
-            Section(header: Text("File Management")) {
-                HStack {
-                    Text("Default save path:")
-                    Spacer()
-                    PathControl(url: Binding(
-                        get: { URL(fileURLWithPath: defaultSavePath) },
-                        set: { defaultSavePath = $0.path }
-                    ))
-                }
-            }
+            Text(defaultSavePath)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
         }
         .padding(20)
-        .frame(width: 400, height: 200)
+        .frame(width: 450, height: 150)
     }
 }
 

@@ -1,25 +1,17 @@
-import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedVolume: Volume?
-    @StateObject private var volumeViewModel = VolumeViewModel()
+    @StateObject private var viewModel = ContentViewModel()
+    @AppStorage("defaultSavePath") private var defaultSavePath = NSHomeDirectory()
 
     var body: some View {
         NavigationView {
-            VolumeView(selectedVolume: $selectedVolume)
+            VolumeView(volumes: $viewModel.volumes, selectedVolumeID: $viewModel.selectedVolumeID)
                 .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
-                .environmentObject(volumeViewModel)
 
-            ZStack {
-                Color(NSColor.controlBackgroundColor)
-
-                if let volume = selectedVolume {
-                    MediaView(volume: volume)
-                } else {
-                    Text("Select a volume")
-                }
-            }
+            MediaView(volume: viewModel.volumes.first(where: { $0.id == viewModel.selectedVolumeID }),
+                      volumes: viewModel.volumes,
+                      defaultSavePath: $defaultSavePath)
         }
         .navigationTitle("Media Muncher")
         .toolbar {
@@ -40,7 +32,7 @@ struct ContentView: View {
 
             ToolbarItem(placement: .automatic) {
                 Button(action: {
-                    volumeViewModel.loadVolumes()
+                    viewModel.loadVolumes()
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
