@@ -6,7 +6,15 @@ class FileEnumerator {
         var fileItems: [FileItem] = []
         
         let fileManager = FileManager.default
-        guard let enumerator = fileManager.enumerator(atPath: volumePath) else {
+        guard let enumerator = fileManager.enumerator(
+            at: URL(fileURLWithPath: volumePath),
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants],
+            errorHandler: { (url, error) -> Bool in
+                print("FileEnumerator: Error enumerating \(url): \(error.localizedDescription)")
+                return true // Continue enumeration
+            }
+        ) else {
             print("FileEnumerator: Failed to create enumerator for path: \(volumePath)")
             return fileItems
         }
@@ -14,29 +22,28 @@ class FileEnumerator {
         print("FileEnumerator: Successfully created enumerator")
         
         var count = 0
-        while let filePath = enumerator.nextObject() as? String {
-            print("FileEnumerator: Found item: \(filePath)")
+        for case let fileURL as URL in enumerator {
+            guard count < limit else { break }
             
-            if count >= limit { break }
-            
-            let fullPath = (volumePath as NSString).appendingPathComponent(filePath)
-            var isDirectory: ObjCBool = false
-            if fileManager.fileExists(atPath: fullPath, isDirectory: &isDirectory) {
-                print("FileEnumerator: Item exists, isDirectory: \(isDirectory.boolValue)")
+            do {
+                let resourceValues = try fileURL.resourceValues(forKeys: [.isDirectoryKey, .nameKey])
+                let isDirectory = resourceValues.isDirectory ?? false
+                let name = resourceValues.name ?? fileURL.lastPathComponent
                 
-                let itemType = isDirectory.boolValue ? "directory" : "file"
-                print("FileEnumerator: Adding \(itemType): \(filePath)")
-                let fileItem = FileItem(name: (filePath as NSString).lastPathComponent,
-                                        path: fullPath,
+                let itemType = isDirectory ? "directory" : "file"
+                print("FileEnumerator: Found \(itemType): \(name)")
+                
+                let fileItem = FileItem(name: name,
+                                        path: fileURL.path,
                                         type: itemType)
                 fileItems.append(fileItem)
                 count += 1
-            } else {
-                print("FileEnumerator: Item doesn't exist: \(fullPath)")
+            } catch {
+                print("FileEnumerator: Error getting resource values for \(fileURL.path): \(error.localizedDescription)")
             }
         }
-        print("FileEnumerator: Enumerated \(count) items")
         
+        print("FileEnumerator: Enumerated \(count) items")
         return fileItems
     }
 }

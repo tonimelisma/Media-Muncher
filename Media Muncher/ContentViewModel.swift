@@ -22,14 +22,16 @@ class ContentViewModel: ObservableObject {
 
     private func setupVolumeObserver() {
         volumeObserver.onVolumeChange = { [weak self] in
+            print("ContentViewModel: Volume change detected")
             self?.refreshVolumes()
         }
     }
 
     private func setupVolumeManagerBindings() {
-        volumeManager.$selectedVolumeID.assign(to: &$selectedVolumeID)
-        $selectedVolumeID
+        volumeManager.$selectedVolumeID
             .sink { [weak self] newID in
+                print("ContentViewModel: Selected volume ID changed to: \(newID ?? "nil")")
+                self?.selectedVolumeID = newID
                 if let id = newID {
                     self?.selectVolume(withID: id)
                 } else {
@@ -40,10 +42,12 @@ class ContentViewModel: ObservableObject {
     }
 
     func refreshVolumes() {
+        print("ContentViewModel: Refreshing volumes")
         volumeManager.loadVolumes()
     }
 
     func selectVolume(withID id: String) {
+        print("ContentViewModel: Selecting volume with ID: \(id)")
         if let selectedVolume = volumes.first(where: { $0.id == id }) {
             print("ContentViewModel: Enumerating files for volume: \(selectedVolume.name)")
             enumerateFiles(for: selectedVolume.devicePath)
@@ -54,6 +58,7 @@ class ContentViewModel: ObservableObject {
     }
 
     func enumerateFiles(for volumePath: String) {
+        print("ContentViewModel: Attempting to enumerate files at path: \(volumePath)")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let items = FileEnumerator.enumerateFiles(for: volumePath)
             DispatchQueue.main.async {

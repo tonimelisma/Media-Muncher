@@ -16,7 +16,7 @@ class VolumeManager: ObservableObject {
             do {
                 let resourceValues = try url.resourceValues(forKeys: [.volumeNameKey, .volumeTotalCapacityKey, .volumeAvailableCapacityKey, .volumeIsRemovableKey, .volumeUUIDStringKey])
                 guard resourceValues.volumeIsRemovable == true else { return nil }
-                print("VolumeManager: Found removable volume: \(resourceValues.volumeName ?? "Unnamed Volume")")
+                print("VolumeManager: Found removable volume: \(resourceValues.volumeName ?? "Unnamed Volume") at \(url.path)")
                 return Volume(
                     id: url.path,
                     name: resourceValues.volumeName ?? "Unnamed Volume",
@@ -46,5 +46,19 @@ class VolumeManager: ObservableObject {
     func selectVolume(withID id: String) {
         print("VolumeManager: Selecting volume with ID: \(id)")
         selectedVolumeID = id
+        
+        // Request access to the volume
+        guard let volumeURL = URL(string: id) else {
+            print("VolumeManager: Invalid volume URL")
+            return
+        }
+        
+        if volumeURL.startAccessingSecurityScopedResource() {
+            print("VolumeManager: Successfully accessed volume at \(id)")
+            // Remember to call stopAccessingSecurityScopedResource() when done
+            // This should be called in a defer block or when you're done accessing the volume
+        } else {
+            print("VolumeManager: Failed to access volume at \(id)")
+        }
     }
 }

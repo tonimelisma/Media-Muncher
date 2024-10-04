@@ -11,28 +11,35 @@ struct MediaView: View {
             if volumes.isEmpty {
                 Text("No removable volumes found")
             } else if let volume = volume {
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
-                        ForEach(fileItems) { item in
-                            VStack {
-                                Image(systemName: item.type == "directory" ? "folder" : "doc")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 50, height: 50)
-                                    .foregroundColor(item.type == "directory" ? .blue : .gray)
-                                Text(item.name)
-                                    .font(.caption)
-                                    .lineLimit(1)
+                VStack {
+                    Text("Volume: \(volume.name)")
+                        .font(.headline)
+                        .padding(.bottom)
+                    
+                    if fileItems.isEmpty {
+                        Text("No files found on this volume")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ScrollView {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
+                                ForEach(fileItems) { item in
+                                    VStack {
+                                        Image(systemName: item.type == "directory" ? "folder" : "doc")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 50, height: 50)
+                                            .foregroundColor(item.type == "directory" ? .blue : .gray)
+                                        Text(item.name)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    }
+                                }
                             }
+                            .padding()
                         }
                     }
-                    .padding()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                Text("Volume: \(volume.name)")
-                    .font(.headline)
-                    .padding(.bottom)
             } else {
                 Text("Select a volume")
             }
