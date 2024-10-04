@@ -1,28 +1,48 @@
 import SwiftUI
 
 struct MediaView: View {
-    let volume: Volume?
-    let volumes: [Volume]
-    let fileItems: [FileItem]
+    @ObservedObject var viewModel: ContentViewModel
     @Binding var defaultSavePath: String
 
     var body: some View {
         VStack {
-            if volumes.isEmpty {
+            if viewModel.volumes.isEmpty {
                 Text("No removable volumes found")
-            } else if let volume = volume {
+            } else if let volume = viewModel.volumes.first(where: { $0.id == viewModel.selectedVolumeID }) {
                 VStack {
                     Text("Volume: \(volume.name)")
                         .font(.headline)
                         .padding(.bottom)
                     
-                    if fileItems.isEmpty {
+                    if let errorMessage = viewModel.errorMessage {
+                        Button(action: {
+                            viewModel.showingPermissionAlert = true
+                        }) {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .padding()
+                        }
+                        .alert(isPresented: $viewModel.showingPermissionAlert) {
+                            Alert(
+                                title: Text("Permission Required"),
+                                message: Text("To access this volume, you may need to grant permission in System Preferences or select the volume again."),
+                                primaryButton: .default(Text("Open System Preferences")) {
+                                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                },
+                                secondaryButton: .default(Text("Select Volume")) {
+                                    viewModel.requestVolumeAccess()
+                                }
+                            )
+                        }
+                    } else if viewModel.fileItems.isEmpty {
                         Text("No files found on this volume")
                             .foregroundColor(.secondary)
                     } else {
                         ScrollView {
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
-                                ForEach(fileItems) { item in
+                                ForEach(viewModel.fileItems) { item in
                                     VStack {
                                         Image(systemName: item.type == "directory" ? "folder" : "doc")
                                             .resizable()
@@ -60,28 +80,14 @@ struct MediaView: View {
                     print("MediaView: Import button tapped")
                     // Import action here
                 }
-                .disabled(volume == nil)
+                .disabled(viewModel.selectedVolumeID == nil)
             }
             .padding()
         }
         .onAppear {
             print("MediaView: View appeared")
-            print("MediaView: Volume - \(volume?.name ?? "None")")
-            print("MediaView: File items count - \(fileItems.count)")
+            print("MediaView: Volume - \(viewModel.volumes.first(where: { $0.id == viewModel.selectedVolumeID })?.name ?? "None")")
+            print("MediaView: File items count - \(viewModel.fileItems.count)")
         }
-    }
-}
-
-struct MediaView_Previews: PreviewProvider {
-    static var previews: some View {
-        MediaView(
-            volume: Volume(
-                id: "1", name: "Test Volume", devicePath: "/Volumes/Test",
-                totalSize: 1_000_000_000, freeSize: 500_000_000,
-                volumeUUID: "123456"),
-            volumes: [],
-            fileItems: [],
-            defaultSavePath: .constant(NSHomeDirectory())
-        )
     }
 }

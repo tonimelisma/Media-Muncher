@@ -1,18 +1,22 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = ContentViewModel()
+    @StateObject private var volumeManager = VolumeManager()
+    @StateObject private var viewModel: ContentViewModel
     @AppStorage("defaultSavePath") private var defaultSavePath = NSHomeDirectory()
+
+    init() {
+        let vm = VolumeManager()
+        _volumeManager = StateObject(wrappedValue: vm)
+        _viewModel = StateObject(wrappedValue: ContentViewModel(volumeManager: vm))
+    }
 
     var body: some View {
         NavigationView {
             VolumeView(viewModel: viewModel)
                 .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
 
-            MediaView(volume: viewModel.volumes.first(where: { $0.id == viewModel.selectedVolumeID }),
-                      volumes: viewModel.volumes,
-                      fileItems: viewModel.fileItems,
-                      defaultSavePath: $defaultSavePath)
+            MediaView(viewModel: viewModel, defaultSavePath: $defaultSavePath)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationTitle("Media Muncher")

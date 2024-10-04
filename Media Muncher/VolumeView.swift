@@ -4,7 +4,10 @@ struct VolumeView: View {
     @ObservedObject var viewModel: ContentViewModel
 
     var body: some View {
-        List(selection: $viewModel.selectedVolumeID) {
+        List(selection: Binding(
+            get: { self.viewModel.selectedVolumeID },
+            set: { self.viewModel.selectVolume(withID: $0 ?? "") }
+        )) {
             Section(header: Text("REMOVABLE VOLUMES")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(.secondary)
@@ -29,10 +32,6 @@ struct VolumeView: View {
                     }
                     .padding(.vertical, 2)
                     .tag(volume.id)
-                    .onTapGesture {
-                        print("VolumeView: Volume tapped: \(volume.name)")
-                        viewModel.selectVolume(withID: volume.id)
-                    }
                 }
             }
         }
@@ -59,6 +58,6 @@ struct VolumeView: View {
 
 struct VolumeView_Previews: PreviewProvider {
     static var previews: some View {
-        VolumeView(viewModel: ContentViewModel())
+        VolumeView(viewModel: ContentViewModel(volumeManager: VolumeManager()))
     }
 }
