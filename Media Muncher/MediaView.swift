@@ -27,6 +27,7 @@ struct MediaView: View {
                     }
                     .padding()
                 }
+                .background(.white)
             } else {
                 Text("Select a volume")
             }

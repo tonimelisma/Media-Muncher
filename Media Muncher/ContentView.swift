@@ -52,6 +52,7 @@ struct ContentView: View {
                 }
             }
         }
+        .toolbarBackground(.quinary)
         .frame(minWidth: 800, minHeight: 600)
     }
 
