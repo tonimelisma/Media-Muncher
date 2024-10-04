@@ -6,12 +6,14 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            VolumeView(volumes: $viewModel.volumes, selectedVolumeID: $viewModel.selectedVolumeID)
+            VolumeView(viewModel: viewModel)
                 .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
 
             MediaView(volume: viewModel.volumes.first(where: { $0.id == viewModel.selectedVolumeID }),
                       volumes: viewModel.volumes,
+                      fileItems: viewModel.fileItems,
                       defaultSavePath: $defaultSavePath)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationTitle("Media Muncher")
         .toolbar {
@@ -32,7 +34,8 @@ struct ContentView: View {
 
             ToolbarItem(placement: .automatic) {
                 Button(action: {
-                    viewModel.loadVolumes()
+                    print("ContentView: Refresh volumes button tapped")
+                    viewModel.refreshVolumes()
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
@@ -54,9 +57,13 @@ struct ContentView: View {
         }
         .toolbarBackground(.quinary)
         .frame(minWidth: 800, minHeight: 600)
+        .onAppear {
+            print("ContentView: View appeared")
+        }
     }
 
     private func toggleSidebar() {
+        print("ContentView: Toggle sidebar called")
         NSApp.keyWindow?.firstResponder?.tryToPerform(
             #selector(NSSplitViewController.toggleSidebar(_:)), with: nil)
     }

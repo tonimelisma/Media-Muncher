@@ -3,8 +3,8 @@ import SwiftUI
 struct MediaView: View {
     let volume: Volume?
     let volumes: [Volume]
+    let fileItems: [FileItem]
     @Binding var defaultSavePath: String
-    @State private var isDirectoryPickerPresented = false
 
     var body: some View {
         VStack {
@@ -12,22 +12,27 @@ struct MediaView: View {
                 Text("No removable volumes found")
             } else if let volume = volume {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Volume Information:")
-                            .font(.headline)
-                        Text("Name: \(volume.name)")
-                        Text("Path: \(volume.devicePath)")
-                        Text("UUID: \(volume.volumeUUID)")
-                        Text(
-                            "Total Size: \(ByteCountFormatter.string(fromByteCount: volume.totalSize, countStyle: .file))"
-                        )
-                        Text(
-                            "Free Size: \(ByteCountFormatter.string(fromByteCount: volume.freeSize, countStyle: .file))"
-                        )
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
+                        ForEach(fileItems) { item in
+                            VStack {
+                                Image(systemName: item.type == "directory" ? "folder" : "doc")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 50, height: 50)
+                                    .foregroundColor(item.type == "directory" ? .blue : .gray)
+                                Text(item.name)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                            }
+                        }
                     }
                     .padding()
                 }
-                .background(.white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Text("Volume: \(volume.name)")
+                    .font(.headline)
+                    .padding(.bottom)
             } else {
                 Text("Select a volume")
             }
@@ -45,11 +50,17 @@ struct MediaView: View {
                 Spacer()
 
                 Button("Import") {
+                    print("MediaView: Import button tapped")
                     // Import action here
                 }
                 .disabled(volume == nil)
             }
             .padding()
+        }
+        .onAppear {
+            print("MediaView: View appeared")
+            print("MediaView: Volume - \(volume?.name ?? "None")")
+            print("MediaView: File items count - \(fileItems.count)")
         }
     }
 }
@@ -60,7 +71,10 @@ struct MediaView_Previews: PreviewProvider {
             volume: Volume(
                 id: "1", name: "Test Volume", devicePath: "/Volumes/Test",
                 totalSize: 1_000_000_000, freeSize: 500_000_000,
-                volumeUUID: "123456"), volumes: [],
-            defaultSavePath: .constant(NSHomeDirectory()))
+                volumeUUID: "123456"),
+            volumes: [],
+            fileItems: [],
+            defaultSavePath: .constant(NSHomeDirectory())
+        )
     }
 }

@@ -5,6 +5,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
     }
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        print("AppDelegate: Application did finish launching")
+    }
 }
 
 @main
@@ -25,5 +29,9 @@ struct Media_MuncherApp: App {
         Settings {
             SettingsView()
         }
+    }
+    
+    init() {
+        print("Media_MuncherApp: Initializing")
     }
 }
