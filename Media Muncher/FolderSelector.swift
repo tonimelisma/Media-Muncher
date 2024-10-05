@@ -1,5 +1,3 @@
-// Custom folder selector Pop-up Button
-
 import SwiftUI
 
 struct FolderSelector: View {
@@ -52,6 +50,7 @@ struct FolderSelector: View {
         ) { result in
             if let url = try? result.get().first {
                 self.defaultSavePath = url.path
+                UserDefaults.standard.set(url.path, forKey: "defaultSavePath")
             }
         }
     }
@@ -64,6 +63,7 @@ struct FolderSelector: View {
             openSettings()
         default:
             defaultSavePath = selection
+            UserDefaults.standard.set(selection, forKey: "defaultSavePath")
         }
     }
 }

@@ -1,18 +1,18 @@
 import SwiftUI
 
 struct VolumeView: View {
-    @ObservedObject var viewModel: ContentViewModel
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         List(selection: Binding(
-            get: { self.viewModel.selectedVolumeID },
-            set: { self.viewModel.selectVolume(withID: $0 ?? "") }
+            get: { self.appState.selectedVolumeID },
+            set: { VolumeLogic.selectVolume(withID: $0 ?? "", appState: self.appState) }
         )) {
             Section(header: Text("REMOVABLE VOLUMES")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(.secondary)
                 .padding(.top, 8)) {
-                ForEach(viewModel.volumes) { volume in
+                ForEach(appState.volumes) { volume in
                     HStack(spacing: 8) {
                         Image(systemName: "sdcard.fill")
                             .font(.system(size: 16))
@@ -22,7 +22,7 @@ struct VolumeView: View {
                         Spacer()
                         Button(action: {
                             print("VolumeView: Eject button tapped for volume: \(volume.name)")
-                            ejectVolume(volume)
+                            VolumeLogic.ejectVolume(volume, appState: appState)
                         }) {
                             Image(systemName: "eject.fill")
                                 .font(.system(size: 11))
@@ -38,26 +38,14 @@ struct VolumeView: View {
         .listStyle(SidebarListStyle())
         .onAppear {
             print("VolumeView: View appeared")
-            print("VolumeView: Volumes count - \(viewModel.volumes.count)")
-            print("VolumeView: Selected volume ID - \(viewModel.selectedVolumeID ?? "None")")
-        }
-    }
-
-    private func ejectVolume(_ volume: Volume) {
-        print("VolumeView: Attempting to eject volume: \(volume.name)")
-        let url = URL(fileURLWithPath: volume.devicePath)
-        do {
-            try NSWorkspace.shared.unmountAndEjectDevice(at: url)
-            print("VolumeView: Successfully ejected volume: \(volume.name)")
-            viewModel.refreshVolumes()
-        } catch {
-            print("VolumeView: Error ejecting volume: \(volume.name) - \(error.localizedDescription)")
+            print("VolumeView: Volumes count - \(appState.volumes.count)")
+            print("VolumeView: Selected volume ID - \(appState.selectedVolumeID ?? "None")")
         }
     }
 }
 
 struct VolumeView_Previews: PreviewProvider {
     static var previews: some View {
-        VolumeView(viewModel: ContentViewModel(volumeManager: VolumeManager()))
+        VolumeView().environmentObject(AppState())
     }
 }

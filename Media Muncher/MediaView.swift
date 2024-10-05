@@ -1,28 +1,27 @@
 import SwiftUI
 
 struct MediaView: View {
-    @ObservedObject var viewModel: ContentViewModel
-    @Binding var defaultSavePath: String
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         VStack {
-            if viewModel.volumes.isEmpty {
+            if appState.volumes.isEmpty {
                 Text("No removable volumes found")
-            } else if let volume = viewModel.volumes.first(where: { $0.id == viewModel.selectedVolumeID }) {
+            } else if let volume = appState.volumes.first(where: { $0.id == appState.selectedVolumeID }) {
                 VStack {
                     Text("Volume: \(volume.name)")
                         .font(.headline)
                         .padding(.bottom)
                     
-                    if let errorMessage = viewModel.errorMessage {
+                    if let errorMessage = appState.errorMessage {
                         Button(action: {
-                            viewModel.showingPermissionAlert = true
+                            appState.showingPermissionAlert = true
                         }) {
                             Text(errorMessage)
                                 .foregroundColor(.red)
                                 .padding()
                         }
-                        .alert(isPresented: $viewModel.showingPermissionAlert) {
+                        .alert(isPresented: $appState.showingPermissionAlert) {
                             Alert(
                                 title: Text("Permission Required"),
                                 message: Text("To access this volume, you may need to grant permission in System Preferences or select the volume again."),
@@ -32,17 +31,17 @@ struct MediaView: View {
                                     }
                                 },
                                 secondaryButton: .default(Text("Select Volume")) {
-                                    viewModel.requestVolumeAccess()
+                                    VolumeLogic.requestVolumeAccess(appState)
                                 }
                             )
                         }
-                    } else if viewModel.fileItems.isEmpty {
+                    } else if appState.fileItems.isEmpty {
                         Text("No files found on this volume")
                             .foregroundColor(.secondary)
                     } else {
                         ScrollView {
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
-                                ForEach(viewModel.fileItems) { item in
+                                ForEach(appState.fileItems) { item in
                                     VStack {
                                         Image(systemName: item.type == "directory" ? "folder" : "doc")
                                             .resizable()
@@ -71,23 +70,29 @@ struct MediaView: View {
                     .font(.system(size: 13, weight: .semibold))
 
                 FolderSelector(
-                    defaultSavePath: $defaultSavePath,
+                    defaultSavePath: $appState.defaultSavePath,
                     showAdvancedSettings: true)
 
                 Spacer()
 
                 Button("Import") {
                     print("MediaView: Import button tapped")
-                    // Import action here
+                    MediaLogic.importMedia(appState: appState)
                 }
-                .disabled(viewModel.selectedVolumeID == nil)
+                .disabled(appState.selectedVolumeID == nil)
             }
             .padding()
         }
         .onAppear {
             print("MediaView: View appeared")
-            print("MediaView: Volume - \(viewModel.volumes.first(where: { $0.id == viewModel.selectedVolumeID })?.name ?? "None")")
-            print("MediaView: File items count - \(viewModel.fileItems.count)")
+            print("MediaView: Volume - \(appState.volumes.first(where: { $0.id == appState.selectedVolumeID })?.name ?? "None")")
+            print("MediaView: File items count - \(appState.fileItems.count)")
         }
+    }
+}
+
+struct MediaView_Previews: PreviewProvider {
+    static var previews: some View {
+        MediaView().environmentObject(AppState())
     }
 }

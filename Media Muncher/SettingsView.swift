@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("defaultSavePath") private var defaultSavePath = NSHomeDirectory()
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         Form {
@@ -9,10 +9,12 @@ struct SettingsView: View {
                 Text("Import To:")
                     .frame(width: 120, alignment: .trailing)
                 
-                FolderSelector(defaultSavePath: $defaultSavePath, showAdvancedSettings: false)
+                FolderSelector(
+                    defaultSavePath: $appState.defaultSavePath,
+                    showAdvancedSettings: false)
             }
             
-            Text(defaultSavePath)
+            Text(appState.defaultSavePath)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -23,6 +25,6 @@ struct SettingsView: View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView()
+        SettingsView().environmentObject(AppState())
     }
 }

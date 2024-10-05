@@ -14,12 +14,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct Media_MuncherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    @StateObject private var volumeManager = VolumeManager()
+    @StateObject private var appState = AppState()
         
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(volumeManager)
+                .environmentObject(appState)
         }
         .windowStyle(HiddenTitleBarWindowStyle())
         .windowToolbarStyle(.unified)
@@ -30,6 +30,7 @@ struct Media_MuncherApp: App {
         
         Settings {
             SettingsView()
+                .environmentObject(appState)
         }
     }
     

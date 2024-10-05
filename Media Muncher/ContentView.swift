@@ -1,28 +1,20 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var volumeManager = VolumeManager()
-    @StateObject private var viewModel: ContentViewModel
-    @AppStorage("defaultSavePath") private var defaultSavePath = NSHomeDirectory()
-
-    init() {
-        let vm = VolumeManager()
-        _volumeManager = StateObject(wrappedValue: vm)
-        _viewModel = StateObject(wrappedValue: ContentViewModel(volumeManager: vm))
-    }
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         NavigationView {
-            VolumeView(viewModel: viewModel)
+            VolumeView()
                 .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
 
-            MediaView(viewModel: viewModel, defaultSavePath: $defaultSavePath)
+            MediaView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationTitle("Media Muncher")
         .toolbar {
             ToolbarItem(placement: .navigation) {
-                Button(action: toggleSidebar) {
+                Button(action: UILogic.toggleSidebar) {
                     Image(systemName: "sidebar.leading")
                 }
             }
@@ -39,7 +31,7 @@ struct ContentView: View {
             ToolbarItem(placement: .automatic) {
                 Button(action: {
                     print("ContentView: Refresh volumes button tapped")
-                    viewModel.refreshVolumes()
+                    VolumeLogic.refreshVolumes(appState)
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
@@ -65,16 +57,10 @@ struct ContentView: View {
             print("ContentView: View appeared")
         }
     }
-
-    private func toggleSidebar() {
-        print("ContentView: Toggle sidebar called")
-        NSApp.keyWindow?.firstResponder?.tryToPerform(
-            #selector(NSSplitViewController.toggleSidebar(_:)), with: nil)
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView().environmentObject(AppState())
     }
 }
