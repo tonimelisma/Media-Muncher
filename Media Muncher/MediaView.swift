@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MediaView: View {
     @EnvironmentObject var appState: AppState
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     var body: some View {
         GeometryReader { geometry in
@@ -26,28 +28,7 @@ struct MediaView: View {
                         .buttonStyle(.borderedProminent)
                     }
                 } else if let _ = appState.volumes.first(where: { $0.id == appState.selectedVolumeID }) {
-                    if let _ = appState.errorMessage {
-                        centeredContent {
-                            Text("Full Disk Access Required")
-                                .font(.headline)
-                            
-                            Text("Media Muncher needs permission to access files on this volume. Click 'Grant Access' to open System Settings, then add Media Muncher to the Full Disk Access list.")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                            
-                            Button(action: {
-                                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
-                                    NSWorkspace.shared.open(url)
-                                }
-                            }) {
-                                Text("Grant Access")
-                                    .frame(minWidth: 100)
-                                    .padding(.vertical, 5)
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    } else if appState.fileItems.isEmpty {
+                    if appState.fileItems.isEmpty {
                         centeredContent {
                             Text("No Files Found")
                                 .font(.headline)
@@ -102,12 +83,20 @@ struct MediaView: View {
 
                     Button("Import") {
                         print("MediaView: Import button tapped")
-                        MediaLogic.importMedia(appState: appState)
+                        do {
+                            try MediaLogic.importMedia()
+                        } catch {
+                            errorMessage = error.localizedDescription
+                            showingError = true
+                        }
                     }
                     .disabled(appState.selectedVolumeID == nil)
                 }
                 .padding()
             }
+        }
+        .alert(isPresented: $showingError) {
+            Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
         }
         .onAppear {
             print("MediaView: View appeared")

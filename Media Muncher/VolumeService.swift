@@ -2,8 +2,6 @@ import Foundation
 import AppKit
 
 class VolumeService {
-    private static var volumeBookmarks: [String: Data] = [:]
-    
     static func loadVolumes() -> [Volume] {
         print("VolumeService: Loading volumes")
         let fileManager = FileManager.default
@@ -40,48 +38,23 @@ class VolumeService {
         print("VolumeService: Successfully ejected volume: \(volume.name)")
     }
     
-    static func createAndStoreBookmark(for path: String) -> Bool {
+    static func accessVolumeAndCreateBookmark(for path: String) -> Bool {
+        print("VolumeService: Attempting to access volume and create bookmark for \(path)")
         let url = URL(fileURLWithPath: path)
         do {
-            let bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-            volumeBookmarks[path] = bookmark
             if url.startAccessingSecurityScopedResource() {
-                print("VolumeService: Successfully created bookmark and accessed volume")
+                let bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                UserDefaults.standard.set(bookmark, forKey: "bookmark_\(path)")
+                print("VolumeService: Successfully accessed volume and created bookmark for \(path)")
+                url.stopAccessingSecurityScopedResource()
                 return true
             } else {
-                print("VolumeService: Created bookmark but failed to access volume")
-                return false
+                print("VolumeService: Failed to access volume for \(path)")
             }
         } catch {
-            print("VolumeService: Error creating bookmark: \(error)")
-            return false
-        }
-    }
-    
-    static func getBookmark(for path: String) -> Data? {
-        return volumeBookmarks[path]
-    }
-    
-    static func resolveBookmark(_ bookmark: Data, for path: String) -> Bool {
-        var isStale = false
-        do {
-            let resolvedURL = try URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-            if isStale {
-                print("VolumeService: Bookmark is stale, creating new one")
-                return createAndStoreBookmark(for: path)
-            } else if resolvedURL.startAccessingSecurityScopedResource() {
-                print("VolumeService: Successfully accessed volume using bookmark")
-                return true
-            }
-        } catch {
-            print("VolumeService: Error resolving bookmark: \(error)")
+            print("VolumeService: Error accessing volume or creating bookmark: \(error)")
         }
         return false
-    }
-    
-    static func stopAccessingVolume(withID id: String) {
-        let url = URL(fileURLWithPath: id)
-        url.stopAccessingSecurityScopedResource()
     }
     
     static func observeVolumeChanges(callback: @escaping () -> Void) -> (NSObjectProtocol, NSObjectProtocol) {
