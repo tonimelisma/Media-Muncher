@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// `FolderSelector` is a custom view for selecting a folder path.
 struct FolderSelector: View {
     @Binding var defaultSavePath: String
     var showAdvancedSettings: Bool
@@ -7,6 +8,7 @@ struct FolderSelector: View {
 
     @Environment(\.openSettings) private var openSettings
 
+    /// An array of default folder locations.
     let defaultFolders = [
         ("Documents", FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first),
         ("Desktop", FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first),
@@ -55,6 +57,8 @@ struct FolderSelector: View {
         }
     }
 
+    /// Handles the selection of a folder.
+    /// - Parameter selection: The selected folder path or action.
     func handleSelection(_ selection: String) {
         switch selection {
         case "other":
@@ -68,6 +72,7 @@ struct FolderSelector: View {
     }
 }
 
+/// `PopUpButton` is a custom button that displays a menu of options.
 struct PopUpButton<SelectionValue: Hashable, Content: View>: View {
     @Binding var selection: SelectionValue
     var content: () -> Content

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// `VolumeView` displays a list of available volumes and allows for volume selection and ejection.
 struct VolumeView: View {
     @ObservedObject var viewModel: VolumeViewModel
     @EnvironmentObject var appState: AppState
@@ -58,6 +59,7 @@ struct VolumeView: View {
     }
 }
 
+/// Preview provider for VolumeView
 struct VolumeView_Previews: PreviewProvider {
     static var previews: some View {
         let appState = AppState()

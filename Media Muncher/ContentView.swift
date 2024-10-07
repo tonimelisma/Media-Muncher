@@ -1,10 +1,14 @@
 import SwiftUI
 
+/// `ContentView` is the main view of the application.
+/// It sets up the navigation structure and toolbar.
 struct ContentView: View {
     @StateObject private var volumeViewModel: VolumeViewModel
     @StateObject private var mediaViewModel: MediaViewModel
     @ObservedObject var appState: AppState
 
+    /// Initializes the `ContentView` with the given `AppState`.
+    /// - Parameter appState: The global app state.
     init(appState: AppState) {
         self.appState = appState
         _volumeViewModel = StateObject(wrappedValue: VolumeViewModel(appState: appState))
@@ -13,14 +17,17 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
+            // Sidebar view for volume selection
             VolumeView(viewModel: volumeViewModel)
                 .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
 
+            // Main content view for media display
             MediaView(mediaViewModel: mediaViewModel, volumeViewModel: volumeViewModel)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationTitle("Media Muncher")
         .toolbar {
+            // Toolbar items
             ToolbarItem(placement: .navigation) {
                 Button(action: UILogic.toggleSidebar) {
                     Image(systemName: "sidebar.leading")
@@ -68,6 +75,7 @@ struct ContentView: View {
     }
 }
 
+/// Preview provider for ContentView
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView(appState: AppState())

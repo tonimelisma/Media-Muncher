@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// `MediaView` displays the content of the selected volume.
 struct MediaView: View {
     @ObservedObject var mediaViewModel: MediaViewModel
     @ObservedObject var volumeViewModel: VolumeViewModel
@@ -107,6 +108,9 @@ struct MediaView: View {
         }
     }
     
+    /// Creates a centered content view.
+    /// - Parameter content: The content to be centered.
+    /// - Returns: A view with the content centered both vertically and horizontally.
     private func centeredContent<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack {
             Spacer()
@@ -121,6 +125,7 @@ struct MediaView: View {
     }
 }
 
+/// Preview provider for MediaView
 struct MediaView_Previews: PreviewProvider {
     static var previews: some View {
         let appState = AppState()

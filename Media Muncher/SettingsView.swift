@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// `SettingsView` displays and manages application settings.
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
 
@@ -23,6 +24,7 @@ struct SettingsView: View {
     }
 }
 
+/// Preview provider for SettingsView
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView().environmentObject(AppState())

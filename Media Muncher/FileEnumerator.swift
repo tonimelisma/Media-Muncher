@@ -1,6 +1,12 @@
 import Foundation
 
+/// `FileEnumerator` is a utility class for enumerating files in a given directory.
 class FileEnumerator {
+    /// Enumerates files in the specified volume path.
+    /// - Parameters:
+    ///   - volumePath: The path of the volume to enumerate.
+    ///   - limit: The maximum number of files to enumerate (default is 10).
+    /// - Returns: An array of `FileItem` objects representing the enumerated files.
     static func enumerateFiles(for volumePath: String, limit: Int = 10) -> [FileItem] {
         print("FileEnumerator: Enumerating files for path: \(volumePath)")
         var fileItems: [FileItem] = []

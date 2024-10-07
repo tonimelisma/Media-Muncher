@@ -1,7 +1,10 @@
 import Foundation
 import AppKit
 
+/// `VolumeService` provides methods for interacting with storage volumes.
 class VolumeService {
+    /// Loads all removable volumes connected to the system.
+    /// - Returns: An array of `Volume` objects representing the removable volumes.
     static func loadVolumes() -> [Volume] {
         print("VolumeService: Loading volumes")
         let fileManager = FileManager.default
@@ -31,6 +34,9 @@ class VolumeService {
         }
     }
     
+    /// Ejects the specified volume.
+    /// - Parameter volume: The `Volume` to eject.
+    /// - Throws: An error if the ejection fails.
     static func ejectVolume(_ volume: Volume) throws {
         print("VolumeService: Attempting to eject volume: \(volume.name)")
         let url = URL(fileURLWithPath: volume.devicePath)
@@ -38,6 +44,9 @@ class VolumeService {
         print("VolumeService: Successfully ejected volume: \(volume.name)")
     }
     
+    /// Attempts to access a volume and create a security-scoped bookmark.
+    /// - Parameter path: The path of the volume to access.
+    /// - Returns: `true` if access was granted and a bookmark was created, `false` otherwise.
     static func accessVolumeAndCreateBookmark(for path: String) -> Bool {
         print("VolumeService: Attempting to access volume and create bookmark for \(path)")
         let url = URL(fileURLWithPath: path)
@@ -57,7 +66,11 @@ class VolumeService {
         return false
     }
     
-    // Keeping these unused functions as requested
+    // MARK: - Unused Functions (Kept as requested)
+    
+    /// Observes volume mount and unmount events.
+    /// - Parameter callback: A closure to be called when a volume is mounted or unmounted.
+    /// - Returns: A tuple of `NSObjectProtocol` objects representing the mount and unmount observers.
     static func observeVolumeChanges(callback: @escaping () -> Void) -> (NSObjectProtocol, NSObjectProtocol) {
         let notificationCenter = NotificationCenter.default
 
@@ -78,6 +91,8 @@ class VolumeService {
         return (mountObserver, unmountObserver)
     }
     
+    /// Removes the volume mount and unmount observers.
+    /// - Parameter observers: A tuple of `NSObjectProtocol` objects representing the mount and unmount observers.
     static func removeVolumeObservers(_ observers: (NSObjectProtocol, NSObjectProtocol)) {
         NotificationCenter.default.removeObserver(observers.0)
         NotificationCenter.default.removeObserver(observers.1)
