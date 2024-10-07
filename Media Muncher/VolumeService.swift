@@ -57,6 +57,7 @@ class VolumeService {
         return false
     }
     
+    // Keeping these unused functions as requested
     static func observeVolumeChanges(callback: @escaping () -> Void) -> (NSObjectProtocol, NSObjectProtocol) {
         let notificationCenter = NotificationCenter.default
 

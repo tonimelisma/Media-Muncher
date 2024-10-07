@@ -15,10 +15,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct Media_MuncherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var appState = AppState()
-        
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(appState: appState)
                 .environmentObject(appState)
         }
         .windowStyle(HiddenTitleBarWindowStyle())

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct VolumeView: View {
+    @ObservedObject var viewModel: VolumeViewModel
     @EnvironmentObject var appState: AppState
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -24,7 +25,7 @@ struct VolumeView: View {
                         Button(action: {
                             print("VolumeView: Eject button tapped for volume: \(volume.name)")
                             do {
-                                try VolumeLogic.ejectVolume(volume, appState: appState)
+                                try viewModel.ejectVolume(volume)
                             } catch {
                                 errorMessage = "Failed to eject volume: \(error.localizedDescription)"
                                 showingError = true
@@ -44,7 +45,7 @@ struct VolumeView: View {
         }
         .onChange(of: appState.selectedVolumeID) { newID, _ in
             if let id = newID {
-                VolumeLogic.selectVolume(withID: id, appState: appState)
+                viewModel.selectVolume(withID: id)
             }
         }
         .alert(isPresented: $showingError) {
@@ -52,8 +53,7 @@ struct VolumeView: View {
         }
         .onAppear {
             print("VolumeView: View appeared")
-            print("VolumeView: Volumes count - \(appState.volumes.count)")
-            print("VolumeView: Selected volume ID - \(appState.selectedVolumeID ?? "None")")
+            viewModel.loadVolumes()
         }
     }
 }
@@ -61,6 +61,7 @@ struct VolumeView: View {
 struct VolumeView_Previews: PreviewProvider {
     static var previews: some View {
         let appState = AppState()
+        let volumeViewModel = VolumeViewModel(appState: appState)
         appState.volumes = [
             Volume(id: "1", name: "Volume 1", devicePath: "/path/to/volume1", totalSize: 1000000000, freeSize: 500000000, volumeUUID: "UUID1"),
             Volume(id: "2", name: "Volume 2", devicePath: "/path/to/volume2", totalSize: 2000000000, freeSize: 1000000000, volumeUUID: "UUID2"),
@@ -68,7 +69,7 @@ struct VolumeView_Previews: PreviewProvider {
         ]
         appState.selectedVolumeID = "1"
         
-        return VolumeView()
+        return VolumeView(viewModel: volumeViewModel)
             .environmentObject(appState)
     }
 }

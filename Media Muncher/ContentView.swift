@@ -1,14 +1,22 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var appState: AppState
+    @StateObject private var volumeViewModel: VolumeViewModel
+    @StateObject private var mediaViewModel: MediaViewModel
+    @ObservedObject var appState: AppState
+
+    init(appState: AppState) {
+        self.appState = appState
+        _volumeViewModel = StateObject(wrappedValue: VolumeViewModel(appState: appState))
+        _mediaViewModel = StateObject(wrappedValue: MediaViewModel(appState: appState))
+    }
 
     var body: some View {
         NavigationView {
-            VolumeView()
+            VolumeView(viewModel: volumeViewModel)
                 .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
 
-            MediaView()
+            MediaView(mediaViewModel: mediaViewModel, volumeViewModel: volumeViewModel)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationTitle("Media Muncher")
@@ -31,7 +39,7 @@ struct ContentView: View {
             ToolbarItem(placement: .automatic) {
                 Button(action: {
                     print("ContentView: Refresh volumes button tapped")
-                    VolumeLogic.refreshVolumes(appState)
+                    volumeViewModel.refreshVolumes()
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
@@ -56,11 +64,12 @@ struct ContentView: View {
         .onAppear {
             print("ContentView: View appeared")
         }
+        .environmentObject(appState)
     }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView().environmentObject(AppState())
+        ContentView(appState: AppState())
     }
 }

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct MediaView: View {
+    @ObservedObject var mediaViewModel: MediaViewModel
+    @ObservedObject var volumeViewModel: VolumeViewModel
     @EnvironmentObject var appState: AppState
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -19,7 +21,7 @@ struct MediaView: View {
                             .multilineTextAlignment(.center)
                         
                         Button(action: {
-                            VolumeLogic.refreshVolumes(appState)
+                            volumeViewModel.refreshVolumes()
                         }) {
                             Text("Refresh Volumes")
                                 .frame(minWidth: 100)
@@ -28,7 +30,7 @@ struct MediaView: View {
                         .buttonStyle(.borderedProminent)
                     }
                 } else if let _ = appState.volumes.first(where: { $0.id == appState.selectedVolumeID }) {
-                    if appState.fileItems.isEmpty {
+                    if mediaViewModel.fileItems.isEmpty {
                         centeredContent {
                             Text("No Files Found")
                                 .font(.headline)
@@ -41,7 +43,7 @@ struct MediaView: View {
                     } else {
                         ScrollView {
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
-                                ForEach(appState.fileItems) { item in
+                                ForEach(mediaViewModel.fileItems) { item in
                                     VStack {
                                         Image(systemName: item.type == "directory" ? "folder" : "doc")
                                             .resizable()
@@ -84,7 +86,7 @@ struct MediaView: View {
                     Button("Import") {
                         print("MediaView: Import button tapped")
                         do {
-                            try MediaLogic.importMedia()
+                            try mediaViewModel.importMedia()
                         } catch {
                             errorMessage = error.localizedDescription
                             showingError = true
@@ -101,7 +103,7 @@ struct MediaView: View {
         .onAppear {
             print("MediaView: View appeared")
             print("MediaView: Volume - \(appState.volumes.first(where: { $0.id == appState.selectedVolumeID })?.name ?? "None")")
-            print("MediaView: File items count - \(appState.fileItems.count)")
+            print("MediaView: File items count - \(mediaViewModel.fileItems.count)")
         }
     }
     
@@ -121,6 +123,9 @@ struct MediaView: View {
 
 struct MediaView_Previews: PreviewProvider {
     static var previews: some View {
-        MediaView().environmentObject(AppState())
+        let appState = AppState()
+        let volumeViewModel = VolumeViewModel(appState: appState)
+        let mediaViewModel = MediaViewModel(appState: appState)
+        return MediaView(mediaViewModel: mediaViewModel, volumeViewModel: volumeViewModel).environmentObject(appState)
     }
 }
