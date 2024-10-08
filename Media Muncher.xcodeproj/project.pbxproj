@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3B4318422CA8F7130029CADD /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 3B4318402CA8F70D0029CADD /* README.md */; };
+		3BD0FA0A2CB361AC00418977 /* UNIT_TESTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 3BD0FA092CB361AC00418977 /* UNIT_TESTS.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +33,8 @@
 		3B4318132CA8F4350029CADD /* Media MuncherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Media MuncherTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B43181D2CA8F4350029CADD /* Media MuncherUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Media MuncherUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B4318402CA8F70D0029CADD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		3BD0FA092CB361AC00418977 /* UNIT_TESTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UNIT_TESTS.md; sourceTree = "<group>"; };
+		3BD0FA0E2CB364D100418977 /* Media Muncher.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Media Muncher.xctestplan"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -80,11 +83,13 @@
 		3B4317F92CA8F4330029CADD = {
 			isa = PBXGroup;
 			children = (
+				3BD0FA0E2CB364D100418977 /* Media Muncher.xctestplan */,
 				3B4318042CA8F4330029CADD /* Media Muncher */,
 				3B4318162CA8F4350029CADD /* Media MuncherTests */,
 				3B4318202CA8F4350029CADD /* Media MuncherUITests */,
 				3B4318032CA8F4330029CADD /* Products */,
 				3B4318402CA8F70D0029CADD /* README.md */,
+				3BD0FA092CB361AC00418977 /* UNIT_TESTS.md */,
 				3B43185A2CA91C370029CADD /* Frameworks */,
 			);
 			sourceTree = "<group>";
@@ -226,6 +231,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3BD0FA0A2CB361AC00418977 /* UNIT_TESTS.md in Resources */,
 				3B4318422CA8F7130029CADD /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

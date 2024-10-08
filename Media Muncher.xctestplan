@@ -1,0 +1,43 @@
+{
+  "configurations" : [
+    {
+      "id" : "043FA7B6-7944-499D-A796-7D005E4CACF3",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "environmentVariableEntries" : [
+      {
+        "key" : "IDEPreferLogStreaming",
+        "value" : "YES"
+      }
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Media Muncher.xcodeproj",
+      "identifier" : "3B4318012CA8F4330029CADD",
+      "name" : "Media Muncher"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Media Muncher.xcodeproj",
+        "identifier" : "3B4318122CA8F4350029CADD",
+        "name" : "Media MuncherTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Media Muncher.xcodeproj",
+        "identifier" : "3B43181C2CA8F4350029CADD",
+        "name" : "Media MuncherUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
