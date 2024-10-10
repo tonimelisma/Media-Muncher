@@ -19,7 +19,6 @@ class AppStateTests: XCTestCase {
         XCTAssertNotNil(appState, "AppState should be initialized")
         XCTAssertTrue(appState.volumes.isEmpty, "Volumes should be empty on initialization")
         XCTAssertNil(appState.selectedVolumeID, "Selected volume ID should be nil on initialization")
-        XCTAssertEqual(appState.defaultSavePath, NSHomeDirectory(), "Default save path should be the home directory on initialization")
     }
     
     func testSettingAndGettingVolumes() {

@@ -4,15 +4,24 @@ import SwiftUI
 /// It conforms to `ObservableObject` to allow SwiftUI views to react to changes.
 class AppState: ObservableObject {
     /// An array of `Volume` objects representing the available volumes.
-    @Published var volumes: [Volume] = []
+    @Published var volumes: [Volume] = [] {
+        didSet {
+            print("AppState: Volumes updated. Count: \(volumes.count)")
+        }
+    }
     
     /// The ID of the currently selected volume.
-    @Published var selectedVolumeID: String?
+    @Published var selectedVolumeID: String? {
+        didSet {
+            print("AppState: Selected volume ID changed to: \(selectedVolumeID ?? "nil")")
+        }
+    }
     
     /// The default save path for imported media.
     /// This property is persisted in `UserDefaults`.
     @Published var defaultSavePath: String {
         didSet {
+            print("AppState: Default save path updated to: \(defaultSavePath)")
             UserDefaults.standard.set(defaultSavePath, forKey: "defaultSavePath")
         }
     }
@@ -22,5 +31,6 @@ class AppState: ObservableObject {
         print("AppState: Initializing")
         // Load the default save path from UserDefaults, or use the home directory if not set
         self.defaultSavePath = UserDefaults.standard.string(forKey: "defaultSavePath") ?? NSHomeDirectory()
+        print("AppState: Default save path initialized to: \(defaultSavePath)")
     }
 }

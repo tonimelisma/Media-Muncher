@@ -22,6 +22,7 @@ struct MediaView: View {
                             .multilineTextAlignment(.center)
                         
                         Button(action: {
+                            print("MediaView: Refresh Volumes button tapped")
                             volumeViewModel.refreshVolumes()
                         }) {
                             Text("Refresh Volumes")
@@ -30,37 +31,7 @@ struct MediaView: View {
                         }
                         .buttonStyle(.borderedProminent)
                     }
-                } else if let _ = appState.volumes.first(where: { $0.id == appState.selectedVolumeID }) {
-                    if mediaViewModel.fileItems.isEmpty {
-                        centeredContent {
-                            Text("No Files Found")
-                                .font(.headline)
-                            
-                            Text("There are no files on this volume that Media Muncher can import.")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    } else {
-                        ScrollView {
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
-                                ForEach(mediaViewModel.fileItems) { item in
-                                    VStack {
-                                        Image(systemName: item.type == "directory" ? "folder" : "doc")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 50, height: 50)
-                                            .foregroundColor(item.type == "directory" ? .blue : .gray)
-                                        Text(item.name)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                    }
-                                }
-                            }
-                            .padding()
-                        }
-                    }
-                } else {
+                } else if appState.selectedVolumeID == nil {
                     centeredContent {
                         Text("No Volume Selected")
                             .font(.headline)
@@ -69,6 +40,40 @@ struct MediaView: View {
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
+                    }
+                } else if mediaViewModel.mediaFiles.isEmpty {
+                    centeredContent {
+                        Text("No Media Files Found")
+                            .font(.headline)
+                        
+                        Text("There are no media files on this volume that Media Muncher can import.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
+                            ForEach(mediaViewModel.mediaFiles) { mediaFile in
+                                VStack {
+                                    Image(systemName: iconForMediaFile(mediaFile))
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 50, height: 50)
+                                        .foregroundColor(colorForMediaFile(mediaFile))
+                                    Text(mediaFile.name)
+                                        .font(.caption)
+                                        .lineLimit(1)
+                                }
+                                .onTapGesture {
+                                    print("MediaView: Media file tapped - \(mediaFile.name)")
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: mediaViewModel.mediaFiles) { _, newValue in
+                        print("MediaView: Media files updated, new count: \(newValue.count)")
                     }
                 }
 
@@ -81,6 +86,9 @@ struct MediaView: View {
                     FolderSelector(
                         defaultSavePath: $appState.defaultSavePath,
                         showAdvancedSettings: true)
+                    .onChange(of: appState.defaultSavePath) { _, newValue in
+                        print("MediaView: Default save path changed to \(newValue)")
+                    }
 
                     Spacer()
 
@@ -94,6 +102,9 @@ struct MediaView: View {
                         }
                     }
                     .disabled(appState.selectedVolumeID == nil)
+                    .onChange(of: appState.selectedVolumeID) { _, newValue in
+                        print("MediaView: Import button \(newValue == nil ? "disabled" : "enabled")")
+                    }
                 }
                 .padding()
             }
@@ -103,8 +114,15 @@ struct MediaView: View {
         }
         .onAppear {
             print("MediaView: View appeared")
-            print("MediaView: Volume - \(appState.volumes.first(where: { $0.id == appState.selectedVolumeID })?.name ?? "None")")
-            print("MediaView: File items count - \(mediaViewModel.fileItems.count)")
+            print("MediaView: Selected Volume - \(appState.volumes.first(where: { $0.id == appState.selectedVolumeID })?.name ?? "None")")
+            print("MediaView: Media files count - \(mediaViewModel.mediaFiles.count)")
+        }
+        .onChange(of: appState.selectedVolumeID) { oldValue, newValue in
+            print("MediaView: Selected volume ID changed from \(oldValue ?? "nil") to \(newValue ?? "nil")")
+        }
+        .onChange(of: mediaViewModel.mediaFiles) { oldValue, newValue in
+            print("MediaView: Media files changed. Old count: \(oldValue.count), New count: \(newValue.count)")
+            print("MediaView: Media files breakdown - Photos: \(newValue.filter { $0.mediaType == .processedPicture || $0.mediaType == .rawPicture }.count), Videos: \(newValue.filter { $0.mediaType == .video }.count), Audio: \(newValue.filter { $0.mediaType == .audio }.count)")
         }
     }
     
@@ -122,6 +140,34 @@ struct MediaView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    /// Determines the appropriate icon for a media file.
+    /// - Parameter mediaFile: The media file to get an icon for.
+    /// - Returns: The name of the system icon to use.
+    private func iconForMediaFile(_ mediaFile: MediaFile) -> String {
+        switch mediaFile.mediaType {
+        case .processedPicture, .rawPicture:
+            return "photo"
+        case .video:
+            return "video"
+        case .audio:
+            return "music.note"
+        }
+    }
+    
+    /// Determines the appropriate color for a media file icon.
+    /// - Parameter mediaFile: The media file to get a color for.
+    /// - Returns: The color to use for the icon.
+    private func colorForMediaFile(_ mediaFile: MediaFile) -> Color {
+        switch mediaFile.mediaType {
+        case .processedPicture, .rawPicture:
+            return .blue
+        case .video:
+            return .red
+        case .audio:
+            return .green
+        }
     }
 }
 

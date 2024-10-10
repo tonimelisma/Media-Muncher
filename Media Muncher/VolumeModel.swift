@@ -20,6 +20,9 @@ struct Volume: Identifiable, Equatable {
     /// The UUID of the volume.
     let volumeUUID: String
     
+    /// The root directory of the volume's file system.
+    var rootDirectory: Directory?
+    
     /// The used space on the volume in bytes.
     var usedSize: Int64 {
         return totalSize - freeSize

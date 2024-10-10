@@ -10,6 +10,7 @@ class VolumeViewModel: ObservableObject {
     init(appState: AppState) {
         self.appState = appState
         setupVolumeObservers()
+        print("VolumeViewModel: Initialized")
     }
 
     deinit {
@@ -40,12 +41,14 @@ class VolumeViewModel: ObservableObject {
 
         observers.append(mountObserver)
         observers.append(unmountObserver)
+        print("VolumeViewModel: Volume observers set up")
     }
 
     /// Removes volume observers.
     private func removeVolumeObservers() {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         observers.removeAll()
+        print("VolumeViewModel: Volume observers removed")
     }
 
     /// Loads available volumes.
@@ -58,13 +61,13 @@ class VolumeViewModel: ObservableObject {
     
     /// Ensures that a volume is selected if available.
     func ensureVolumeSelection() {
+        print("VolumeViewModel: Ensuring volume selection")
         if let selectedID = appState.selectedVolumeID,
            appState.volumes.contains(where: { $0.id == selectedID }) {
-            // The selected volume still exists, no need to change
+            print("VolumeViewModel: Previously selected volume still exists")
             return
         }
         
-        // Either no volume was selected or the selected volume no longer exists
         if let firstVolume = appState.volumes.first {
             print("VolumeViewModel: Selecting first available volume")
             selectVolume(withID: firstVolume.id)
@@ -78,17 +81,24 @@ class VolumeViewModel: ObservableObject {
     /// - Parameter id: The ID of the volume to select.
     func selectVolume(withID id: String) {
         print("VolumeViewModel: Selecting volume with ID: \(id)")
-        appState.selectedVolumeID = id
-        if let volume = appState.volumes.first(where: { $0.id == id }) {
-            if VolumeService.accessVolumeAndCreateBookmark(for: volume.devicePath) {
-                print("VolumeViewModel: Access granted, loading files")
-                // Note: We'll need to update MediaViewModel to load files
+        if let volumeIndex = appState.volumes.firstIndex(where: { $0.id == id }) {
+            if VolumeService.accessVolumeAndCreateBookmark(for: appState.volumes[volumeIndex].devicePath) {
+                print("VolumeViewModel: Access granted, enumerating file system")
+                let rootDirectory = FileEnumerator.enumerateFileSystem(for: appState.volumes[volumeIndex].devicePath)
+                appState.volumes[volumeIndex].rootDirectory = rootDirectory
+                print("VolumeViewModel: Root directory set for volume: \(appState.volumes[volumeIndex].name)")
+                print("VolumeViewModel: Root directory children count: \(rootDirectory.children.count)")
+                
+                // Update selectedVolumeID after setting rootDirectory
+                appState.selectedVolumeID = id
             } else {
                 print("VolumeViewModel: Access not granted")
-                // Note: We'll need to update MediaViewModel to clear files
+                appState.volumes[volumeIndex].rootDirectory = nil
+                appState.selectedVolumeID = nil
             }
         } else {
             print("VolumeViewModel: No volume found with ID: \(id)")
+            appState.selectedVolumeID = nil
         }
     }
     
