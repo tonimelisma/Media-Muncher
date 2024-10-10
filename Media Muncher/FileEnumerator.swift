@@ -51,18 +51,25 @@ class FileEnumerator {
     private static func determineMediaType(fileURL: URL) -> MediaType? {
         let pathExtension = fileURL.pathExtension.lowercased()
         switch pathExtension {
-        case "jpg", "jpeg":
+        // JPEG
+        case "jpg", "jpeg", "jpe", "jif", "jfif", "jfi":
             return .jpeg
+        // HEIF/HEIC
+        case "heif", "heifs", "heic", "heics", "avci", "avcs", "hif":
+            return .heif
+        // PNG
         case "png":
             return .png
+        // GIF
         case "gif":
             return .gif
+        // BMP
         case "bmp":
             return .bmp
+        // TIFF
         case "tiff", "tif":
             return .tiff
-        case "heic":
-            return .heic
+        // Raw formats
         case "arw":
             return .raw(format: .arw)
         case "cr2", "cr3":
@@ -81,8 +88,13 @@ class FileEnumerator {
             return .raw(format: .rw2)
         case "srw":
             return .raw(format: .srw)
-        case "mp4":
+        // MP4 container formats (video)
+        case "mp4", "m4v":
             return .mp4
+        // MP4 container formats (audio)
+        case "m4a", "m4b", "m4p", "m4r":
+            return .m4a
+        // Other video formats
         case "mov":
             return .mov
         case "avi":
@@ -93,12 +105,16 @@ class FileEnumerator {
             return .flv
         case "wmv":
             return .wmv
+        case "webm":
+            return .webm
+        // Raw video formats
         case "braw":
             return .rawVideo(format: .braw)
         case "r3d":
             return .rawVideo(format: .r3d)
         case "ari":
             return .rawVideo(format: .arriraw)
+        // Audio formats
         case "mp3":
             return .mp3
         case "wav":
@@ -109,8 +125,6 @@ class FileEnumerator {
             return .flac
         case "ogg":
             return .ogg
-        case "m4a":
-            return .m4a
         default:
             return nil
         }

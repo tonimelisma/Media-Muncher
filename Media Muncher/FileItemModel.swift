@@ -16,28 +16,44 @@ struct MediaFile: Identifiable, Equatable {
 
 /// Enum representing different types of media
 enum MediaType: Equatable {
-    // Processed Pictures
-    case jpeg, png, gif, bmp, tiff, heic
+    // Images
+    case jpeg
+    case heif
+    case png
+    case gif
+    case bmp
+    case tiff
     
-    // Raw Pictures
+    // Raw Images
     case raw(format: RawFormat)
     
     // Videos
-    case mp4, mov, avi, mkv, flv, wmv
+    case mp4
+    case mov
+    case avi
+    case mkv
+    case flv
+    case wmv
+    case webm
     
     // Raw Videos
     case rawVideo(format: RawVideoFormat)
     
     // Audio
-    case mp3, wav, aac, flac, ogg, m4a
+    case mp3
+    case wav
+    case aac
+    case flac
+    case ogg
+    case m4a
     
     var category: MediaCategory {
         switch self {
-        case .jpeg, .png, .gif, .bmp, .tiff, .heic:
+        case .jpeg, .heif, .png, .gif, .bmp, .tiff:
             return .processedPicture
         case .raw:
             return .rawPicture
-        case .mp4, .mov, .avi, .mkv, .flv, .wmv:
+        case .mp4, .mov, .avi, .mkv, .flv, .wmv, .webm:
             return .video
         case .rawVideo:
             return .rawVideo
@@ -49,15 +65,30 @@ enum MediaType: Equatable {
 
 /// Enum representing different categories of media
 enum MediaCategory {
-    case processedPicture, rawPicture, video, rawVideo, audio
+    case processedPicture
+    case rawPicture
+    case video
+    case rawVideo
+    case audio
 }
 
 /// Enum representing different raw picture formats
 enum RawFormat: String {
-    case arw, cr2, cr3, dng, nef, orf, pef, raf, rw2, srw
+    case arw
+    case cr2
+    case cr3
+    case dng
+    case nef
+    case orf
+    case pef
+    case raf
+    case rw2
+    case srw
 }
 
 /// Enum representing different raw video formats
 enum RawVideoFormat: String {
-    case braw, r3d, arriraw
+    case braw
+    case r3d
+    case arriraw
 }
