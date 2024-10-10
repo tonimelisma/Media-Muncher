@@ -122,7 +122,7 @@ struct MediaView: View {
         }
         .onChange(of: mediaViewModel.mediaFiles) { oldValue, newValue in
             print("MediaView: Media files changed. Old count: \(oldValue.count), New count: \(newValue.count)")
-            print("MediaView: Media files breakdown - Photos: \(newValue.filter { $0.mediaType == .processedPicture || $0.mediaType == .rawPicture }.count), Videos: \(newValue.filter { $0.mediaType == .video }.count), Audio: \(newValue.filter { $0.mediaType == .audio }.count)")
+            print("MediaView: Media files breakdown - Photos: \(newValue.filter { $0.mediaType.category == .processedPicture || $0.mediaType.category == .rawPicture }.count), Videos: \(newValue.filter { $0.mediaType.category == .video || $0.mediaType.category == .rawVideo }.count), Audio: \(newValue.filter { $0.mediaType.category == .audio }.count)")
         }
     }
     
@@ -146,10 +146,10 @@ struct MediaView: View {
     /// - Parameter mediaFile: The media file to get an icon for.
     /// - Returns: The name of the system icon to use.
     private func iconForMediaFile(_ mediaFile: MediaFile) -> String {
-        switch mediaFile.mediaType {
+        switch mediaFile.mediaType.category {
         case .processedPicture, .rawPicture:
             return "photo"
-        case .video:
+        case .video, .rawVideo:
             return "video"
         case .audio:
             return "music.note"
@@ -160,10 +160,10 @@ struct MediaView: View {
     /// - Parameter mediaFile: The media file to get a color for.
     /// - Returns: The color to use for the icon.
     private func colorForMediaFile(_ mediaFile: MediaFile) -> Color {
-        switch mediaFile.mediaType {
+        switch mediaFile.mediaType.category {
         case .processedPicture, .rawPicture:
             return .blue
-        case .video:
+        case .video, .rawVideo:
             return .red
         case .audio:
             return .green

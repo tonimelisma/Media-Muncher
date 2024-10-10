@@ -84,16 +84,16 @@ class VolumeViewModel: ObservableObject {
         if let volumeIndex = appState.volumes.firstIndex(where: { $0.id == id }) {
             if VolumeService.accessVolumeAndCreateBookmark(for: appState.volumes[volumeIndex].devicePath) {
                 print("VolumeViewModel: Access granted, enumerating file system")
-                let rootDirectory = FileEnumerator.enumerateFileSystem(for: appState.volumes[volumeIndex].devicePath)
-                appState.volumes[volumeIndex].rootDirectory = rootDirectory
-                print("VolumeViewModel: Root directory set for volume: \(appState.volumes[volumeIndex].name)")
-                print("VolumeViewModel: Root directory children count: \(rootDirectory.children.count)")
+                let mediaFiles = FileEnumerator.enumerateFileSystem(for: appState.volumes[volumeIndex].devicePath)
+                appState.volumes[volumeIndex].mediaFiles = mediaFiles
+                print("VolumeViewModel: Media files set for volume: \(appState.volumes[volumeIndex].name)")
+                print("VolumeViewModel: Media files count: \(mediaFiles.count)")
                 
-                // Update selectedVolumeID after setting rootDirectory
+                // Update selectedVolumeID after setting mediaFiles
                 appState.selectedVolumeID = id
             } else {
                 print("VolumeViewModel: Access not granted")
-                appState.volumes[volumeIndex].rootDirectory = nil
+                appState.volumes[volumeIndex].mediaFiles = []
                 appState.selectedVolumeID = nil
             }
         } else {

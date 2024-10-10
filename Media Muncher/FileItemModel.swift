@@ -1,20 +1,12 @@
 import Foundation
 
-/// Represents an item in the file system (file or directory)
-protocol FileSystemItem: Identifiable {
-    var id: UUID { get }
-    var path: String { get }
-    var name: String { get }
-}
-
 /// Represents a media file in the file system
-struct MediaFile: FileSystemItem, Equatable {
+struct MediaFile: Identifiable, Equatable {
     let id = UUID()
     let path: String
     let name: String
     let size: Int64
     let mediaType: MediaType
-    let fileType: FileType
     let timeTaken: Date
 
     static func == (lhs: MediaFile, rhs: MediaFile) -> Bool {
@@ -22,30 +14,50 @@ struct MediaFile: FileSystemItem, Equatable {
     }
 }
 
-/// Represents a directory in the file system
-struct Directory: FileSystemItem {
-    let id = UUID()
-    let path: String
-    let name: String
-    var children: [any FileSystemItem]
-}
-
 /// Enum representing different types of media
 enum MediaType: Equatable {
-    case processedPicture
-    case rawPicture
-    case video
-    case audio
+    // Processed Pictures
+    case jpeg, png, gif, bmp, tiff, heic
+    
+    // Raw Pictures
+    case raw(format: RawFormat)
+    
+    // Videos
+    case mp4, mov, avi, mkv, flv, wmv
+    
+    // Raw Videos
+    case rawVideo(format: RawVideoFormat)
+    
+    // Audio
+    case mp3, wav, aac, flac, ogg, m4a
+    
+    var category: MediaCategory {
+        switch self {
+        case .jpeg, .png, .gif, .bmp, .tiff, .heic:
+            return .processedPicture
+        case .raw:
+            return .rawPicture
+        case .mp4, .mov, .avi, .mkv, .flv, .wmv:
+            return .video
+        case .rawVideo:
+            return .rawVideo
+        case .mp3, .wav, .aac, .flac, .ogg, .m4a:
+            return .audio
+        }
+    }
 }
 
-/// Enum representing different file types
-enum FileType: Equatable {
-    case jpeg
-    case png
-    case gif
-    case mp4
-    case mov
-    case mp3
-    case wav
-    // Add more file types as needed
+/// Enum representing different categories of media
+enum MediaCategory {
+    case processedPicture, rawPicture, video, rawVideo, audio
+}
+
+/// Enum representing different raw picture formats
+enum RawFormat: String {
+    case arw, cr2, cr3, dng, nef, orf, pef, raf, rw2, srw
+}
+
+/// Enum representing different raw video formats
+enum RawVideoFormat: String {
+    case braw, r3d, arriraw
 }

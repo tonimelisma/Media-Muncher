@@ -45,17 +45,8 @@ class MediaViewModel: ObservableObject {
         }
         
         print("MediaViewModel: Loading files for volume: \(volume.name)")
-        if let rootDirectory = volume.rootDirectory {
-            print("MediaViewModel: Root directory found, flattening directory structure")
-            let allFiles = flattenDirectory(rootDirectory)
-            print("MediaViewModel: Total files found: \(allFiles.count)")
-            mediaFiles = allFiles.filter { isMediaFile($0) }
-            print("MediaViewModel: Loaded \(mediaFiles.count) media files")
-        } else {
-            print("MediaViewModel: No root directory found for volume: \(volume.name)")
-            // Instead of clearing files, we'll keep the existing ones
-            print("MediaViewModel: Keeping existing files. Current count: \(mediaFiles.count)")
-        }
+        mediaFiles = volume.mediaFiles
+        print("MediaViewModel: Loaded \(mediaFiles.count) media files")
     }
 
     /// Clears the list of media files.
@@ -71,37 +62,6 @@ class MediaViewModel: ObservableObject {
         // TODO: Implement actual media import logic
         // This is a placeholder that simulates an error
         throw MediaError.importFailed("Failed to import media")
-    }
-    
-    /// Flattens the directory structure into a list of media files.
-    /// - Parameter directory: The root directory to flatten.
-    /// - Returns: An array of MediaFile objects.
-    private func flattenDirectory(_ directory: Directory) -> [MediaFile] {
-        print("MediaViewModel: Flattening directory: \(directory.name)")
-        var mediaFiles: [MediaFile] = []
-        
-        for item in directory.children {
-            if let mediaFile = item as? MediaFile {
-                mediaFiles.append(mediaFile)
-            } else if let subdirectory = item as? Directory {
-                mediaFiles.append(contentsOf: flattenDirectory(subdirectory))
-            }
-        }
-        
-        print("MediaViewModel: Found \(mediaFiles.count) files in \(directory.name)")
-        return mediaFiles
-    }
-    
-    /// Determines if a file is a media file based on its type.
-    /// - Parameter file: The file to check.
-    /// - Returns: `true` if the file is a media file, `false` otherwise.
-    private func isMediaFile(_ file: MediaFile) -> Bool {
-        let isMedia = switch file.mediaType {
-        case .processedPicture, .rawPicture, .video, .audio:
-            true
-        }
-        print("MediaViewModel: File \(file.name) is \(isMedia ? "a media file" : "not a media file") (Type: \(file.mediaType))")
-        return isMedia
     }
 }
 

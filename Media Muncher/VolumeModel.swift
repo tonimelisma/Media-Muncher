@@ -20,8 +20,8 @@ struct Volume: Identifiable, Equatable {
     /// The UUID of the volume.
     let volumeUUID: String
     
-    /// The root directory of the volume's file system.
-    var rootDirectory: Directory?
+    /// The list of media files on the volume.
+    var mediaFiles: [MediaFile]
     
     /// The used space on the volume in bytes.
     var usedSize: Int64 {
