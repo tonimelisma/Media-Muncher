@@ -16,25 +16,39 @@ struct MediaFile: Identifiable, Equatable {
 
 /// Enum representing different types of media
 enum MediaType: Equatable {
-    // Images
+    // Processed Pictures
     case jpeg
-    case heif
+    case jpeg2000
+    case jpegXL
     case png
     case gif
     case bmp
     case tiff
+    case psd
+    case eps
+    case svg
+    case ico
+    case webp
+    case heif
     
-    // Raw Images
+    // Raw Pictures
     case raw(format: RawFormat)
     
     // Videos
     case mp4
-    case mov
     case avi
-    case mkv
-    case flv
+    case mov
     case wmv
+    case flv
+    case mkv
     case webm
+    case ogv
+    case m4v
+    case threegp
+    case threeg2
+    case asf
+    case vob
+    case mts
     
     // Raw Videos
     case rawVideo(format: RawVideoFormat)
@@ -42,22 +56,30 @@ enum MediaType: Equatable {
     // Audio
     case mp3
     case wav
-    case aac
-    case flac
     case ogg
+    case flac
+    case aac
     case m4a
+    case wma
+    case amr
+    case ac3
+    case dts
+    case alac
+    case ape
+    case shn
+    case tta
     
     var category: MediaCategory {
         switch self {
-        case .jpeg, .heif, .png, .gif, .bmp, .tiff:
+        case .jpeg, .jpeg2000, .jpegXL, .png, .gif, .bmp, .tiff, .psd, .eps, .svg, .ico, .webp, .heif:
             return .processedPicture
         case .raw:
             return .rawPicture
-        case .mp4, .mov, .avi, .mkv, .flv, .wmv, .webm:
+        case .mp4, .avi, .mov, .wmv, .flv, .mkv, .webm, .ogv, .m4v, .threegp, .threeg2, .asf, .vob, .mts:
             return .video
         case .rawVideo:
             return .rawVideo
-        case .mp3, .wav, .aac, .flac, .ogg, .m4a:
+        case .mp3, .wav, .ogg, .flac, .aac, .m4a, .wma, .amr, .ac3, .dts, .alac, .ape, .shn, .tta:
             return .audio
         }
     }
@@ -77,13 +99,20 @@ enum RawFormat: String {
     case arw
     case cr2
     case cr3
+    case crw
     case dng
+    case erf
+    case kdc
+    case mrw
     case nef
     case orf
     case pef
     case raf
+    case raw
     case rw2
-    case srw
+    case sr2
+    case srf
+    case x3f
 }
 
 /// Enum representing different raw video formats
