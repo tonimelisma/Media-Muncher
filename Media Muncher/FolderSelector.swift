@@ -18,14 +18,36 @@ struct FolderSelector: View {
         ("Music", FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first),
     ]
 
+    private var currentFolderName: String {
+        let result: String
+        if let presetFolder = defaultFolders.first(where: { $0.1?.path == defaultSavePath }) {
+            result = presetFolder.0
+        } else {
+            result = URL(fileURLWithPath: defaultSavePath).lastPathComponent
+        }
+        print("FolderSelector: currentFolderName computed as: \(result)")
+        return result
+    }
+
+    private func isPresetFolder(_ path: String) -> Bool {
+        let result = defaultFolders.contains { _, url in url?.path == path }
+        print("FolderSelector: isPresetFolder(\(path)) returned \(result)")
+        return result
+    }
+
     var body: some View {
         PopUpButton(selection: Binding(
-            get: { self.defaultSavePath },
-            set: { self.handleSelection($0) }
-        )) {
-            if !defaultFolders.contains(where: { $0.1?.path == defaultSavePath }) {
+            get: {
+                print("FolderSelector: PopUpButton selection getter called, returning: \(self.defaultSavePath)")
+                return self.defaultSavePath
+            },
+            set: { newValue in
+                print("FolderSelector: PopUpButton selection setter called with: \(newValue)")
+                self.handleSelection(newValue)
+            }
+        ), label: currentFolderName) {
+            if !isPresetFolder(defaultSavePath) {
                 Text(URL(fileURLWithPath: defaultSavePath).lastPathComponent).tag(defaultSavePath)
-
                 Divider()
             }
 
@@ -41,33 +63,44 @@ struct FolderSelector: View {
 
             if showAdvancedSettings {
                 Divider()
-
                 Text("Advanced folder settings...").tag("advanced")
             }
         }
         .frame(width: 200)
-        .background(Color.white)
         .fileImporter(
             isPresented: $isDirectoryPickerPresented,
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
             if let url = try? result.get().first {
+                print("FolderSelector: File importer selected path: \(url.path)")
                 self.defaultSavePath = url.path
                 UserDefaults.standard.set(url.path, forKey: "defaultSavePath")
             }
+        }
+        .onAppear {
+            print("FolderSelector: onAppear called")
+            print("FolderSelector: defaultSavePath is \(defaultSavePath)")
+            print("FolderSelector: currentFolderName is \(currentFolderName)")
+        }
+        .onChange(of: defaultSavePath) { oldValue, newValue in
+            print("FolderSelector: defaultSavePath changed from \(oldValue) to \(newValue)")
         }
     }
 
     /// Handles the selection of a folder.
     /// - Parameter selection: The selected folder path or action.
     func handleSelection(_ selection: String) {
+        print("FolderSelector: handleSelection called with: \(selection)")
         switch selection {
         case "other":
+            print("FolderSelector: 'Other folder...' selected")
             isDirectoryPickerPresented = true
         case "advanced":
+            print("FolderSelector: 'Advanced folder settings...' selected")
             openSettings()
         default:
+            print("FolderSelector: Folder selected: \(selection)")
             defaultSavePath = selection
             UserDefaults.standard.set(selection, forKey: "defaultSavePath")
         }
@@ -77,18 +110,27 @@ struct FolderSelector: View {
 /// `PopUpButton` is a custom button that displays a menu of options.
 struct PopUpButton<SelectionValue: Hashable, Content: View>: View {
     @Binding var selection: SelectionValue
+    var label: String
     var content: () -> Content
 
-    init(selection: Binding<SelectionValue>, @ViewBuilder content: @escaping () -> Content) {
+    init(selection: Binding<SelectionValue>, label: String, @ViewBuilder content: @escaping () -> Content) {
         self._selection = selection
+        self.label = label
         self.content = content
+        print("PopUpButton: Initialized with label: \(label)")
     }
 
     var body: some View {
-        Picker(selection: $selection, label: Text(selection as? String ?? "")) {
+        Picker(selection: $selection, label: EmptyView()) {
             content()
-        }        .pickerStyle(MenuPickerStyle())
-        .labelsHidden()
+        }
+        .pickerStyle(MenuPickerStyle())
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct FolderSelector_Previews: PreviewProvider {
+    static var previews: some View {
+        FolderSelector(defaultSavePath: .constant("/Users/example/Documents"), showAdvancedSettings: true)
     }
 }
