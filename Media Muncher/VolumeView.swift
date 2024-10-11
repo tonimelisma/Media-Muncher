@@ -23,6 +23,11 @@ struct VolumeView: View {
                         Text(volume.name)
                             .font(.system(size: 13))
                         Spacer()
+                        if volume.id == appState.selectedVolumeID && !appState.isSelectedVolumeAccessible {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.orange)
+                        }
                         Button(action: {
                             print("VolumeView: Eject button tapped for volume: \(volume.name)")
                             do {
@@ -44,7 +49,7 @@ struct VolumeView: View {
                 .listStyle(PlainListStyle())
             }
         }
-        .onChange(of: appState.selectedVolumeID) { newID, _ in
+        .onChange(of: appState.selectedVolumeID) { _, newID in
             if let id = newID {
                 viewModel.selectVolume(withID: id)
             }

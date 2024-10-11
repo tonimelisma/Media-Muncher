@@ -25,24 +25,20 @@ struct FolderSelector: View {
         } else {
             result = URL(fileURLWithPath: defaultSavePath).lastPathComponent
         }
-        print("FolderSelector: currentFolderName computed as: \(result)")
         return result
     }
 
     private func isPresetFolder(_ path: String) -> Bool {
         let result = defaultFolders.contains { _, url in url?.path == path }
-        print("FolderSelector: isPresetFolder(\(path)) returned \(result)")
         return result
     }
 
     var body: some View {
         PopUpButton(selection: Binding(
             get: {
-                print("FolderSelector: PopUpButton selection getter called, returning: \(self.defaultSavePath)")
                 return self.defaultSavePath
             },
             set: { newValue in
-                print("FolderSelector: PopUpButton selection setter called with: \(newValue)")
                 self.handleSelection(newValue)
             }
         ), label: currentFolderName) {
@@ -78,11 +74,6 @@ struct FolderSelector: View {
                 UserDefaults.standard.set(url.path, forKey: "defaultSavePath")
             }
         }
-        .onAppear {
-            print("FolderSelector: onAppear called")
-            print("FolderSelector: defaultSavePath is \(defaultSavePath)")
-            print("FolderSelector: currentFolderName is \(currentFolderName)")
-        }
         .onChange(of: defaultSavePath) { oldValue, newValue in
             print("FolderSelector: defaultSavePath changed from \(oldValue) to \(newValue)")
         }
@@ -117,7 +108,6 @@ struct PopUpButton<SelectionValue: Hashable, Content: View>: View {
         self._selection = selection
         self.label = label
         self.content = content
-        print("PopUpButton: Initialized with label: \(label)")
     }
 
     var body: some View {

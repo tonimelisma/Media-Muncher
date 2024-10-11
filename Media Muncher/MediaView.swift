@@ -41,7 +41,29 @@ struct MediaView: View {
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
-                } else if mediaViewModel.mediaFiles.isEmpty {
+                } else if !appState.isSelectedVolumeAccessible {
+                    centeredContent {
+                        Text("Volume Access Required")
+                            .font(.headline)
+                        
+                        Text("Permission is needed to access this volume. Please grant access when prompted.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Button(action: {
+                            print("MediaView: Request Access button tapped")
+                            if let selectedID = appState.selectedVolumeID {
+                                volumeViewModel.selectVolume(withID: selectedID)
+                            }
+                        }) {
+                            Text("Request Access")
+                                .frame(minWidth: 100)
+                                .padding(.vertical, 5)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                } else if appState.mediaFiles.isEmpty {
                     centeredContent {
                         Text("No Media Files Found")
                             .font(.headline)
@@ -54,7 +76,7 @@ struct MediaView: View {
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 150))], spacing: 10) {
-                            ForEach(mediaViewModel.mediaFiles) { mediaFile in
+                            ForEach(appState.mediaFiles) { mediaFile in
                                 VStack {
                                     Image(systemName: iconForMediaFile(mediaFile))
                                         .resizable()
@@ -72,7 +94,7 @@ struct MediaView: View {
                         }
                         .padding()
                     }
-                    .onChange(of: mediaViewModel.mediaFiles) { _, newValue in
+                    .onChange(of: appState.mediaFiles) { _, newValue in
                         print("MediaView: Media files updated, new count: \(newValue.count)")
                     }
                 }
@@ -101,7 +123,7 @@ struct MediaView: View {
                             showingError = true
                         }
                     }
-                    .disabled(appState.selectedVolumeID == nil)
+                    .disabled(appState.selectedVolumeID == nil || !appState.isSelectedVolumeAccessible)
                     .onChange(of: appState.selectedVolumeID) { _, newValue in
                         print("MediaView: Import button \(newValue == nil ? "disabled" : "enabled")")
                     }
@@ -115,12 +137,12 @@ struct MediaView: View {
         .onAppear {
             print("MediaView: View appeared")
             print("MediaView: Selected Volume - \(appState.volumes.first(where: { $0.id == appState.selectedVolumeID })?.name ?? "None")")
-            print("MediaView: Media files count - \(mediaViewModel.mediaFiles.count)")
+            print("MediaView: Media files count - \(appState.mediaFiles.count)")
         }
         .onChange(of: appState.selectedVolumeID) { oldValue, newValue in
             print("MediaView: Selected volume ID changed from \(oldValue ?? "nil") to \(newValue ?? "nil")")
         }
-        .onChange(of: mediaViewModel.mediaFiles) { oldValue, newValue in
+        .onChange(of: appState.mediaFiles) { oldValue, newValue in
             print("MediaView: Media files changed. Old count: \(oldValue.count), New count: \(newValue.count)")
             print("MediaView: Media files breakdown - Photos: \(newValue.filter { $0.mediaType.category == .processedPicture || $0.mediaType.category == .rawPicture }.count), Videos: \(newValue.filter { $0.mediaType.category == .video || $0.mediaType.category == .rawVideo }.count), Audio: \(newValue.filter { $0.mediaType.category == .audio }.count)")
         }

@@ -26,6 +26,20 @@ class AppState: ObservableObject {
         }
     }
 
+    /// Indicates whether the selected volume is accessible.
+    @Published var isSelectedVolumeAccessible: Bool = false {
+        didSet {
+            print("AppState: Selected volume accessibility changed to: \(isSelectedVolumeAccessible)")
+        }
+    }
+
+    /// An array of `MediaFile` objects representing the media files in the selected volume.
+    @Published var mediaFiles: [MediaFile] = [] {
+        didSet {
+            print("AppState: Media files updated. Count: \(mediaFiles.count)")
+        }
+    }
+
     /// Initializes the `AppState` with default values.
     init() {
         print("AppState: Initializing")

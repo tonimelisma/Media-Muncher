@@ -46,25 +46,67 @@ class VolumeService {
     }
     
     /// Attempts to access a volume and create a security-scoped bookmark.
-    /// - Parameter path: The path of the volume to access.
-    /// - Returns: `true` if access was granted and a bookmark was created, `false` otherwise.
-    static func accessVolumeAndCreateBookmark(for path: String) -> Bool {
+    /// - Parameters:
+    ///   - path: The path of the volume to access.
+    ///   - completion: A closure to be called with the result of the access attempt.
+    static func accessVolumeAndCreateBookmark(for path: String, completion: @escaping (Bool) -> Void) {
         print("VolumeService: Attempting to access volume and create bookmark for \(path)")
         let url = URL(fileURLWithPath: path)
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                if url.startAccessingSecurityScopedResource() {
+                    let bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    UserDefaults.standard.set(bookmark, forKey: "bookmark_\(path)")
+                    print("VolumeService: Successfully accessed volume and created bookmark for \(path)")
+                    url.stopAccessingSecurityScopedResource()
+                    DispatchQueue.main.async {
+                        completion(true)
+                    }
+                } else {
+                    print("VolumeService: Failed to access volume for \(path)")
+                    DispatchQueue.main.async {
+                        completion(false)
+                    }
+                }
+            } catch {
+                print("VolumeService: Error accessing volume or creating bookmark: \(error)")
+                DispatchQueue.main.async {
+                    completion(false)
+                }
+            }
+        }
+    }
+    
+    /// Resolves a security-scoped bookmark for a volume.
+    /// - Parameter path: The path of the volume to resolve.
+    /// - Returns: `true` if the bookmark was successfully resolved and the volume accessed, `false` otherwise.
+    static func resolveBookmark(for path: String) -> Bool {
+        print("VolumeService: Attempting to resolve bookmark for \(path)")
+        guard let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(path)") else {
+            print("VolumeService: No bookmark found for \(path)")
+            return false
+        }
+        
         do {
+            var isStale = false
+            let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+            
+            if isStale {
+                print("VolumeService: Bookmark for \(path) is stale")
+                return false
+            }
+            
             if url.startAccessingSecurityScopedResource() {
-                let bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-                UserDefaults.standard.set(bookmark, forKey: "bookmark_\(path)")
-                print("VolumeService: Successfully accessed volume and created bookmark for \(path)")
-                url.stopAccessingSecurityScopedResource()
+                print("VolumeService: Successfully resolved bookmark and accessed volume for \(path)")
                 return true
             } else {
-                print("VolumeService: Failed to access volume for \(path)")
+                print("VolumeService: Failed to access volume after resolving bookmark for \(path)")
+                return false
             }
         } catch {
-            print("VolumeService: Error accessing volume or creating bookmark: \(error)")
+            print("VolumeService: Error resolving bookmark for \(path): \(error)")
+            return false
         }
-        return false
     }
     
     // MARK: - Unused Functions (Kept as requested)
