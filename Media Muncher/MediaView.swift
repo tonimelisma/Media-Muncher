@@ -87,9 +87,6 @@ struct MediaView: View {
                                         .font(.caption)
                                         .lineLimit(1)
                                 }
-                                .onTapGesture {
-                                    print("MediaView: Media file tapped - \(mediaFile.name)")
-                                }
                             }
                         }
                         .padding()
