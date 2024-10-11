@@ -126,6 +126,7 @@ struct MediaView: View {
                     }
                 }
                 .padding()
+                .background(Color(nsColor: .quinaryLabel))
             }
         }
         .alert(isPresented: $showingError) {

@@ -23,11 +23,11 @@ class MediaViewModel: ObservableObject {
     /// Sets up observers for changes in the selected volume and media files.
     private func setupObservers() {
         appState.$selectedVolumeID
-            .sink { [weak self] selectedID in
+            .sink { selectedID in
                 print("MediaViewModel: Selected volume ID changed to: \(selectedID ?? "nil")")
             }
             .store(in: &cancellables)
-
+        
         appState.$isSelectedVolumeAccessible
             .sink { [weak self] isAccessible in
                 print("MediaViewModel: Volume accessibility changed to: \(isAccessible)")
@@ -36,7 +36,7 @@ class MediaViewModel: ObservableObject {
             .store(in: &cancellables)
 
         appState.$mediaFiles
-            .sink { [weak self] files in
+            .sink { files in
                 print("MediaViewModel: Received \(files.count) media files")
             }
             .store(in: &cancellables)

@@ -24,6 +24,7 @@ struct ContentView: View {
             // Main content view for media display
             MediaView(mediaViewModel: mediaViewModel, volumeViewModel: volumeViewModel)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 1)
         }
         .navigationTitle("Media Muncher")
         .toolbar {
