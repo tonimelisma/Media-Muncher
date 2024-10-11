@@ -23,9 +23,11 @@ struct FolderSelector: View {
             get: { self.defaultSavePath },
             set: { self.handleSelection($0) }
         )) {
-            Text(URL(fileURLWithPath: defaultSavePath).lastPathComponent).tag(defaultSavePath)
+            if !defaultFolders.contains(where: { $0.1?.path == defaultSavePath }) {
+                Text(URL(fileURLWithPath: defaultSavePath).lastPathComponent).tag(defaultSavePath)
 
-            Divider()
+                Divider()
+            }
 
             ForEach(defaultFolders, id: \.0) { folderName, folderURL in
                 if let url = folderURL {
@@ -83,10 +85,9 @@ struct PopUpButton<SelectionValue: Hashable, Content: View>: View {
     }
 
     var body: some View {
-        Picker(selection: $selection, label: EmptyView()) {
+        Picker(selection: $selection, label: Text(selection as? String ?? "")) {
             content()
-        }
-        .pickerStyle(MenuPickerStyle())
+        }        .pickerStyle(MenuPickerStyle())
         .labelsHidden()
         .frame(maxWidth: .infinity, alignment: .leading)
     }
