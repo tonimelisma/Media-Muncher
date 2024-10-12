@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// `SettingsView` displays and manages application settings.
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
 
@@ -9,22 +8,37 @@ struct SettingsView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Import To:")
                     .frame(width: 120, alignment: .trailing)
-                
+
                 FolderSelector(
                     defaultSavePath: $appState.defaultSavePath,
                     showAdvancedSettings: false)
             }
-            
-            Text(appState.defaultSavePath)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+
+            Toggle(
+                "Organize into Date Folders",
+                isOn: $appState.organizeDateFolders
+            )
+            .onChange(of: appState.organizeDateFolders) { oldValue, newValue in
+                print(
+                    "SettingsView: Organize into Date Folders changed from \(oldValue) to \(newValue)"
+                )
+            }
+
+            Toggle(
+                "Rename Files with Date and Time",
+                isOn: $appState.renameDateTimeFiles
+            )
+            .onChange(of: appState.renameDateTimeFiles) { oldValue, newValue in
+                print(
+                    "SettingsView: Rename Files with Date and Time changed from \(oldValue) to \(newValue)"
+                )
+            }
         }
         .padding(20)
-        .frame(width: 450, height: 150)
+        .frame(width: 450, height: 250)
     }
 }
 
-/// Preview provider for SettingsView
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView().environmentObject(AppState())
