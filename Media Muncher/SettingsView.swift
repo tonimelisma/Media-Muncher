@@ -33,9 +33,19 @@ struct SettingsView: View {
                     "SettingsView: Rename Files with Date and Time changed from \(oldValue) to \(newValue)"
                 )
             }
+
+            Toggle(
+                "Verify Import Integrity",
+                isOn: $appState.verifyImportIntegrity
+            )
+            .onChange(of: appState.verifyImportIntegrity) { oldValue, newValue in
+                print(
+                    "SettingsView: Verify Import Integrity changed from \(oldValue) to \(newValue)"
+                )
+            }
         }
         .padding(20)
-        .frame(width: 450, height: 250)
+        .frame(width: 450, height: 300)
     }
 }
 

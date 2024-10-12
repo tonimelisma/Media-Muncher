@@ -1,20 +1,34 @@
 import Foundation
+import zlib
 
-/// Represents a media file in the file system
 struct MediaFile: Identifiable, Equatable {
     let id = UUID()
-    let path: String
-    let name: String
+    let sourcePath: String
+    let sourceName: String
     let size: Int64
     let mediaType: MediaType
     let timeTaken: Date
+    var destinationPath: String?
+    var destinationName: String?
+    var sourceCRC32: UInt32?
+    var destinationCRC32: UInt32?
+    var isImported: Bool = false
 
     static func == (lhs: MediaFile, rhs: MediaFile) -> Bool {
         return lhs.id == rhs.id
     }
+
+    func calculateCRC32(forPath path: String) -> UInt32? {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+            return nil
+        }
+        return data.withUnsafeBytes { bufferPointer in
+            let unsafeBufferPointer = bufferPointer.bindMemory(to: UInt8.self)
+            return UInt32(zlib.crc32(0, unsafeBufferPointer.baseAddress, UInt32(unsafeBufferPointer.count)))
+        }
+    }
 }
 
-/// Enum representing different types of media
 enum MediaType: Equatable {
     // Processed Pictures
     case jpeg
@@ -85,7 +99,6 @@ enum MediaType: Equatable {
     }
 }
 
-/// Enum representing different categories of media
 enum MediaCategory {
     case processedPicture
     case rawPicture
@@ -94,7 +107,6 @@ enum MediaCategory {
     case audio
 }
 
-/// Enum representing different raw picture formats
 enum RawFormat: String {
     case arw
     case cr2
@@ -115,7 +127,6 @@ enum RawFormat: String {
     case x3f
 }
 
-/// Enum representing different raw video formats
 enum RawVideoFormat: String {
     case braw
     case r3d

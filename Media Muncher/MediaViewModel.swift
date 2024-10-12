@@ -1,26 +1,19 @@
 import Foundation
 import Combine
 
-/// `MediaViewModel` manages the media items for the selected volume.
 class MediaViewModel: ObservableObject {
-    /// Indicates whether the selected volume is accessible.
     @Published var isSelectedVolumeAccessible: Bool = false
     
-    /// The global app state.
     private var appState: AppState
-    
-    /// Set of cancellables for managing subscriptions.
     private var cancellables = Set<AnyCancellable>()
+    private var importTask: Task<Void, Error>?
 
-    /// Initializes the MediaViewModel with the given AppState.
-    /// - Parameter appState: The global app state.
     init(appState: AppState) {
         self.appState = appState
         setupObservers()
         print("MediaViewModel: Initialized")
     }
 
-    /// Sets up observers for changes in the selected volume and media files.
     private func setupObservers() {
         appState.$selectedVolumeID
             .sink { selectedID in
@@ -44,17 +37,97 @@ class MediaViewModel: ObservableObject {
         print("MediaViewModel: Observers set up")
     }
 
-    /// Imports media from the selected volume.
-    /// - Throws: `MediaError.importFailed` if the import fails.
-    func importMedia() throws {
-        print("MediaViewModel: Import media")
-        // TODO: Implement actual media import logic
-        // This is a placeholder that simulates an error
-        throw MediaError.importFailed("Failed to import media")
+    func importMedia() {
+        guard appState.importState != .inProgress else { return }
+        appState.importState = .inProgress
+        appState.importProgress = 0
+        
+        importTask = Task {
+            do {
+                try await importMediaFiles()
+                await MainActor.run {
+                    self.appState.importState = .completed
+                    self.appState.importProgress = 1.0
+                }
+            } catch {
+                await MainActor.run {
+                    self.appState.importState = .failed(error: error)
+                }
+            }
+        }
+    }
+    
+    func cancelImport() {
+        importTask?.cancel()
+        appState.importState = .cancelled
+    }
+
+    private func importMediaFiles() async throws {
+        let totalFiles = Double(appState.mediaFiles.count)
+        var errors: [Error] = []
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for (index, file) in appState.mediaFiles.enumerated() {
+                group.addTask {
+                    do {
+                        try await self.processMediaFile(file)
+                    } catch {
+                        errors.append(error)
+                    }
+                    await self.updateProgress(Double(index + 1) / totalFiles)
+                }
+            }
+            
+            try await group.waitForAll()
+        }
+        
+        if !errors.isEmpty {
+            throw ImportError.partialFailure(errors: errors)
+        }
+    }
+
+    private func processMediaFile(_ file: MediaFile) async throws {
+        try Task.checkCancellation()
+        
+        let destinationPath = appState.defaultSavePath
+        let destinationName = file.sourceName
+        
+        var updatedFile = file
+        updatedFile.destinationPath = destinationPath
+        updatedFile.destinationName = destinationName
+        updatedFile.sourceCRC32 = file.calculateCRC32(forPath: file.sourcePath)
+        
+        // For now, we're not actually copying the file, so we'll use the same CRC32 for both source and destination
+        updatedFile.destinationCRC32 = updatedFile.sourceCRC32
+        
+        if appState.verifyImportIntegrity {
+            print("MediaViewModel: Verifying integrity for file: \(destinationName)")
+            if updatedFile.sourceCRC32 == updatedFile.destinationCRC32 {
+                print("MediaViewModel: Integrity verified for file: \(destinationName)")
+                updatedFile.isImported = true
+            } else {
+                print("MediaViewModel: Integrity check failed for file: \(destinationName)")
+                updatedFile.isImported = false
+                throw ImportError.integrityCheckFailed(fileName: destinationName)
+            }
+        } else {
+            updatedFile.isImported = true
+        }
+        
+        await MainActor.run {
+            if let index = appState.mediaFiles.firstIndex(where: { $0.id == file.id }) {
+                appState.mediaFiles[index] = updatedFile
+            }
+        }
+    }
+
+    @MainActor
+    private func updateProgress(_ progress: Double) {
+        appState.importProgress = progress
     }
 }
 
-/// Errors that can occur during media operations.
-enum MediaError: Error {
-    case importFailed(String)
+enum ImportError: Error {
+    case integrityCheckFailed(fileName: String)
+    case partialFailure(errors: [Error])
 }

@@ -25,12 +25,7 @@ actor MediaFileBatcher {
     }
 }
 
-/// `FileEnumerator` is a utility class for enumerating files in a given directory.
 class FileEnumerator {
-    /// Enumerates files recursively in the specified volume path.
-    /// - Parameters:
-    ///   - volumePath: The path of the volume to enumerate.
-    ///   - appState: The global app state to update with enumerated files.
     static func enumerateFileSystem(for volumePath: String, appState: AppState) async {
         print("FileEnumerator: Enumerating file system for path: \(volumePath)")
         
@@ -69,7 +64,13 @@ class FileEnumerator {
                             fallbackDate: resourceValues.creationDate ?? Date()
                         )
                         
-                        let mediaFile = MediaFile(path: fileURL.path, name: name, size: size, mediaType: mediaType, timeTaken: creationDateTime)
+                        let mediaFile = MediaFile(
+                            sourcePath: fileURL.path,
+                            sourceName: name,
+                            size: size,
+                            mediaType: mediaType,
+                            timeTaken: creationDateTime
+                        )
                         
                         print("FileEnumerator: File: \(name), Type: \(mediaType), DateTime: \(dateFormatter.string(from: creationDateTime))")
                         
@@ -85,7 +86,6 @@ class FileEnumerator {
             }
         }
         
-        // Add any remaining files in the last batch
         let remainingBatch = await batcher.getRemainingBatch()
         if !remainingBatch.isEmpty {
             await MainActor.run {

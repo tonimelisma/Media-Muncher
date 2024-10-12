@@ -5,17 +5,15 @@ MacOS app to automatically import photos and videos from inserted SD cards, USB 
 ## Todo
 
 ### MVP
-* Enumerate media files
 * Copy them to the destination folder
 * Idempotent, don't overwrite
+* Rename destination if duplicate filename with different contents exist
 * Remove originals
 * Progress bar for import
-* Settings
-  * Configure metadata-based export directories
-  * Configure metadata-based export filenames
 
 ### Roadmap
 * Logging
+* MTP/PTP devices
 * Checksum verification before deletion
 * Multi-threading
 * Thumbnails
@@ -23,6 +21,8 @@ MacOS app to automatically import photos and videos from inserted SD cards, USB 
 * Show which media are already imported
 * Auto-launch via Launch Agents
 * Settings
+  * Configure custom metadata-based export directories
+  * Configure custom metadata-based export filenames
   * Toggle auto-launch (none, manual GUI, automatic GUI)
   * Configure which volumes to import automatically (all, known, none)
   * Configure import file types (pics, videos, processed vs raw)
