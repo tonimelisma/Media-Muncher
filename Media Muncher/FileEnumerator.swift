@@ -1,5 +1,30 @@
 import Foundation
 
+actor MediaFileBatcher {
+    private var batchedMediaFiles: [MediaFile] = []
+    private let batchSize: Int
+    
+    init(batchSize: Int) {
+        self.batchSize = batchSize
+    }
+    
+    func add(_ mediaFile: MediaFile) async -> [MediaFile]? {
+        batchedMediaFiles.append(mediaFile)
+        if batchedMediaFiles.count >= batchSize {
+            let batch = batchedMediaFiles
+            batchedMediaFiles.removeAll()
+            return batch
+        }
+        return nil
+    }
+    
+    func getRemainingBatch() -> [MediaFile] {
+        let batch = batchedMediaFiles
+        batchedMediaFiles.removeAll()
+        return batch
+    }
+}
+
 /// `FileEnumerator` is a utility class for enumerating files in a given directory.
 class FileEnumerator {
     /// Enumerates files recursively in the specified volume path.
@@ -27,6 +52,8 @@ class FileEnumerator {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         
+        let batcher = MediaFileBatcher(batchSize: 50)
+        
         for case let fileURL as URL in enumerator {
             do {
                 let resourceValues = try fileURL.resourceValues(forKeys: Set([.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .creationDateKey]))
@@ -46,13 +73,23 @@ class FileEnumerator {
                         
                         print("FileEnumerator: File: \(name), Type: \(mediaType), DateTime: \(dateFormatter.string(from: creationDateTime))")
                         
-                        await MainActor.run {
-                            appState.mediaFiles.append(mediaFile)
+                        if let batch = await batcher.add(mediaFile) {
+                            await MainActor.run {
+                                appState.mediaFiles.append(contentsOf: batch)
+                            }
                         }
                     }
                 }
             } catch {
                 print("FileEnumerator: Error getting resource values for \(fileURL.path): \(error.localizedDescription)")
+            }
+        }
+        
+        // Add any remaining files in the last batch
+        let remainingBatch = await batcher.getRemainingBatch()
+        if !remainingBatch.isEmpty {
+            await MainActor.run {
+                appState.mediaFiles.append(contentsOf: remainingBatch)
             }
         }
         

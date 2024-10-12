@@ -4,6 +4,7 @@ import SwiftUI
 class VolumeViewModel: ObservableObject {
     @Published var appState: AppState
     private var observers: [NSObjectProtocol] = []
+    private var isEnumerating = false
 
     /// Initializes the VolumeViewModel with the given AppState.
     /// - Parameter appState: The global app state.
@@ -112,9 +113,11 @@ class VolumeViewModel: ObservableObject {
         if granted {
             print("VolumeViewModel: Access granted, enumerating file system")
             appState.isSelectedVolumeAccessible = true
-            if appState.mediaFiles.isEmpty {
+            if !isEnumerating {
+                isEnumerating = true
                 Task {
                     await FileEnumerator.enumerateFileSystem(for: appState.volumes[volumeIndex].devicePath, appState: appState)
+                    isEnumerating = false
                 }
             }
         } else {
