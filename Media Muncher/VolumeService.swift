@@ -25,8 +25,7 @@ class VolumeService {
                     devicePath: url.path,
                     totalSize: Int64(resourceValues.volumeTotalCapacity ?? 0),
                     freeSize: Int64(resourceValues.volumeAvailableCapacity ?? 0),
-                    volumeUUID: resourceValues.volumeUUIDString ?? "",
-                    mediaFiles: [] // Initialize with an empty array of media files
+                    volumeUUID: resourceValues.volumeUUIDString ?? ""
                 )
             } catch {
                 print("VolumeService: Error getting resource values for volume at \(url): \(error)")

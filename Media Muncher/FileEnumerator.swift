@@ -3,17 +3,17 @@ import Foundation
 /// `FileEnumerator` is a utility class for enumerating files in a given directory.
 class FileEnumerator {
     /// Enumerates files recursively in the specified volume path.
-    /// - Parameter volumePath: The path of the volume to enumerate.
-    /// - Returns: An array of `MediaFile` objects representing the media files in the volume.
-    static func enumerateFileSystem(for volumePath: String) -> [MediaFile] {
+    /// - Parameters:
+    ///   - volumePath: The path of the volume to enumerate.
+    ///   - appState: The global app state to update with enumerated files.
+    static func enumerateFileSystem(for volumePath: String, appState: AppState) async {
         print("FileEnumerator: Enumerating file system for path: \(volumePath)")
         
-        var mediaFiles: [MediaFile] = []
         let fileManager = FileManager.default
         
         guard let enumerator = fileManager.enumerator(
             at: URL(fileURLWithPath: volumePath),
-            includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey],
+            includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .creationDateKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants],
             errorHandler: { (url, error) -> Bool in
                 print("FileEnumerator: Error enumerating \(url): \(error.localizedDescription)")
@@ -21,22 +21,34 @@ class FileEnumerator {
             }
         ) else {
             print("FileEnumerator: Failed to create enumerator for path: \(volumePath)")
-            return mediaFiles
+            return
         }
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         
         for case let fileURL as URL in enumerator {
             do {
-                let resourceValues = try fileURL.resourceValues(forKeys: Set([.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]))
+                let resourceValues = try fileURL.resourceValues(forKeys: Set([.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .creationDateKey]))
                 let isDirectory = resourceValues.isDirectory ?? false
                 
                 if !isDirectory {
                     if let mediaType = determineMediaType(fileURL: fileURL) {
                         let name = fileURL.lastPathComponent
                         let size = Int64(resourceValues.fileSize ?? 0)
-                        let timeTaken = resourceValues.contentModificationDate ?? Date()
+                        let creationDateTime = await MediaMetadataExtractor.extractCreationDateTime(
+                            from: fileURL,
+                            mediaType: mediaType,
+                            fallbackDate: resourceValues.creationDate ?? Date()
+                        )
                         
-                        let mediaFile = MediaFile(path: fileURL.path, name: name, size: size, mediaType: mediaType, timeTaken: timeTaken)
-                        mediaFiles.append(mediaFile)
+                        let mediaFile = MediaFile(path: fileURL.path, name: name, size: size, mediaType: mediaType, timeTaken: creationDateTime)
+                        
+                        print("FileEnumerator: File: \(name), Type: \(mediaType), DateTime: \(dateFormatter.string(from: creationDateTime))")
+                        
+                        await MainActor.run {
+                            appState.mediaFiles.append(mediaFile)
+                        }
                     }
                 }
             } catch {
@@ -44,8 +56,7 @@ class FileEnumerator {
             }
         }
         
-        print("FileEnumerator: Enumerated \(mediaFiles.count) media files in \(volumePath)")
-        return mediaFiles
+        print("FileEnumerator: Enumerated \(appState.mediaFiles.count) media files in \(volumePath)")
     }
     
     private static func determineMediaType(fileURL: URL) -> MediaType? {

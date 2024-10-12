@@ -70,9 +70,9 @@ struct VolumeView_Previews: PreviewProvider {
         let appState = AppState()
         let volumeViewModel = VolumeViewModel(appState: appState)
         appState.volumes = [
-            Volume(id: "1", name: "Volume 1", devicePath: "/path/to/volume1", totalSize: 1000000000, freeSize: 500000000, volumeUUID: "UUID1", mediaFiles: []),
-            Volume(id: "2", name: "Volume 2", devicePath: "/path/to/volume2", totalSize: 2000000000, freeSize: 1000000000, volumeUUID: "UUID2", mediaFiles: []),
-            Volume(id: "3", name: "Volume 3", devicePath: "/path/to/volume3", totalSize: 3000000000, freeSize: 1500000000, volumeUUID: "UUID3", mediaFiles: [])
+            Volume(id: "1", name: "Volume 1", devicePath: "/path/to/volume1", totalSize: 1000000000, freeSize: 500000000, volumeUUID: "UUID1"),
+            Volume(id: "2", name: "Volume 2", devicePath: "/path/to/volume2", totalSize: 2000000000, freeSize: 1000000000, volumeUUID: "UUID2"),
+            Volume(id: "3", name: "Volume 3", devicePath: "/path/to/volume3", totalSize: 3000000000, freeSize: 1500000000, volumeUUID: "UUID3")
         ]
         appState.selectedVolumeID = "1"
         

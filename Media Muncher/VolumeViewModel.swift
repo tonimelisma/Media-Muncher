@@ -82,8 +82,11 @@ class VolumeViewModel: ObservableObject {
     func selectVolume(withID id: String) {
         print("VolumeViewModel: Selecting volume with ID: \(id)")
         if let volumeIndex = appState.volumes.firstIndex(where: { $0.id == id }) {
-            appState.selectedVolumeID = id
-            appState.isSelectedVolumeAccessible = false
+            if appState.selectedVolumeID != id {
+                appState.selectedVolumeID = id
+                appState.isSelectedVolumeAccessible = false
+                appState.mediaFiles = []
+            }
             
             VolumeService.accessVolumeAndCreateBookmark(for: appState.volumes[volumeIndex].devicePath) { [weak self] success in
                 self?.handleVolumeAccess(for: id, granted: success)
@@ -108,16 +111,15 @@ class VolumeViewModel: ObservableObject {
         
         if granted {
             print("VolumeViewModel: Access granted, enumerating file system")
-            let mediaFiles = FileEnumerator.enumerateFileSystem(for: appState.volumes[volumeIndex].devicePath)
-            appState.volumes[volumeIndex].mediaFiles = mediaFiles
-            appState.mediaFiles = mediaFiles  // Update the centralized mediaFiles
             appState.isSelectedVolumeAccessible = true
-            print("VolumeViewModel: Media files set for volume: \(appState.volumes[volumeIndex].name)")
-            print("VolumeViewModel: Media files count: \(mediaFiles.count)")
+            if appState.mediaFiles.isEmpty {
+                Task {
+                    await FileEnumerator.enumerateFileSystem(for: appState.volumes[volumeIndex].devicePath, appState: appState)
+                }
+            }
         } else {
             print("VolumeViewModel: Access not granted")
-            appState.volumes[volumeIndex].mediaFiles = []
-            appState.mediaFiles = []  // Clear the centralized mediaFiles
+            appState.mediaFiles = []
             appState.isSelectedVolumeAccessible = false
         }
     }

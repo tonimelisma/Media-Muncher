@@ -20,9 +20,6 @@ struct Volume: Identifiable, Equatable {
     /// The UUID of the volume.
     let volumeUUID: String
     
-    /// The list of media files on the volume.
-    var mediaFiles: [MediaFile]
-    
     /// The used space on the volume in bytes.
     var usedSize: Int64 {
         return totalSize - freeSize
