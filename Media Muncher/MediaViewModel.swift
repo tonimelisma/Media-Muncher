@@ -7,50 +7,58 @@ class MediaViewModel: ObservableObject {
     private var appState: AppState
     private var cancellables = Set<AnyCancellable>()
     private var importTask: Task<Void, Error>?
+    private let mediaImporter: MediaImporter
 
     init(appState: AppState) {
+        print("MediaViewModel: Initializing")
         self.appState = appState
+        self.mediaImporter = MediaImporter(appState: appState)
         setupObservers()
-        print("MediaViewModel: Initialized")
     }
 
     private func setupObservers() {
+        print("MediaViewModel: Setting up observers")
         appState.$selectedVolumeID
-            .sink { selectedID in
-                print("MediaViewModel: Selected volume ID changed to: \(selectedID ?? "nil")")
+            .sink { [weak self] selectedID in
+                self?.onSelectedVolumeIDChanged(selectedID)
             }
             .store(in: &cancellables)
         
         appState.$isSelectedVolumeAccessible
             .sink { [weak self] isAccessible in
-                print("MediaViewModel: Volume accessibility changed to: \(isAccessible)")
-                self?.isSelectedVolumeAccessible = isAccessible
+                self?.onVolumeAccessibilityChanged(isAccessible)
             }
             .store(in: &cancellables)
 
         appState.$mediaFiles
-            .sink { files in
-                print("MediaViewModel: Received \(files.count) media files")
+            .sink { [weak self] files in
+                self?.onMediaFilesChanged(files)
             }
             .store(in: &cancellables)
-
-        print("MediaViewModel: Observers set up")
     }
 
     func importMedia() {
-        guard appState.importState != .inProgress else { return }
+        print("MediaViewModel: importMedia called")
+        guard appState.importState != .inProgress else {
+            print("MediaViewModel: Import already in progress, skipping")
+            return
+        }
         appState.importState = .inProgress
         appState.importProgress = 0
         
+        print("MediaViewModel: Starting import task")
         importTask = Task {
             do {
-                try await importMediaFiles()
+                print("MediaViewModel: Calling mediaImporter.importMediaFiles()")
+                try await mediaImporter.importMediaFiles()
                 await MainActor.run {
+                    print("MediaViewModel: Import completed successfully")
                     self.appState.importState = .completed
                     self.appState.importProgress = 1.0
                 }
             } catch {
                 await MainActor.run {
+                    print("MediaViewModel: Import failed with error: \(error)")
                     self.appState.importState = .failed(error: error)
                 }
             }
@@ -58,76 +66,21 @@ class MediaViewModel: ObservableObject {
     }
     
     func cancelImport() {
+        print("MediaViewModel: Cancelling import")
         importTask?.cancel()
         appState.importState = .cancelled
     }
 
-    private func importMediaFiles() async throws {
-        let totalFiles = Double(appState.mediaFiles.count)
-        var errors: [Error] = []
-
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            for (index, file) in appState.mediaFiles.enumerated() {
-                group.addTask {
-                    do {
-                        try await self.processMediaFile(file)
-                    } catch {
-                        errors.append(error)
-                    }
-                    await self.updateProgress(Double(index + 1) / totalFiles)
-                }
-            }
-            
-            try await group.waitForAll()
-        }
-        
-        if !errors.isEmpty {
-            throw ImportError.partialFailure(errors: errors)
-        }
+    private func onSelectedVolumeIDChanged(_ selectedID: String?) {
+        print("MediaViewModel: Selected volume ID changed to: \(selectedID ?? "nil")")
     }
 
-    private func processMediaFile(_ file: MediaFile) async throws {
-        try Task.checkCancellation()
-        
-        let destinationPath = appState.defaultSavePath
-        let destinationName = file.sourceName
-        
-        var updatedFile = file
-        updatedFile.destinationPath = destinationPath
-        updatedFile.destinationName = destinationName
-        updatedFile.sourceCRC32 = file.calculateCRC32(forPath: file.sourcePath)
-        
-        // For now, we're not actually copying the file, so we'll use the same CRC32 for both source and destination
-        updatedFile.destinationCRC32 = updatedFile.sourceCRC32
-        
-        if appState.verifyImportIntegrity {
-            print("MediaViewModel: Verifying integrity for file: \(destinationName)")
-            if updatedFile.sourceCRC32 == updatedFile.destinationCRC32 {
-                print("MediaViewModel: Integrity verified for file: \(destinationName)")
-                updatedFile.isImported = true
-            } else {
-                print("MediaViewModel: Integrity check failed for file: \(destinationName)")
-                updatedFile.isImported = false
-                throw ImportError.integrityCheckFailed(fileName: destinationName)
-            }
-        } else {
-            updatedFile.isImported = true
-        }
-        
-        await MainActor.run {
-            if let index = appState.mediaFiles.firstIndex(where: { $0.id == file.id }) {
-                appState.mediaFiles[index] = updatedFile
-            }
-        }
+    private func onVolumeAccessibilityChanged(_ isAccessible: Bool) {
+        print("MediaViewModel: Volume accessibility changed to: \(isAccessible)")
+        isSelectedVolumeAccessible = isAccessible
     }
 
-    @MainActor
-    private func updateProgress(_ progress: Double) {
-        appState.importProgress = progress
+    private func onMediaFilesChanged(_ files: [MediaFile]) {
+        print("MediaViewModel: Received \(files.count) media files")
     }
-}
-
-enum ImportError: Error {
-    case integrityCheckFailed(fileName: String)
-    case partialFailure(errors: [Error])
 }
