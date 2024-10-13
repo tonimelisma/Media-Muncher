@@ -33,6 +33,12 @@ class AppState: ObservableObject {
         }
     }
 
+    @Published var autoChooseUniqueName: Bool {
+        didSet {
+            UserDefaults.standard.set(autoChooseUniqueName, forKey: "autoChooseUniqueName")
+        }
+    }
+
     @Published var importProgress: Double = 0
     @Published var importState: ImportState = .idle
 
@@ -41,5 +47,18 @@ class AppState: ObservableObject {
         self.organizeDateFolders = UserDefaults.standard.bool(forKey: "organizeDateFolders")
         self.renameDateTimeFiles = UserDefaults.standard.bool(forKey: "renameDateTimeFiles")
         self.verifyImportIntegrity = UserDefaults.standard.bool(forKey: "verifyImportIntegrity")
+        self.autoChooseUniqueName = UserDefaults.standard.bool(forKey: "autoChooseUniqueName")
+        
+        // Set default value for autoChooseUniqueName if it hasn't been set before
+        if !UserDefaults.standard.contains(key: "autoChooseUniqueName") {
+            self.autoChooseUniqueName = true
+            UserDefaults.standard.set(true, forKey: "autoChooseUniqueName")
+        }
+    }
+}
+
+extension UserDefaults {
+    func contains(key: String) -> Bool {
+        return object(forKey: key) != nil
     }
 }

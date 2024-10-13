@@ -15,7 +15,7 @@ struct SettingsView: View {
             }
 
             Toggle(
-                "Organize into Date Folders",
+                "Organize into folders by date",
                 isOn: $appState.organizeDateFolders
             )
             .onChange(of: appState.organizeDateFolders) { oldValue, newValue in
@@ -25,7 +25,7 @@ struct SettingsView: View {
             }
 
             Toggle(
-                "Rename Files with Date and Time",
+                "Rename files with date and time",
                 isOn: $appState.renameDateTimeFiles
             )
             .onChange(of: appState.renameDateTimeFiles) { oldValue, newValue in
@@ -35,7 +35,7 @@ struct SettingsView: View {
             }
 
             Toggle(
-                "Verify Import Integrity",
+                "Verify integrity after importing",
                 isOn: $appState.verifyImportIntegrity
             )
             .onChange(of: appState.verifyImportIntegrity) { oldValue, newValue in
@@ -43,9 +43,19 @@ struct SettingsView: View {
                     "SettingsView: Verify Import Integrity changed from \(oldValue) to \(newValue)"
                 )
             }
+
+            Toggle(
+                "Automatically choose new name for unique imports",
+                isOn: $appState.autoChooseUniqueName
+            )
+            .onChange(of: appState.autoChooseUniqueName) { oldValue, newValue in
+                print(
+                    "SettingsView: Automatically choose new name for unique imports changed from \(oldValue) to \(newValue)"
+                )
+            }
         }
         .padding(20)
-        .frame(width: 450, height: 300)
+        .frame(width: 600, height: 300)
     }
 }
 
