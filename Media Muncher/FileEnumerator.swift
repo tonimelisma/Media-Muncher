@@ -29,6 +29,10 @@ class FileEnumerator {
     static func enumerateFileSystem(for volumePath: String, appState: AppState) async {
         print("FileEnumerator: Enumerating file system for path: \(volumePath)")
         
+        await MainActor.run {
+            appState.appOperationState = .enumerating
+        }
+        
         let fileManager = FileManager.default
         
         guard let enumerator = fileManager.enumerator(
@@ -41,6 +45,9 @@ class FileEnumerator {
             }
         ) else {
             print("FileEnumerator: Failed to create enumerator for path: \(volumePath)")
+            await MainActor.run {
+                appState.appOperationState = .idle
+            }
             return
         }
         
@@ -94,6 +101,10 @@ class FileEnumerator {
         }
         
         print("FileEnumerator: Enumerated \(appState.mediaFiles.count) media files in \(volumePath)")
+        
+        await MainActor.run {
+            appState.appOperationState = .idle
+        }
     }
     
     private static func determineMediaType(fileURL: URL) -> MediaType? {
@@ -229,5 +240,19 @@ class FileEnumerator {
         default:
             return nil
         }
+    }
+}
+
+extension Sequence {
+    func asyncMap<T>(
+        _ transform: (Element) async throws -> T
+    ) async rethrows -> [T] {
+        var values = [T]()
+        
+        for element in self {
+            try await values.append(transform(element))
+        }
+        
+        return values
     }
 }

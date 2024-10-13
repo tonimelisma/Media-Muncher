@@ -81,22 +81,3 @@ enum ImportError: Error {
     case integrityCheckFailed(fileName: String)
     case partialFailure(errors: [Error])
 }
-
-enum ImportState: Equatable {
-    case idle
-    case inProgress
-    case completed
-    case cancelled
-    case failed(error: Error)
-    
-    static func == (lhs: ImportState, rhs: ImportState) -> Bool {
-        switch (lhs, rhs) {
-        case (.idle, .idle), (.inProgress, .inProgress), (.completed, .completed), (.cancelled, .cancelled):
-            return true
-        case (.failed, .failed):
-            return true
-        default:
-            return false
-        }
-    }
-}

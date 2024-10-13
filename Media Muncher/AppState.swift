@@ -1,5 +1,25 @@
 import SwiftUI
 
+enum AppOperationState: Equatable {
+    case idle
+    case enumerating
+    case inProgress
+    case completed
+    case cancelled
+    case failed(error: Error)
+    
+    static func == (lhs: AppOperationState, rhs: AppOperationState) -> Bool {
+        switch (lhs, rhs) {
+        case (.idle, .idle), (.enumerating, .enumerating), (.inProgress, .inProgress), (.completed, .completed), (.cancelled, .cancelled):
+            return true
+        case (.failed, .failed):
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 class AppState: ObservableObject {
     @Published var volumes: [Volume] = []
     
@@ -40,7 +60,7 @@ class AppState: ObservableObject {
     }
 
     @Published var importProgress: Double = 0
-    @Published var importState: ImportState = .idle
+    @Published var appOperationState: AppOperationState = .idle
 
     init() {
         self.defaultSavePath = UserDefaults.standard.string(forKey: "defaultSavePath") ?? NSHomeDirectory()

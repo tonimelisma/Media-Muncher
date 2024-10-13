@@ -39,11 +39,11 @@ class MediaViewModel: ObservableObject {
 
     func importMedia() {
         print("MediaViewModel: importMedia called")
-        guard appState.importState != .inProgress else {
+        guard appState.appOperationState != .inProgress else {
             print("MediaViewModel: Import already in progress, skipping")
             return
         }
-        appState.importState = .inProgress
+        appState.appOperationState = .inProgress
         appState.importProgress = 0
         
         print("MediaViewModel: Starting import task")
@@ -53,13 +53,13 @@ class MediaViewModel: ObservableObject {
                 try await mediaImporter.importMediaFiles()
                 await MainActor.run {
                     print("MediaViewModel: Import completed successfully")
-                    self.appState.importState = .completed
+                    self.appState.appOperationState = .completed
                     self.appState.importProgress = 1.0
                 }
             } catch {
                 await MainActor.run {
                     print("MediaViewModel: Import failed with error: \(error)")
-                    self.appState.importState = .failed(error: error)
+                    self.appState.appOperationState = .failed(error: error)
                 }
             }
         }
@@ -68,7 +68,7 @@ class MediaViewModel: ObservableObject {
     func cancelImport() {
         print("MediaViewModel: Cancelling import")
         importTask?.cancel()
-        appState.importState = .cancelled
+        appState.appOperationState = .cancelled
     }
 
     private func onSelectedVolumeIDChanged(_ selectedID: String?) {

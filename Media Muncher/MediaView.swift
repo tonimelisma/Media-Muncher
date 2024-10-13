@@ -45,10 +45,10 @@ struct MediaView: View {
             noVolumeSelectedView
         } else if !appState.isSelectedVolumeAccessible {
             volumeAccessRequiredView
-        } else if mediaFilesViewModel.displayedMediaFiles.isEmpty {
-            noMediaFilesView
-        } else {
+        } else if appState.appOperationState == .enumerating || !mediaFilesViewModel.displayedMediaFiles.isEmpty {
             MediaFilesGridView(mediaFiles: mediaFilesViewModel.displayedMediaFiles)
+        } else {
+            noMediaFilesView
         }
     }
     
@@ -129,7 +129,7 @@ struct MediaView: View {
             Spacer()
 
             Button("Import", action: importMedia)
-                .disabled(appState.selectedVolumeID == nil || !appState.isSelectedVolumeAccessible)
+                .disabled(appState.selectedVolumeID == nil || !appState.isSelectedVolumeAccessible || appState.appOperationState == .enumerating)
         }
         .padding()
         .background(Color(nsColor: .quinaryLabel))
