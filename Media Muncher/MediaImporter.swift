@@ -1,7 +1,9 @@
 import Foundation
 
-struct MediaImporter {
+class MediaImporter {
     private let appState: AppState
+    private var timer: Timer?
+    private var currentProgress: Double = 0
     
     init(appState: AppState) {
         print("MediaImporter: Initializing")
@@ -12,12 +14,17 @@ struct MediaImporter {
         print("MediaImporter: Starting import process")
         let totalFiles = Double(appState.mediaFiles.count)
         print("MediaImporter: Total files to import: \(totalFiles)")
+        
+        startProgressTimer()
+        
         let importedFiles = try await appState.mediaFiles.enumerated().asyncMap { index, file in
             print("MediaImporter: Processing file \(index + 1) of \(Int(totalFiles))")
             let result = try await self.processMediaFile(file)
-            await self.updateProgress(Double(index + 1) / totalFiles)
+            self.currentProgress = Double(index + 1) / totalFiles
             return result
         }
+        
+        stopProgressTimer()
         
         let errors = importedFiles.compactMap { $0.error }
         if !errors.isEmpty {
@@ -28,6 +35,7 @@ struct MediaImporter {
         await MainActor.run {
             print("MediaImporter: Updating appState with imported files")
             appState.mediaFiles = importedFiles.compactMap { $0.file }
+            appState.importProgress = 1.0  // Ensure progress is set to 100% at the end
         }
         print("MediaImporter: Import process completed successfully")
     }
@@ -78,10 +86,25 @@ struct MediaImporter {
         }
     }
     
-    @MainActor
-    private func updateProgress(_ progress: Double) {
-        print("MediaImporter: Updating progress: \(progress)")
-        appState.importProgress = progress
+    private func startProgressTimer() {
+        DispatchQueue.main.async {
+            self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                self.updateProgressOnMainThread()
+            }
+        }
+    }
+    
+    private func stopProgressTimer() {
+        DispatchQueue.main.async {
+            self.timer?.invalidate()
+            self.timer = nil
+        }
+    }
+    
+    private func updateProgressOnMainThread() {
+        DispatchQueue.main.async {
+            self.appState.importProgress = self.currentProgress
+        }
     }
 }
 
