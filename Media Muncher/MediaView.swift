@@ -32,9 +32,6 @@ struct MediaView: View {
         .onChange(of: appState.mediaFiles) { oldValue, newValue in
             onMediaFilesChange(oldValue, newValue)
         }
-        .onReceive(appState.$mediaFiles) { _ in
-            mediaFilesViewModel.updateDisplayedFiles(with: appState.mediaFiles)
-        }
     }
     
     @ViewBuilder
@@ -165,6 +162,7 @@ struct MediaView: View {
     
     private func onAppear() {
         print("MediaView: View appeared")
+        mediaFilesViewModel.setAppState(appState)
     }
     
     private func onSelectedVolumeIDChange(_ oldValue: String?, _ newValue: String?) {

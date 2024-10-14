@@ -1,9 +1,9 @@
 import SwiftUI
-import Combine
 
 class MediaFilesViewModel: ObservableObject {
     @Published var displayedMediaFiles: [MediaFile] = []
     private var timer: Timer?
+    private var appState: AppState?
 
     init() {
         setupTimer()
@@ -11,14 +11,23 @@ class MediaFilesViewModel: ObservableObject {
 
     private func setupTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.objectWillChange.send()
+            print("MediaFilesViewModel: Timer fired")
+            self?.updateDisplayedFiles()
         }
     }
 
-    func updateDisplayedFiles(with newFiles: [MediaFile]) {
-        DispatchQueue.main.async {
-            self.displayedMediaFiles = newFiles
+    func updateDisplayedFiles() {
+        DispatchQueue.main.async { [weak self] in
+            if let appState = self?.appState {
+                self?.displayedMediaFiles = appState.mediaFiles
+                print("MediaFilesViewModel: Updated displayed files. Count: \(appState.mediaFiles.count)")
+            }
         }
+    }
+
+    func setAppState(_ appState: AppState) {
+        self.appState = appState
+        print("MediaFilesViewModel: AppState set")
     }
 
     deinit {

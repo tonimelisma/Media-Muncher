@@ -5,8 +5,8 @@ MacOS app to automatically import photos and videos from inserted SD cards, USB 
 ## Todo
 
 ### MVP
-* Remove "no media files found" if enumeration is in progress
-* Remove batching from enumeration
+* Fix "grant access" button
+* Clear file list on volume removal
 * Progress bar and cancel button
 
 * Copy them to the destination folder

@@ -1,36 +1,12 @@
 import Foundation
 
-actor MediaFileBatcher {
-    private var batchedMediaFiles: [MediaFile] = []
-    private let batchSize: Int
-    
-    init(batchSize: Int) {
-        self.batchSize = batchSize
-    }
-    
-    func add(_ mediaFile: MediaFile) async -> [MediaFile]? {
-        batchedMediaFiles.append(mediaFile)
-        if batchedMediaFiles.count >= batchSize {
-            let batch = batchedMediaFiles
-            batchedMediaFiles.removeAll()
-            return batch
-        }
-        return nil
-    }
-    
-    func getRemainingBatch() -> [MediaFile] {
-        let batch = batchedMediaFiles
-        batchedMediaFiles.removeAll()
-        return batch
-    }
-}
-
 class FileEnumerator {
     static func enumerateFileSystem(for volumePath: String, appState: AppState) async {
         print("FileEnumerator: Enumerating file system for path: \(volumePath)")
         
         await MainActor.run {
             appState.appOperationState = .enumerating
+            appState.mediaFiles.removeAll()
         }
         
         let fileManager = FileManager.default
@@ -53,8 +29,6 @@ class FileEnumerator {
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        
-        let batcher = MediaFileBatcher(batchSize: 50)
         
         for case let fileURL as URL in enumerator {
             do {
@@ -81,22 +55,13 @@ class FileEnumerator {
                         
                         print("FileEnumerator: File: \(name), Type: \(mediaType), DateTime: \(dateFormatter.string(from: creationDateTime))")
                         
-                        if let batch = await batcher.add(mediaFile) {
-                            await MainActor.run {
-                                appState.mediaFiles.append(contentsOf: batch)
-                            }
+                        await MainActor.run {
+                            appState.mediaFiles.append(mediaFile)
                         }
                     }
                 }
             } catch {
                 print("FileEnumerator: Error getting resource values for \(fileURL.path): \(error.localizedDescription)")
-            }
-        }
-        
-        let remainingBatch = await batcher.getRemainingBatch()
-        if !remainingBatch.isEmpty {
-            await MainActor.run {
-                appState.mediaFiles.append(contentsOf: remainingBatch)
             }
         }
         
