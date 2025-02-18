@@ -7,9 +7,8 @@
 
 import SwiftUI
 
-struct VolumeList: View {
+struct VolumeView: View {
     @EnvironmentObject var appState: AppState
-    // @State private var localSelectedVolume: String?
 
     var body: some View {
         List(
@@ -52,9 +51,5 @@ struct VolumeList: View {
             appState.volumes = appState.loadVolumes()
             appState.ensureVolumeSelection()
         }
-        // .onChange(of: localSelectedVolume) {
-        //     print("Changed to \(localSelectedVolume!)")
-        //     appState.selectedVolume = localSelectedVolume
-        // }
     }
 }

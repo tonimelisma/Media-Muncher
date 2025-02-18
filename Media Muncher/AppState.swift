@@ -6,9 +6,18 @@
 //
 import SwiftUI
 
+enum programState {
+    case idle
+    case enumeratingFiles
+}
+
 class AppState: ObservableObject {
     @Published var volumes: [Volume] = []
-    @Published var selectedVolume: String? = nil
+    @Published private(set) var selectedVolume: String? = nil
+
+    @Published var files: [File] = []
+
+    @Published var state: programState = programState.idle
 
     private var workspace: NSWorkspace = NSWorkspace.shared
     private var observers: [NSObjectProtocol] = []
@@ -29,12 +38,7 @@ class AppState: ObservableObject {
             queue: .main
         ) { [weak self] notification in
             print("Volume mounted")
-            guard let userInfo = notification.userInfo else {
-                print("Couldn't get userInfo from mounting notification")
-                return
-            }
-
-            guard
+            guard let userInfo = notification.userInfo,
                 let volumeURL = userInfo[NSWorkspace.volumeURLUserInfoKey]
                     as? URL
             else {
@@ -45,23 +49,22 @@ class AppState: ObservableObject {
 
             guard
                 let resources = try? volumeURL.resourceValues(forKeys: [
-                    .volumeUUIDStringKey, .nameKey,
+                    .volumeUUIDStringKey, .nameKey, .volumeIsRemovableKey,
                 ]),
-                let uuid = resources.volumeUUIDString
-            else {
-                print("Couldn't get UUID from mounting notification")
-                return
-            }
-            print("UUID is \(uuid)")
-
-            guard
+                let uuid = resources.volumeUUIDString,
                 let volumeName = userInfo[
                     NSWorkspace.localizedVolumeNameUserInfoKey] as? String
             else {
-                print("Couldn't get volume name from mounting notification")
+                print(
+                    "Couldn't get UUID, localized name and other resources from mounting notification"
+                )
                 return
             }
-            print("Mounted volume name: \(volumeName)")
+
+            guard resources.volumeIsRemovable == true else {
+                print("Not a removable volume, skipping")
+                return
+            }
 
             let newVolume: Volume = Volume(
                 name: volumeName, devicePath: volumeURL.path,
@@ -98,6 +101,7 @@ class AppState: ObservableObject {
 
             if self?.selectedVolume == volumeURL.path {
                 print("Selected volume was unmounted, making a new selection")
+                self?.files = []
                 self?.ensureVolumeSelection()
             }
         }
@@ -163,41 +167,40 @@ class AppState: ObservableObject {
     func ensureVolumeSelection() {
         if let firstVolume = self.volumes.first {
             print("VolumeViewModel: Selecting first available volume")
-            self.selectedVolume = firstVolume.devicePath
+            self.selectVolume(firstVolume.devicePath)
         } else {
             print("VolumeViewModel: No volumes available to select")
-            self.selectedVolume = nil
+            self.selectVolume(nil)
         }
     }
 
     /// Selects a volume with the given ID.
     /// - Parameter id: The ID of the volume to select.
     func selectVolume(_ id: String?) {
-        print("VolumeViewModel: Selecting volume with ID: \(id ?? "nil")")
-        DispatchQueue.main.async {
-            self.selectedVolume = id
+        if id == self.selectedVolume {
+            // Shouldn't happen, but we're selecting the already selected volume again
+            // Do nothing
+            return
         }
-        // guard let id = id else {
-        //     return
-        // }
 
-        // if let volumeIndex = self.volumes.firstIndex(where: { $0.id == id }) {
-        // if self.selectedVolume != id {
-        // self.selectedVolume = id
-        // self.isSelectedVolumeAccessible = false
-        // self.mediaFiles = []
-        // }
+        // Either a new volume was selected, or volume was de-selected
+        // In either case, empty out the files array
+        self.files = []
 
-        // VolumeService.accessVolumeAndCreateBookmark(
-        //     for: appState.volumes[volumeIndex].devicePath
-        // ) { [weak self] success in
-        //     self?.handleVolumeAccess(for: id, granted: success)
-        // }
-        // } else {
-        // print("VolumeViewModel: No volume found with ID: \(id)")
-        // self.selectedVolume = nil
-        // appState.isSelectedVolumeAccessible = false
-        // }
+        guard let id = id else {
+            self.selectedVolume = nil
+            return
+        }
+
+        print("VolumeViewModel: Selecting volume with ID: \(id)")
+        Task {
+            await MainActor.run {
+                self.selectedVolume = id
+            }
+        }
+        Task {
+            await enumerateFiles()
+        }
     }
 
     /// Ejects the specified volume.
@@ -211,6 +214,19 @@ class AppState: ObservableObject {
             print("Successfully ejected volume: \(volume.name)")
         } catch {
             print("Error ejecting volume \(volume.devicePath): \(error)")
+        }
+    }
+
+    func enumerateFiles() async {
+        await MainActor.run {
+            state = programState.enumeratingFiles
+        }
+        print("Enumerating files")
+        await MainActor.run {
+            files = (1...100).map {
+                (File(sourcePath: "\($0).jpg"))
+            }
+            state = programState.idle
         }
     }
 }

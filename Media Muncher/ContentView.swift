@@ -12,10 +12,11 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            VolumeList()
+            VolumeView()
                 .navigationSplitViewColumnWidth(min: 150, ideal: 250, max: 250)
         } detail: {
-            Text("Hello")
+            MediaView()
+                // .frame(minWidth: 400, minHeight: 400)
         }
         .navigationTitle("Media Muncher")
         .environmentObject(appState)
