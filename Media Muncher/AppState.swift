@@ -11,6 +11,11 @@ enum programState {
     case enumeratingFiles
 }
 
+enum errorState {
+    case none
+    case destinationFolderNotWritable
+}
+
 class AppState: ObservableObject {
     @Published var volumes: [Volume] = []
     @Published private(set) var selectedVolume: String? = nil
@@ -18,6 +23,7 @@ class AppState: ObservableObject {
     @Published var files: [File] = []
 
     @Published var state: programState = programState.idle
+    @Published var error: errorState = errorState.none
 
     // Settings
     @Published var settingDeleteOriginals: Bool {
@@ -337,5 +343,22 @@ class AppState: ObservableObject {
         await MainActor.run {
             files.append(contentsOf: batch)
         }
+    }
+
+    func importFiles() async {
+        print("Importing files")
+        let fileManager = FileManager.default
+        if !fileManager.isWritableFile(atPath: settingDestinationFolder) {
+            await MainActor.run {
+                self.error = errorState.destinationFolderNotWritable
+            }
+            return
+        } else {
+            await MainActor.run {
+                self.error = errorState.none
+            }
+        }
+
+        print("Import done")
     }
 }
