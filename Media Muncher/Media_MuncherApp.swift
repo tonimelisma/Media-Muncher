@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct Media_MuncherApp: App {
+    @StateObject var appState = AppState()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(appState)
+        }
+
+        Settings {
+            SettingsView()
+                .environmentObject(appState)
         }
     }
 }

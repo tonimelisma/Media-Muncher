@@ -14,7 +14,8 @@ struct MediaFilesGridView: View {
         GeometryReader { geometry in
             ScrollView {
                 let columnWidth: CGFloat = 120
-                let columnsCount = Int(geometry.size.width / (columnWidth + 10))
+                let columnsCount = Int(
+                    (geometry.size.width - 20)/(columnWidth + 10))
                 let iconSize: CGFloat = columnWidth - 20
                 let columns = Array(
                     repeating: GridItem(
@@ -25,29 +26,24 @@ struct MediaFilesGridView: View {
                     ForEach(appState.files) {
                         file in
                         VStack {
-                            // Image(systemName: "folder.fill")
+                            // TODO function to provide correct image based on file type
                             // Image(systemName: "video.fill")
                             // Image(systemName: "speaker.3.fill")
                             // Image(systemName: "music.note")
                             // Image(systemName: "music.note.list")
-                            Image(
-                                systemName: "photo.fill.on.rectangle.fill"
-                            )
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: iconSize, height: iconSize)
-                            Text(file.sourcePath)
+                            Image(systemName: "photo.fill.on.rectangle.fill")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: iconSize, height: iconSize)
+                            Text(file.sourceName)
                                 .font(.caption)
                                 .multilineTextAlignment(.center)
                         }
                     }
                 }
-                .frame(
-                    width: CGFloat(columnsCount) * (columnWidth + 10),
-                    alignment: .leading)
                 .padding()
-                Spacer()
             }
+            Spacer()
         }
     }
 }

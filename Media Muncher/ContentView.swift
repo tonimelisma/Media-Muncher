@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject var appState = AppState()
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         NavigationSplitView {
@@ -16,10 +16,17 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 150, ideal: 250, max: 250)
         } detail: {
             MediaView()
-                // .frame(minWidth: 400, minHeight: 400)
+        }
+        .toolbar {
+            ToolbarItem() {
+                Button(action: {
+                    openSettings()
+                }) {
+                    Label("Settings", systemImage: "gear")
+                }
+            }
         }
         .navigationTitle("Media Muncher")
-        .environmentObject(appState)
     }
 }
 

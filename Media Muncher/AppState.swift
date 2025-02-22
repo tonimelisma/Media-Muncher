@@ -19,10 +19,38 @@ class AppState: ObservableObject {
 
     @Published var state: programState = programState.idle
 
+    // Settings
+    @Published var settingDeleteOriginals: Bool {
+        didSet {
+            UserDefaults.standard.set(settingDeleteOriginals, forKey: "settingDeleteOriginals")
+        }
+    }
+    @Published var settingDeletePrevious: Bool {
+        didSet {
+            UserDefaults.standard.set(settingDeletePrevious, forKey: "settingDeletePrevious")
+        }
+    }
+    @Published var settingDestinationFolder: String {
+        didSet {
+            UserDefaults.standard.set(settingDestinationFolder, forKey: "settingDestinationFolder")
+        }
+    }
+
+    func setSettingDestinationFolder(_ folder: String) {
+        settingDestinationFolder = folder
+    }
+
     private var workspace: NSWorkspace = NSWorkspace.shared
     private var observers: [NSObjectProtocol] = []
 
     init() {
+        self.settingDeleteOriginals = UserDefaults.standard.bool(forKey: "settingDeleteOriginals")
+        self.settingDeletePrevious = UserDefaults.standard.bool(forKey: "settingDeletePrevious")
+        self.settingDestinationFolder =
+            UserDefaults.standard.string(forKey: "settingDestinationFolder") ?? FileManager.default.urls(
+                for: .picturesDirectory, in: .userDomainMask
+            ).first?.path ?? ""
+
         setupVolumeObservers()
     }
 
@@ -185,20 +213,20 @@ class AppState: ObservableObject {
 
         // Either a new volume was selected, or volume was de-selected
         // In either case, empty out the files array
-        self.files = []
-
-        guard let id = id else {
-            self.selectedVolume = nil
-            return
-        }
-
-        print("VolumeViewModel: Selecting volume with ID: \(id)")
         Task {
+            await MainActor.run {
+                self.files = []
+            }
+
+            guard let id = id else {
+                self.selectedVolume = nil
+                return
+            }
+
+            print("VolumeViewModel: Selecting volume with ID: \(id)")
             await MainActor.run {
                 self.selectedVolume = id
             }
-        }
-        Task {
             await enumerateFiles()
         }
     }
@@ -218,15 +246,96 @@ class AppState: ObservableObject {
     }
 
     func enumerateFiles() async {
+        let fileManager = FileManager.default
+        var batch: [File] = []
+
+        guard let selectedVolume = selectedVolume else {
+            print(
+                "Couldn't get folder URL and thus couldn't enumerate files on \(selectedVolume ?? "nil")"
+            )
+            return
+        }
+
+        let rootURL = URL(fileURLWithPath: selectedVolume)
         await MainActor.run {
             state = programState.enumeratingFiles
         }
-        print("Enumerating files")
-        await MainActor.run {
-            files = (1...100).map {
-                (File(sourcePath: "\($0).jpg"))
+        print("Enumerating files in \(rootURL.path)")
+
+        do {
+            let resourceKeys: Set<URLResourceKey> = [
+                .creationDateKey, .contentModificationDateKey, .fileSizeKey,
+            ]
+            let enumerator = fileManager.enumerator(
+                at: rootURL, includingPropertiesForKeys: Array(resourceKeys))
+            print("Enumerator: \(String(describing: enumerator))")
+
+            var isDirectory: ObjCBool = false
+            if !fileManager.fileExists(
+                atPath: rootURL.path, isDirectory: &isDirectory)
+                || !isDirectory.boolValue
+            {
+                print(
+                    "Error: Specified path does not exist or is not a directory"
+                )
             }
+
+            do {
+                let contents = try fileManager.contentsOfDirectory(
+                    atPath: rootURL.path)
+                print("Contents of directory: \(contents)")
+            } catch {
+                print("Error listing directory contents: \(error)")
+            }
+
+            while let fileURL = enumerator?.nextObject() as? URL {
+                print("Checking fileURL.path: \(fileURL.path)")
+                guard fileURL.hasDirectoryPath == false else {
+                    if fileURL.lastPathComponent == "THMBNL" {
+                        enumerator?.skipDescendants()
+                    }
+                    continue
+                }
+                let mediaType = determineMediaType(for: fileURL.path)
+                if mediaType == MediaType.unknown { continue }
+
+                let resourceValues = try fileURL.resourceValues(
+                    forKeys: resourceKeys)
+                let creationDate = resourceValues.creationDate
+                let modificationDate = resourceValues.contentModificationDate
+                let size = Int64(resourceValues.fileSize ?? 0)
+
+                let file = File(
+                    sourcePath: fileURL.path,
+                    mediaType: mediaType,
+                    creationDate: creationDate,
+                    modificationDate: modificationDate,
+                    size: size
+                )
+                batch.append(file)
+
+                if batch.count >= 100 {
+                    await appendFiles(batch)
+                    batch.removeAll()
+                }
+            }
+            print("Done with enumeration")
+
+            if !batch.isEmpty {
+                await appendFiles(batch)
+            }
+        } catch {
+            print("Error enumerating files: \(error)")
+        }
+
+        await MainActor.run {
             state = programState.idle
+        }
+    }
+
+    func appendFiles(_ batch: [File]) async {
+        await MainActor.run {
+            files.append(contentsOf: batch)
         }
     }
 }
