@@ -32,6 +32,8 @@ struct File: Identifiable {
         }
         return destDirectory + "/" + destFilename
     }
+
+    
 }
 
 func determineMediaType(for filePath: String) -> MediaType {

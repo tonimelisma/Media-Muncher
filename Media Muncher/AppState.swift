@@ -251,6 +251,17 @@ class AppState: ObservableObject {
         }
     }
 
+    func printMetadata(_ dict: [String: Any], indent: String = "") {
+        for (key, value) in dict {
+            if let nestedDict = value as? [String: Any] {
+                print("\(indent)\(key):")
+                printMetadata(nestedDict, indent: indent + "  ")
+            } else {
+                print("\(indent)\(key): \(value)")
+            }
+        }
+    }
+
     func enumerateFiles() async {
         let fileManager = FileManager.default
         var batch: [File] = []
@@ -286,14 +297,6 @@ class AppState: ObservableObject {
                 )
             }
 
-            do {
-                let contents = try fileManager.contentsOfDirectory(
-                    atPath: rootURL.path)
-                print("Contents of directory: \(contents)")
-            } catch {
-                print("Error listing directory contents: \(error)")
-            }
-
             while let fileURL = enumerator?.nextObject() as? URL {
                 print("Checking fileURL.path: \(fileURL.path)")
                 guard fileURL.hasDirectoryPath == false else {
@@ -310,6 +313,8 @@ class AppState: ObservableObject {
                 let creationDate = resourceValues.creationDate
                 let modificationDate = resourceValues.contentModificationDate
                 let size = Int64(resourceValues.fileSize ?? 0)
+                print("Creation date: \(String(describing: creationDate))")
+                print("Modification date: \(String(describing: modificationDate))")
 
                 let file = File(
                     sourcePath: fileURL.path,
@@ -318,6 +323,29 @@ class AppState: ObservableObject {
                     modificationDate: modificationDate,
                     size: size
                 )
+
+                if mediaType == MediaType.image {
+                    if let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
+                        let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any]
+                    {
+                        // Get DateTimeOriginal from Exif or TIFF
+                        let exifMetadata = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any]
+                        let tiffMetadata = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any]
+
+                        let dateTimeOriginal: String? =
+                            exifMetadata?["DateTimeOriginal"] as? String ?? tiffMetadata?["DateTime"] as? String
+
+                        if let dateTimeOriginal = dateTimeOriginal {
+                            print("DateTimeOriginal: \(dateTimeOriginal)")
+                        } else {
+                            print("DateTimeOriginal not found in Exif or TIFF metadata.")
+                        }
+                    } else {
+                        print("Failed to retrieve image metadata.")
+                    }
+                    print("")
+                }
+
                 batch.append(file)
 
                 if batch.count >= 100 {
