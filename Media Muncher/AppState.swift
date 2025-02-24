@@ -1,3 +1,4 @@
+import AVFoundation
 //
 //  AppState.swift
 //  Media Muncher
@@ -313,16 +314,33 @@ class AppState: ObservableObject {
                 let creationDate = resourceValues.creationDate
                 let modificationDate = resourceValues.contentModificationDate
                 let size = Int64(resourceValues.fileSize ?? 0)
-                print("Creation date: \(String(describing: creationDate))")
-                print("Modification date: \(String(describing: modificationDate))")
 
-                let file = File(
-                    sourcePath: fileURL.path,
-                    mediaType: mediaType,
-                    creationDate: creationDate,
-                    modificationDate: modificationDate,
-                    size: size
-                )
+                // mediaDate is a date which stores the date the media was created
+                // Because Swift pretends date is UTC, we convert all dates back or
+                // forward by the current timezone. Before using this value, just
+                // remember to convert it "back to current timezone" to get the local date
+                var mediaDate: Date?
+
+                if mediaType == MediaType.video {
+                    do {
+                        // Create an AVAsset for the video file
+                        let asset = AVURLAsset(url: fileURL)
+
+                        if let creationDate = try await asset.load(.creationDate) {
+                            if let dateValue = try await creationDate.load(.dateValue) {
+                                let dateFormatter = DateFormatter()
+                                dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+                                dateFormatter.timeZone = TimeZone.current
+
+                                mediaDate = dateValue
+                                print("Creation date date from metadata: \(dateFormatter.string(from: dateValue))")
+                            }
+                        }
+
+                    } catch {
+                        print("Error loading video metadata: \(error.localizedDescription)")
+                    }
+                }
 
                 if mediaType == MediaType.image {
                     if let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
@@ -336,28 +354,55 @@ class AppState: ObservableObject {
                             exifMetadata?["DateTimeOriginal"] as? String ?? tiffMetadata?["DateTime"] as? String
 
                         if let dateTimeOriginal = dateTimeOriginal {
+                            let dateFormatter = DateFormatter()
+                            dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+                            mediaDate = dateFormatter.date(from: dateTimeOriginal)
                             print("DateTimeOriginal: \(dateTimeOriginal)")
+                            // mediaDate now has a mangled date that needs to be moved
+                            // back by "current timezone" before being used
                         } else {
                             print("DateTimeOriginal not found in Exif or TIFF metadata.")
                         }
                     } else {
                         print("Failed to retrieve image metadata.")
                     }
-                    print("")
                 }
+
+                if mediaDate == nil {
+                    // Convert creation and modification dates to local time
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+                    dateFormatter.timeZone = TimeZone.current
+
+                    if let creationDate = creationDate {
+                        mediaDate = creationDate
+                        print("Creation date (local): \(dateFormatter.string(from: creationDate))")
+                    } else if let modificationDate = modificationDate {
+                        mediaDate = modificationDate
+                        print("Modification date (local): \(dateFormatter.string(from: modificationDate))")
+                    }
+                }
+
+                let file = File(
+                    sourcePath: fileURL.path,
+                    mediaType: mediaType,
+                    date: mediaDate,
+                    size: size
+                )
 
                 batch.append(file)
 
-                if batch.count >= 100 {
+                if batch.count >= 50 {
                     await appendFiles(batch)
                     batch.removeAll()
                 }
             }
-            print("Done with enumeration")
 
             if !batch.isEmpty {
                 await appendFiles(batch)
+                batch.removeAll()
             }
+            print("Done with enumeration")
         } catch {
             print("Error enumerating files: \(error)")
         }
@@ -373,6 +418,10 @@ class AppState: ObservableObject {
         }
     }
 
+    func projectDestinationFilenames() async {
+
+    }
+
     func importFiles() async {
         print("Importing files")
         let fileManager = FileManager.default
@@ -386,6 +435,10 @@ class AppState: ObservableObject {
                 self.error = errorState.none
             }
         }
+
+        print("Total source files: \(files.count)")
+
+        await projectDestinationFilenames()
 
         print("Import done")
     }

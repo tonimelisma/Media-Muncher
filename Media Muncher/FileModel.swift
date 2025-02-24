@@ -20,8 +20,7 @@ struct File: Identifiable {
         (sourcePath as NSString).lastPathComponent
     }
     var mediaType: MediaType
-    var creationDate: Date?
-    var modificationDate: Date?
+    var date: Date?
     var size: Int64?
     var destDirectory: String?
     var destFilename: String?

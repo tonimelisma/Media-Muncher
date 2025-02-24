@@ -12,11 +12,13 @@ struct MediaView: View {
 
     var body: some View {
         if appState.selectedVolume == nil {
+            Spacer()
             Text("Please insert a removable volume")
         } else {
             if appState.files.isEmpty
                 && appState.state != programState.enumeratingFiles
             {
+                Spacer()
                 Text("No media files found in volume")
             } else {
                 MediaFilesGridView()
