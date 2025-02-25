@@ -11,6 +11,10 @@ enum MediaType: String {
     case audio, video, image, unknown
 }
 
+enum FileStatus: String {
+    case waiting, pre_existing, failed, copied
+}
+
 struct File: Identifiable {
     var id: String {
         sourcePath
@@ -31,8 +35,7 @@ struct File: Identifiable {
         }
         return destDirectory + "/" + destFilename
     }
-
-    
+    var status: FileStatus
 }
 
 func determineMediaType(for filePath: String) -> MediaType {

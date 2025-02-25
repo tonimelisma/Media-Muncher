@@ -387,7 +387,8 @@ class AppState: ObservableObject {
                     sourcePath: fileURL.path,
                     mediaType: mediaType,
                     date: mediaDate,
-                    size: size
+                    size: size,
+                    status: FileStatus.waiting
                 )
 
                 batch.append(file)
@@ -418,10 +419,6 @@ class AppState: ObservableObject {
         }
     }
 
-    func projectDestinationFilenames() async {
-
-    }
-
     func importFiles() async {
         print("Importing files")
         let fileManager = FileManager.default
@@ -437,8 +434,17 @@ class AppState: ObservableObject {
         }
 
         print("Total source files: \(files.count)")
+        
+        // For each file
+        // See, if file has exact same datetime and size as previous, already processed file
+        // Invent a new name for file. If the destination exists or is a name taken by a previous file, come up with a new one
+        // If the destination exists, and is the same datetime and size, set status to pre-existing
 
-        await projectDestinationFilenames()
+        // Print all files and their projections
+
+        // Copy files
+
+        // Delete original files
 
         print("Import done")
     }
