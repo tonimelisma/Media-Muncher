@@ -15,7 +15,7 @@ final class Media_MuncherUITests: XCTestCase {
         // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
 
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+        // In UI tests it's important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
     }
 
     override func tearDownWithError() throws {
@@ -23,12 +23,13 @@ final class Media_MuncherUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testShowsNoVolumePlaceholder() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        // Expect the placeholder text to be visible when no removable volumes are attached.
+        let placeholder = app.staticTexts["Please insert a removable volume"]
+        XCTAssertTrue(placeholder.waitForExistence(timeout: 3), "The no-volume placeholder should appear on launch when no removable devices are present.")
     }
 
     @MainActor
