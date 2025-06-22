@@ -144,4 +144,5 @@ graph TD;
 ---
 ## 14. Recent Maintenance (2025-06-22)
 * Implemented media-type specific icons in `MediaFilesGridView` backed by a new `MediaType.sfSymbolName` helper.
-* Added indeterminate `ProgressView` that becomes visible while `AppState.state == .enumeratingFiles`, partially addressing MD-2 in PRD. 
+* Added indeterminate `ProgressView` that becomes visible while `AppState.state == .enumeratingFiles`, partially addressing MD-2 in PRD.
+* Added live scan file counter & cancel mechanism (`AppState.filesScanned`, `cancelEnumeration()`); MD-2 is now finished. 

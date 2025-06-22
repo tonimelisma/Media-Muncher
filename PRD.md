@@ -42,7 +42,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | ID | User Story | Status |
 |----|------------|--------|
 | MD-1 | When I select or insert a volume the app scans it for media files. | **Finished** |
-| MD-2 | The scan shows live progress and can be cancelled. | **Started** |
+| MD-2 | The scan shows live progress and can be cancelled. | **Finished** |
 | MD-3 | Each file displayed includes a thumbnail. | **Not Started** |
 | MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Not Started** |
 | MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Not Started** |

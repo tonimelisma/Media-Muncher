@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. The format 
 ### Added
 - Dynamic icon rendering for media files based on their type (image, video, audio, unknown). Each file now shows an appropriate SF Symbol instead of a generic placeholder.
 - Indeterminate `ProgressView` shown in the bottom bar while a volume scan is in progress.
+- Live scan progress counter with cancel button. User can now see how many files have been discovered so far and stop the enumeration.
 
 ### Changed
-- Updated PRD statuses: `UI-2` marked **Finished**; `MD-2` moved to **Started**. 
+- Updated PRD statuses: `UI-2` **Finished**; `MD-2` **Finished** (live progress & cancel).

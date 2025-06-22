@@ -24,7 +24,14 @@ struct ContentView: View {
                     if appState.state == programState.enumeratingFiles {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
-                            .padding(.trailing, 8)
+                        Text("\(appState.filesScanned) files")
+                            .font(.caption)
+                            .padding(.leading, 4)
+                        Button("Stop") {
+                            appState.cancelEnumeration()
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 6)
                     }
                     ErrorView()
                     Spacer()

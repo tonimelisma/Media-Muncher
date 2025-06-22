@@ -17,11 +17,23 @@ enum errorState {
     case destinationFolderNotWritable
 }
 
+// MARK: - Scan Progress & Cancellation Support
+
+/// Convenience alias for the async task that enumerates files. Storing this
+/// allows us to cancel an ongoing scan when the user presses *Stop* or when
+/// the selected volume changes.
+private typealias ScanTask = Task<Void, Never>
+
 class AppState: ObservableObject {
     @Published var volumes: [Volume] = []
     @Published private(set) var selectedVolume: String? = nil
 
     @Published var files: [File] = []
+
+    /// Number of media files discovered so far in the current scan. Resets to
+    /// zero every time a new scan starts. The UI observes this to present live
+    /// progress.
+    @Published var filesScanned: Int = 0
 
     @Published var state: programState = programState.idle
     @Published var error: errorState = errorState.none
@@ -42,6 +54,9 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(settingDestinationFolder, forKey: "settingDestinationFolder")
         }
     }
+
+    /// The currently running enumeration task, if any.
+    private var enumerationTask: ScanTask?
 
     func setSettingDestinationFolder(_ folder: String) {
         settingDestinationFolder = folder
@@ -220,9 +235,13 @@ class AppState: ObservableObject {
 
         // Either a new volume was selected, or volume was de-selected
         // In either case, empty out the files array
-        Task {
+        // Cancel any ongoing scan first
+        enumerationTask?.cancel()
+
+        enumerationTask = Task {
             await MainActor.run {
                 self.files = []
+                self.filesScanned = 0
             }
 
             guard let id = id else {
@@ -234,7 +253,7 @@ class AppState: ObservableObject {
             await MainActor.run {
                 self.selectedVolume = id
             }
-            await enumerateFiles()
+            await self.enumerateFiles()
         }
     }
 
@@ -250,6 +269,11 @@ class AppState: ObservableObject {
         } catch {
             print("Error ejecting volume \(volume.devicePath): \(error)")
         }
+    }
+
+    /// Cancels the currently running file enumeration, if any.
+    func cancelEnumeration() {
+        enumerationTask?.cancel()
     }
 
     func printMetadata(_ dict: [String: Any], indent: String = "") {
@@ -299,6 +323,9 @@ class AppState: ObservableObject {
             }
 
             while let fileURL = enumerator?.nextObject() as? URL {
+                // Respect structured concurrency: bail out quickly if the task was cancelled.
+                if Task.isCancelled { break }
+
                 print("Checking fileURL.path: \(fileURL.path)")
                 guard fileURL.hasDirectoryPath == false else {
                     if fileURL.lastPathComponent == "THMBNL" {
@@ -392,6 +419,11 @@ class AppState: ObservableObject {
                 )
 
                 batch.append(file)
+
+                // Update live progress approximately once per file.
+                await MainActor.run {
+                    self.filesScanned += 1
+                }
 
                 if batch.count >= 50 {
                     await appendFiles(batch)
