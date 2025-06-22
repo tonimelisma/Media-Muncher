@@ -59,7 +59,7 @@
 |--------|----------------|-------|
 | `VolumeManager` | Discover, eject & monitor volumes, expose `Publisher<[Volume]>` | Wrap `NSWorkspace` & external devices (future PTP/MTP). |
 | `MediaScanner` | Enumerate files, parse metadata, publish progress, cancellation token | Move `enumerateFiles()` here. |
-| `ImportEngine` | Copy files, compute checksums, handle duplicates & deletions | Detached actor handling concurrency & error isolation. |
+| `ImportEngine` | Copy files, handle duplicates & deletions **and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting** | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
 | `SettingsStore` | Type-safe wrapper around `UserDefaults` & security bookmarks | Provides Combine `@Published` properties. |
 | `Logger` | Structured logging (os
 data, rotating file handler) | Respect user privacy; in dev builds default to `stdout`. |
@@ -83,8 +83,8 @@ No service depends back on SwiftUI, keeping layers clean.
 
 ---
 ## 7. Persistence & Idempotency
-* Destination file uniqueness is guaranteed by **SHA-256 digest** + capture date.
-* A lightweight SQLite catalog (`ImportedFile(id, sha256, captureDate, destPath)`) records every import – avoids scanning dest drive each time.
+* Destination file uniqueness is guaranteed by metadata such as capture date and size.
+* The single source of truth is always the filesystem, mainly the destination folder. No other database or configuration is used. When importing files, source files are always projected to the destination folder for idempotency.
 
 ---
 ## 8. Security & Sandboxing

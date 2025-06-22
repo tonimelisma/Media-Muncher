@@ -55,12 +55,13 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g. `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Not Started** |
 | IE-7 | If user sets a setting, destination folder names follow a template (e.g. `YYYY/MM/DD/…`). | **Not Started** |
 | IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Not Started** |
-| IE-4 | If a dest-file with same name but diff metadata exists, rename new file. | **Not Started** |
+| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Not Started** |
 | IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Not Started** |
 | IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Not Started** |
 | IE-9 | After successful copy, thumbnails are deleted. | **Not Started** |
 | IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Not Started** |
-| IE-11 | I want copied files to retain their original file modification timestamp so that my photo library and other software can sort them correctly. | **Not Started** |
+| IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Not Started** |
+| IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Not Started** |
 
 ### EPIC 4 – Settings & Preferences  
 | ID | User Story | Status |
@@ -69,7 +70,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | ST-2 | I can toggle "Delete originals after import". It will delete both files imported now or earlier, as deemed based on metadata.| **Finished** |
 | ST-3 | I can define filename/directory templates with tokens. | **Not Started** |
 | ST-4 | I can whitelist volumes for auto-import. | **Not Started** |
-| ST-5 | I can choose which media types to import (photo/video/audio/raw). | **Not Started** |
+| ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions (e.g., "raw" includes .ARW, .NEF, .CR3, etc.) so I know exactly what will be imported. | **Not Started** |
 
 ### EPIC 5 – User Interface Polish  
 | ID | User Story | Status |
