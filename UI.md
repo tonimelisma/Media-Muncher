@@ -26,7 +26,7 @@ flowchart LR
 | **ContentView.swift** | Defines the main window as a `NavigationSplitView` (sidebar & detail) and bottom toolbar. Injects **Settings** button in the standard toolbar. | `NavigationSplitView`, `VStack`, `HStack`, `ToolbarItem` |
 | **VolumeView.swift** | Sidebar that lists mounted volumes. Binding to `AppState.selectedVolume` provides 2-way selection. Each row shows SD-card icon, name, and an **eject** button. | `List`, `Section`, `ForEach` |
 | **MediaView.swift** | Chooses what to show in the detail pane: a placeholder when no volume, placeholder when no files, or the actual grid. | Conditional `if`/`else`, `Spacer` |
-| **MediaFilesGridView.swift** | Adaptive icon grid of discovered files. Calculates column width based on window size. Each file shows an SF-Symbol (driven by `MediaType.sfSymbolName`) and its filename. | `GeometryReader`, `ScrollView`, `LazyVGrid`, `VStack` |
+| **MediaFilesGridView.swift** | Adaptive icon grid of discovered files. Calculates column width based on window size. Each file cell now shows an asynchronously-loaded thumbnail. If a thumbnail cannot be generated, it falls back to an SF-Symbol (driven by `MediaType.sfSymbolName`). | `GeometryReader`, `ScrollView`, `LazyVGrid`, `VStack` |
 | **ErrorView.swift** | Tiny inline view for error banner (currently only "destination folder not writable"). | Conditional `if`, `Image`, `Text` |
 | **SettingsView.swift** | Sheet shown via **Settings** scene. Contains two toggles and a folder picker. | `Form`, custom `FolderPickerView` |
 | **FolderPickerView** | Provides preset folder list + "Other…" path picker. | `Picker`, `HStack`, uses `NSOpenPanel` |
@@ -92,7 +92,6 @@ The main window remains a `NavigationSplitView`. The key evolution is in the bot
 
 The grid of files will become richer to provide more immediate feedback:
 
-*   **Thumbnails**: SF Symbols will be replaced by actual, asynchronously loaded thumbnails for each media file (**MD-3**).
 *   **Status Indicators**: Each grid cell will get a visual marker to indicate its status:
     *   A badge/overlay for files that already exist in the destination folder (**MD-4**, **IE-3**).
     *   Live status updates during import (e.g., a spinner overlay that becomes a checkmark), so the user knows which files are being processed (**part of IE-1**).

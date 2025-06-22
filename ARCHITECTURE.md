@@ -43,7 +43,7 @@
 | **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
-| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread. | `MediaScanner` |
+| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread. Uses **QuickLookThumbnailing** to generate thumbnails. | `MediaScanner` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. | `ImportService` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
@@ -194,6 +194,7 @@ graph TD;
 
 ---
 ## 14. Recent Maintenance (2025-06-22)
+* **Implemented Thumbnail Generation.** The `MediaScanner` now uses the `QuickLookThumbnailing` framework to asynchronously generate and display thumbnails for media files, replacing generic icons. This completes user story MD-3.
 * **Refactored the application to a service-based architecture.** Decomposed the monolithic `AppState` into `VolumeManager`, `MediaScanner`, and `SettingsStore` services to improve separation of concerns, testability, and maintainability.
 * Implemented media-type specific icons in `MediaFilesGridView` backed by a new `MediaType.sfSymbolName` helper.
 * Added indeterminate `ProgressView` that becomes visible while `AppState.state == .enumeratingFiles`, partially addressing MD-2 in PRD.

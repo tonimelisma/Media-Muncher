@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Thumbnail Generation**: The grid view now displays asynchronously-loaded thumbnails for image and video files, replacing the generic SF Symbol icons. This provides a much richer visual preview of media on a volume. (Addresses PRD Story: MD-3)
+
 ## [0.2.0] - 2025-06-22
 
 ### Added
@@ -27,11 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Multiple build errors related to protocol conformance, equatable implementation, and incorrect mock usage during the development of the import feature.
 
-## [Unreleased]
+## [0.1.0] - 2025-06-21
+
 ### Added
-- Dynamic icon rendering for media files based on their type (image, video, audio, unknown). Each file now shows an appropriate SF Symbol instead of a generic placeholder.
-- Indeterminate `ProgressView` shown in the bottom bar while a volume scan is in progress.
-- Live scan progress counter with cancel button. User can now see how many files have been discovered so far and stop the enumeration.
+- Initial project setup.
+- Basic volume detection and display.
+- Media file scanning and listing.
+- Basic import functionality.
+- Settings screen with destination folder and delete options.
 
 ### Changed
 - Updated PRD statuses: `UI-2` **Finished**; `MD-2` **Finished** (live progress & cancel).

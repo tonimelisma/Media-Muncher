@@ -26,10 +26,18 @@ struct MediaFilesGridView: View {
                     ForEach(appState.files) {
                         file in
                         VStack {
-                            Image(systemName: file.mediaType.sfSymbolName)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: iconSize, height: iconSize)
+                            if let thumbnail = file.thumbnail {
+                                thumbnail
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: iconSize, height: iconSize)
+                                    .clipped()
+                            } else {
+                                Image(systemName: file.mediaType.sfSymbolName)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: iconSize, height: iconSize)
+                            }
                             Text(file.sourceName)
                                 .font(.caption)
                                 .multilineTextAlignment(.center)

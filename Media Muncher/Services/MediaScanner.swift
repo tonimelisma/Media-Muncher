@@ -1,9 +1,20 @@
 import Foundation
 import SwiftUI
 import AVFoundation
+import QuickLookThumbnailing
 
 actor MediaScanner {
     private var enumerationTask: Task<Void, Error>?
+
+    private func generateThumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
+        let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 1.0, representationTypes: .all)
+        
+        guard let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
+            return nil
+        }
+        
+        return Image(nsImage: thumbnail.nsImage)
+    }
 
     func cancelEnumeration() {
         enumerationTask?.cancel()
@@ -74,12 +85,15 @@ actor MediaScanner {
                         mediaDate = creationDate ?? modificationDate
                     }
                     
+                    let thumbnail = await generateThumbnail(for: fileURL)
+                    
                     let file = File(
                         sourcePath: fileURL.path,
                         mediaType: mediaType,
                         date: mediaDate,
                         size: size,
-                        status: FileStatus.waiting
+                        status: FileStatus.waiting,
+                        thumbnail: thumbnail
                     )
                     
                     batch.append(file)

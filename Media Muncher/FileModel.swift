@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 enum MediaType: String {
     case audio, video, image, unknown
@@ -76,6 +77,7 @@ struct File: Identifiable {
         return destDirectory + "/" + destFilename
     }
     var status: FileStatus
+    var thumbnail: Image?
 }
 
 func preferredFileExtension(for ext: String) -> String {
