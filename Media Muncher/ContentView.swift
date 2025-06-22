@@ -21,7 +21,11 @@ struct ContentView: View {
                 MediaView()
                 Spacer()
                 HStack {
-                    // TODO ProgressView here
+                    if appState.state == programState.enumeratingFiles {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .padding(.trailing, 8)
+                    }
                     ErrorView()
                     Spacer()
                     Button("Import") {

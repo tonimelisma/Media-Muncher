@@ -89,3 +89,19 @@ func preferredFileExtension(for ext: String) -> String {
     ]
     return extensionMapping[ext.lowercased()] ?? ext.lowercased()
 }
+
+extension MediaType {
+    /// Returns an appropriate SF Symbol name for the given media type so the UI can render a context-specific icon.
+    var sfSymbolName: String {
+        switch self {
+        case .image:
+            return "photo.fill.on.rectangle.fill"
+        case .video:
+            return "video.fill"
+        case .audio:
+            return "music.note"
+        case .unknown:
+            return "questionmark.app"
+        }
+    }
+}

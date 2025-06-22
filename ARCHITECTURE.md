@@ -140,3 +140,8 @@ graph TD;
 ```
 
 *(Update diagram when services are extracted.)* 
+
+---
+## 14. Recent Maintenance (2025-06-22)
+* Implemented media-type specific icons in `MediaFilesGridView` backed by a new `MediaType.sfSymbolName` helper.
+* Added indeterminate `ProgressView` that becomes visible while `AppState.state == .enumeratingFiles`, partially addressing MD-2 in PRD. 

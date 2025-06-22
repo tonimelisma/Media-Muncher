@@ -26,12 +26,7 @@ struct MediaFilesGridView: View {
                     ForEach(appState.files) {
                         file in
                         VStack {
-                            // TODO function to provide correct image based on file type
-                            // Image(systemName: "video.fill")
-                            // Image(systemName: "speaker.3.fill")
-                            // Image(systemName: "music.note")
-                            // Image(systemName: "music.note.list")
-                            Image(systemName: "photo.fill.on.rectangle.fill")
+                            Image(systemName: file.mediaType.sfSymbolName)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: iconSize, height: iconSize)
