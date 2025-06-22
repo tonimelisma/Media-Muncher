@@ -32,13 +32,17 @@ struct ContentView: View {
                         }
                         .buttonStyle(.plain)
                         .padding(.horizontal, 6)
+                    } else if appState.state == .importingFiles {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                        Text("Importing \(appState.files.count) files...")
+                            .font(.caption)
+                            .padding(.leading, 4)
                     }
                     ErrorView()
                     Spacer()
                     Button("Import") {
-                        Task {
-                            await appState.importFiles()
-                        }
+                        appState.importFiles()
                     }
                     .disabled(appState.state != .idle || appState.files.isEmpty)
                 }
@@ -62,7 +66,12 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(AppState(volumeManager: VolumeManager(), mediaScanner: MediaScanner(), settingsStore: SettingsStore()))
+        .environmentObject(AppState(
+            volumeManager: VolumeManager(),
+            mediaScanner: MediaScanner(),
+            settingsStore: SettingsStore(),
+            importService: ImportService()
+        ))
         .environmentObject(VolumeManager())
         .environmentObject(SettingsStore())
 }

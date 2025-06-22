@@ -31,6 +31,7 @@ class AppState: ObservableObject {
     private let volumeManager: VolumeManager
     private let mediaScanner: MediaScanner
     private let settingsStore: SettingsStore
+    private let importService: ImportService
     
     // Published UI State
     @Published private(set) var volumes: [Volume] = []
@@ -42,11 +43,13 @@ class AppState: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var scanTask: Task<Void, Never>?
+    private var importTask: Task<Void, Never>?
 
-    init(volumeManager: VolumeManager, mediaScanner: MediaScanner, settingsStore: SettingsStore) {
+    init(volumeManager: VolumeManager, mediaScanner: MediaScanner, settingsStore: SettingsStore, importService: ImportService) {
         self.volumeManager = volumeManager
         self.mediaScanner = mediaScanner
         self.settingsStore = settingsStore
+        self.importService = importService
         
         // Subscribe to volume changes
         volumeManager.$volumes
@@ -117,14 +120,10 @@ class AppState: ObservableObject {
             
             // Handle progress
             Task {
-                do {
-                    for try await count in streams.progress {
-                        await MainActor.run {
-                            self.filesScanned = count
-                        }
+                for try await count in streams.progress {
+                    await MainActor.run {
+                        self.filesScanned = count
                     }
-                } catch {
-                    // Progress stream failed
                 }
             }
         }
@@ -135,22 +134,32 @@ class AppState: ObservableObject {
         self.state = .idle
     }
     
-    func importFiles() async {
-        print("Importing files")
-        let fileManager = FileManager.default
-        let destination = settingsStore.settingDestinationFolder
-        
-        if !fileManager.isWritableFile(atPath: destination) {
-            self.error = .destinationNotWritable(path: destination)
-            return
-        } else {
-            self.error = nil
-        }
+    func importFiles() {
+        self.error = nil
+        self.state = .importingFiles
 
-        print("Total source files: \(files.count)")
-        
-        // ... import logic stub ...
-        
-        print("Import done")
+        importTask = Task {
+            defer {
+                Task { @MainActor in
+                    self.state = .idle
+                }
+            }
+            
+            guard let destinationURL = settingsStore.destinationURL else {
+                await MainActor.run {
+                    self.error = .destinationNotSet
+                }
+                return
+            }
+            
+            do {
+                let filesToImport = self.files
+                try await importService.importFiles(files: filesToImport, to: destinationURL)
+            } catch {
+                await MainActor.run {
+                    self.error = .importFailed(reason: error.localizedDescription)
+                }
+            }
+        }
     }
 }

@@ -9,18 +9,22 @@ import SwiftUI
 
 @main
 struct Media_MuncherApp: App {
-    @StateObject private var settingsStore = SettingsStore()
-    @StateObject private var volumeManager = VolumeManager()
-    private var mediaScanner = MediaScanner()
     @StateObject private var appState: AppState
+    
+    // Services
+    private let volumeManager = VolumeManager()
+    private let mediaScanner = MediaScanner()
+    private let settingsStore = SettingsStore()
+    private let importService = ImportService()
 
     init() {
-        let settings = SettingsStore()
-        let volumes = VolumeManager()
-        let scanner = MediaScanner()
-        _settingsStore = StateObject(wrappedValue: settings)
-        _volumeManager = StateObject(wrappedValue: volumes)
-        _appState = StateObject(wrappedValue: AppState(volumeManager: volumes, mediaScanner: scanner, settingsStore: settings))
+        let state = AppState(
+            volumeManager: volumeManager,
+            mediaScanner: mediaScanner,
+            settingsStore: settingsStore,
+            importService: importService
+        )
+        _appState = StateObject(wrappedValue: state)
     }
 
     var body: some Scene {

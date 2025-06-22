@@ -50,9 +50,9 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 ### EPIC 3 – Import Engine  
 | ID | User Story | Status |
 |----|------------|--------|
-| IE-1 | I press **Import** and files copy to my destination folder. | **Not Started** |
-| IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g. `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Not Started** |
-| IE-7 | If user sets a setting, destination folder names follow a template (e.g. `YYYY/MM/DD/…`). | **Not Started** |
+| IE-1 | I press **Import** and files copy to my destination folder. | **Finished** |
+| IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g., `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Not Started** |
+| IE-7 | If user sets a setting, destination folder names follow a template (e.g., `YYYY/MM/DD/…`). | **Not Started** |
 | IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Not Started** |
 | IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Not Started** |
 | IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Not Started** |
@@ -76,7 +76,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 |----|------------|--------|
 | UI-1 | The grid view adapts to window width. | **Finished** |
 | UI-2 | Each media type has a specific icon before thumbnail loads. | **Finished** |
-| UI-3 | Import progress bar and time estimate are shown. | **Not Started** |
+| UI-3 | Import progress bar and time estimate are shown. | **Started** |
 | UI-4 | Errors appear inline with helpful messages. | **Started** (destination-writable error) |
 | UI-5 | Full dark/light-mode compliance. | **Started** |
 
@@ -84,7 +84,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | ID | User Story | Status |
 |----|------------|--------|
 | SC-1 | The app requests removable-drive entitlement. | **Finished** |
-| SC-2 | The app stores destination folder as security-scoped bookmark. | **Not Started** |
+| SC-2 | The app stores destination folder as security-scoped bookmark. | **Finished** |
 
 ### EPIC 7 – Automation & Launch Agents  
 | ID | User Story | Status |
@@ -102,7 +102,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 ### EPIC 9 – Testing & Quality  
 | ID | User Story | Status |
 |----|------------|--------|
-| TQ-1 | Core logic has unit tests with ≥70 % coverage. | **Not Started** |
+| TQ-1 | Core logic has unit tests with ≥70 % coverage. | **Started** |
 | TQ-2 | Critical UI flows have UI tests. | **Not Started** |
 | TQ-3 | Continuous Integration builds and runs tests on PRs. | **Not Started** |
 

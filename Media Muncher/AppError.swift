@@ -1,18 +1,27 @@
+//
+//  AppError.swift
+//  Media Muncher
+//
+//  Created by Toni Melisma on 2/22/25.
+//
+
 import Foundation
 
-enum AppError: Error, LocalizedError {
-    case destinationNotWritable(path: String)
+enum AppError: Error, Identifiable, LocalizedError {
+    var id: String { localizedDescription }
+    
     case scanFailed(reason: String)
+    case destinationNotSet
     case importFailed(reason: String)
-
+    
     var errorDescription: String? {
         switch self {
-        case .destinationNotWritable(let path):
-            return "Destination folder is not writable at path: \(path)"
         case .scanFailed(let reason):
-            return "Failed to scan for media: \(reason)"
+            return "Scan failed: \(reason)"
+        case .destinationNotSet:
+            return "Please select a destination folder in Settings before importing."
         case .importFailed(let reason):
-            return "Failed to import files: \(reason)"
+            return "Import failed: \(reason)"
         }
     }
 } 
