@@ -1,28 +1,38 @@
 # Media Muncher – Architecture Guide
 
-> **Purpose** – This document explains how the application is structured **today** and how we intend to evolve it. It doubles as a contributor guide: follow the conventions here when adding new functionality.
+> **Purpose** – This document explains how the application is structured **today**. It doubles as a contributor guide: follow the conventions here when adding new functionality.
 
 ---
 ## 1. High-Level Overview
 
 ```
 ┌───────────────┐        insert/eject       ┌────────────────────┐
-│ macOS System  │ ───────────────────────▶ │ VolumeManager      │
-└───────────────┘  NSWorkspace events      │  (today: part of   │
-                                            │   AppState)        │
-┌───────────────┐ enumerate files          └────────┬───────────┘
-│  SwiftUI View │ ◀──────────────────────────────┐  │ media batch
+│ macOS System  │ ───────────────────────▶ │  VolumeManager     │
+└───────────────┘  NSWorkspace events      │ (Service)          │
+                                           └────────┬───────────┘
+┌───────────────┐ scan files                        │ volumes
+│  SwiftUI View │ ◀──────────────────────────────┐  │
 └───────────────┘                                 │  │
-                                                  ▼  │ import
+      ▲                                           ▼  │
+      │ UI Events, Data Binding              ┌───────────────┐
+      └─────────────────────────────────────▶│   AppState    │
+                                             │ (Orchestrator)│
+                                             └───────┬───────┘
+                                                     │
+               ┌────────────────┐ scan(volume)       │
+               │ MediaScanner   ├────────────────────┘
+               │ (Service Actor)│◀───────────────────┐
+               └────────────────┘ files, progress    │
                                              ┌───────────────┐
                                              │ ImportEngine  │
                                              │  (STUB)       │
                                              └───────────────┘
 ```
 
-* The **SwiftUI layer** presents a sidebar of volumes, a grid of media files, and a settings panel.
-* **`AppState`** is a singleton `ObservableObject` injected into the environment. It currently performs _every_ non-UI responsibility (volume observation, scanning, settings persistence, import stub, error state).
-* **Models** (`Volume`, `File`) are simple value types passed to the UI.
+* The **SwiftUI layer** presents a sidebar of volumes, a grid of media files, and a settings panel. It binds to data published by the `AppState` and individual services.
+* **Services** (`VolumeManager`, `MediaScanner`, `SettingsStore`) are focused classes/actors responsible for a single domain. They own their data and expose it via Combine publishers or async streams.
+* **`AppState`** is a singleton `ObservableObject` that acts as an **Orchestrator** or **Facade**. It wires together the services and the UI, but contains very little logic itself.
+* **Models** (`Volume`, `File`, `AppError`) are simple value types passed between layers.
 * All file-system work is done asynchronously so the UI never blocks.
 
 ---
@@ -30,31 +40,41 @@
 
 | File | Responsibility | Key Types / Functions |
 |------|----------------|------------------------|
-| **Media_MuncherApp.swift** | App entry point, dependency injection | `Media_MuncherApp` |
-| **AppState.swift** | Global observable state **+** business logic (volume observers, enumeration, settings, error handling, import stub) | `AppState`, `programState`, `errorState` |
-| **VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
-| **FileModel.swift** | Immutable record for a media file & helpers | `File`, `MediaType`, `FileStatus`, `determineMediaType()` |
-| **VolumeView.swift** | Sidebar showing all volumes, eject button | `VolumeView` |
-| **MediaView.swift** | Decides what to show in detail pane | `MediaView` |
-| **MediaFilesGridView.swift** | Adaptive grid of media icons/filenames | `MediaFilesGridView` |
-| **SettingsView.swift** | Toggles & folder picker backed by `UserDefaults` | `SettingsView`, `FolderPickerView` |
-| **ErrorView.swift** | Inline error banner (non-writable dest folder) | `ErrorView` |
-| **ContentView.swift** | Arranges split-view, toolbar, Import button | `ContentView` |
+| **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
+| **AppState.swift** | Orchestrates services and exposes unified state to the UI. | `AppState` |
+| **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
+| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread. | `MediaScanner` |
+| **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
+| **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
+| **Models/FileModel.swift** | Immutable record for a media file & helpers | `File`, `MediaType`, `FileStatus`, `MediaType.from(filePath:)` |
+| **Models/AppError.swift**| Domain-specific error types. | `AppError` |
+| **VolumeView.swift** | Sidebar showing all volumes, eject button. Binds to `VolumeManager`. | `VolumeView` |
+| **MediaView.swift** | Decides what to show in detail pane. Binds to `AppState`. | `MediaView` |
+| **MediaFilesGridView.swift** | Adaptive grid of media icons/filenames. Binds to `AppState`. | `MediaFilesGridView` |
+| **SettingsView.swift** | Toggles & folder picker. Binds to `SettingsStore`. | `SettingsView`, `FolderPickerView` |
+| **ErrorView.swift** | Inline error banner. Binds to `AppState`. | `ErrorView` |
+| **ContentView.swift** | Arranges split-view, toolbar, Import button. | `ContentView` |
 | Tests folders | Boiler-plate test targets | (empty) |
 
-> **Observation** – `AppState` violates SRP; we will split it into services.
+> **Observation** – The previous monolithic `AppState` has been refactored into focused services, improving separation of concerns.
 
 ---
 ## 3. Runtime Flow (today)
-1. `Media_MuncherApp` instantiates one `AppState` and injects it via `environmentObject`.
-2. `AppState` sets up `NSWorkspace` observers which push `didMount` / `didUnmount` notifications.
-3. `VolumeView` loads existing volumes and selects the first one; selection is bound back to `AppState.selectVolume()`.
-4. On selection, `enumerateFiles()` traverses the volume on a background task, batches results, and appends to `files` on the **MainActor** so SwiftUI refreshes.
-5. `MediaFilesGridView` displays new `File` items as they arrive.
-6. When **Import** is clicked `importFiles()` runs – currently only a permission check.
+1. `Media_MuncherApp` instantiates `VolumeManager`, `MediaScanner`, `SettingsStore`, and `AppState`. It injects them as `@EnvironmentObject`s.
+2. `VolumeManager` uses `NSWorkspace` to discover and publish an array of `Volume`s.
+3. `AppState` subscribes to `VolumeManager`'s volumes and automatically selects the first one.
+4. The volume selection change is published by `AppState`.
+5. On observing the change, `AppState` asks the `MediaScanner` actor to begin scanning the selected volume.
+6. `MediaScanner` traverses the volume on a background task, batching results and progress into `AsyncStream`s.
+7. `AppState` collects these stream results and updates its `@Published` `files` and `filesScanned` properties on the **MainActor**.
+8. `MediaFilesGridView` and `ContentView` observe `AppState` and display the new files and progress as they arrive.
+9. When **Import** is clicked, the stub in `AppState` runs.
 
 ---
 ## 4. Planned Modularisation (to-be)
+
+> This plan has now been implemented. The sections above reflect the new service-based architecture.
+
 | Module | Responsibility | Notes |
 |--------|----------------|-------|
 | `VolumeManager` | Discover, eject & monitor volumes, expose `Publisher<[Volume]>` | Wrap `NSWorkspace` & external devices (future PTP/MTP). |
@@ -132,17 +152,45 @@ open "Media Muncher.xcodeproj"
 ## 13. File Interaction Diagram (today)
 ```mermaid
 graph TD;
-  AppState--volumes-->VolumeView;
-  AppState--files-->MediaFilesGridView;
-  VolumeView--selectVolume()-->AppState;
-  ContentView--Import-->AppState;
-  SettingsView--bindings-->AppState;
+  subgraph Services
+    VM(VolumeManager)
+    MS(MediaScanner)
+    SS(SettingsStore)
+  end
+
+  subgraph UI
+    CV(ContentView)
+    VV(VolumeView)
+    GV(MediaFilesGridView)
+    SV(SettingsView)
+    EV(ErrorView)
+  end
+  
+  App(Media_MuncherApp) -- instantiates --> AS(AppState)
+  App -- instantiates --> VM
+  App -- instantiates --> MS
+  App -- instantiates --> SS
+
+  AS -- orchestrates --> VM
+  AS -- orchestrates --> MS
+  AS -- orchestrates --> SS
+  
+  CV -- reads --> AS
+  VV -- reads/writes --> VM
+  VV -- reads/writes --> AS
+  GV -- reads --> AS
+  SV -- reads/writes --> SS
+  EV -- reads --> AS
+
+  VM -- publishes volumes --> AS
+  MS -- streams files --> AS
 ```
 
-*(Update diagram when services are extracted.)* 
+*(Diagram updated for new service architecture.)* 
 
 ---
 ## 14. Recent Maintenance (2025-06-22)
+* **Refactored the application to a service-based architecture.** Decomposed the monolithic `AppState` into `VolumeManager`, `MediaScanner`, and `SettingsStore` services to improve separation of concerns, testability, and maintainability.
 * Implemented media-type specific icons in `MediaFilesGridView` backed by a new `MediaType.sfSymbolName` helper.
 * Added indeterminate `ProgressView` that becomes visible while `AppState.state == .enumeratingFiles`, partially addressing MD-2 in PRD.
 * Added live scan file counter & cancel mechanism (`AppState.filesScanned`, `cancelEnumeration()`); MD-2 is now finished. 

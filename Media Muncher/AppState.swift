@@ -1,15 +1,17 @@
 import AVFoundation
+import SwiftUI
+import Combine
 //
 //  AppState.swift
 //  Media Muncher
 //
 //  Created by Toni Melisma on 2/15/25.
 //
-import SwiftUI
 
-enum programState {
+enum ProgramState {
     case idle
     case enumeratingFiles
+    case importingFiles
 }
 
 enum errorState {
@@ -25,459 +27,130 @@ enum errorState {
 private typealias ScanTask = Task<Void, Never>
 
 class AppState: ObservableObject {
-    @Published var volumes: [Volume] = []
-    @Published private(set) var selectedVolume: String? = nil
+    // Services
+    private let volumeManager: VolumeManager
+    private let mediaScanner: MediaScanner
+    private let settingsStore: SettingsStore
+    
+    // Published UI State
+    @Published private(set) var volumes: [Volume] = []
+    @Published var selectedVolume: String? = nil
+    @Published private(set) var files: [File] = []
+    @Published private(set) var filesScanned: Int = 0
+    @Published private(set) var state: ProgramState = .idle
+    @Published private(set) var error: AppError? = nil
+    
+    private var cancellables = Set<AnyCancellable>()
+    private var scanTask: Task<Void, Never>?
 
-    @Published var files: [File] = []
-
-    /// Number of media files discovered so far in the current scan. Resets to
-    /// zero every time a new scan starts. The UI observes this to present live
-    /// progress.
-    @Published var filesScanned: Int = 0
-
-    @Published var state: programState = programState.idle
-    @Published var error: errorState = errorState.none
-
-    // Settings
-    @Published var settingDeleteOriginals: Bool {
-        didSet {
-            UserDefaults.standard.set(settingDeleteOriginals, forKey: "settingDeleteOriginals")
-        }
-    }
-    @Published var settingDeletePrevious: Bool {
-        didSet {
-            UserDefaults.standard.set(settingDeletePrevious, forKey: "settingDeletePrevious")
-        }
-    }
-    @Published var settingDestinationFolder: String {
-        didSet {
-            UserDefaults.standard.set(settingDestinationFolder, forKey: "settingDestinationFolder")
-        }
-    }
-
-    /// The currently running enumeration task, if any.
-    private var enumerationTask: ScanTask?
-
-    func setSettingDestinationFolder(_ folder: String) {
-        settingDestinationFolder = folder
-    }
-
-    private var workspace: NSWorkspace = NSWorkspace.shared
-    private var observers: [NSObjectProtocol] = []
-
-    init() {
-        self.settingDeleteOriginals = UserDefaults.standard.bool(forKey: "settingDeleteOriginals")
-        self.settingDeletePrevious = UserDefaults.standard.bool(forKey: "settingDeletePrevious")
-        self.settingDestinationFolder =
-            UserDefaults.standard.string(forKey: "settingDestinationFolder") ?? FileManager.default.urls(
-                for: .picturesDirectory, in: .userDomainMask
-            ).first?.path ?? ""
-
-        setupVolumeObservers()
-    }
-
-    deinit {
-        removeVolumeObservers()
-    }
-
-    /// Sets up observers for volume mount and unmount events.
-    private func setupVolumeObservers() {
-        let mountObserver = workspace.notificationCenter.addObserver(
-            forName: NSWorkspace.didMountNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            print("Volume mounted")
-            guard let userInfo = notification.userInfo,
-                let volumeURL = userInfo[NSWorkspace.volumeURLUserInfoKey]
-                    as? URL
-            else {
-                print("Couldn't get volume URL from mounting notification")
-                return
-            }
-            print("Mounted volume URL: \(volumeURL.path)")
-
-            guard
-                let resources = try? volumeURL.resourceValues(forKeys: [
-                    .volumeUUIDStringKey, .nameKey, .volumeIsRemovableKey,
-                ]),
-                let uuid = resources.volumeUUIDString,
-                let volumeName = userInfo[
-                    NSWorkspace.localizedVolumeNameUserInfoKey] as? String
-            else {
-                print(
-                    "Couldn't get UUID, localized name and other resources from mounting notification"
-                )
-                return
-            }
-
-            guard resources.volumeIsRemovable == true else {
-                print("Not a removable volume, skipping")
-                return
-            }
-
-            let newVolume: Volume = Volume(
-                name: volumeName, devicePath: volumeURL.path,
-                volumeUUID: uuid)
-
-            self?.volumes.append(newVolume)
-            if self?.volumes.count == 1 {
-                print("First volume mounted, choosing it")
-                self?.ensureVolumeSelection()
-            }
-        }
-
-        let unmountObserver = workspace.notificationCenter.addObserver(
-            forName: NSWorkspace.didUnmountNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            print("Volume unmounted")
-            guard let userInfo = notification.userInfo else {
-                print("Couldn't get userInfo from unmounting notification")
-                return
-            }
-
-            guard
-                let volumeURL = userInfo[NSWorkspace.volumeURLUserInfoKey]
-                    as? URL
-            else {
-                print("Couldn't get volume URL from unmounting notification")
-                return
-            }
-            print("Unmounted volume URL: \(volumeURL.path)")
-
-            self?.volumes.removeAll { $0.devicePath == volumeURL.path }
-
-            if self?.selectedVolume == volumeURL.path {
-                print("Selected volume was unmounted, making a new selection")
-                self?.files = []
-                self?.ensureVolumeSelection()
-            }
-        }
-
-        self.observers.append(mountObserver)
-        self.observers.append(unmountObserver)
-        print("VolumeViewModel: Volume observers set up")
-    }
-
-    /// Removes volume observers.
-    private func removeVolumeObservers() {
-        self.observers.forEach {
-            workspace.notificationCenter.removeObserver($0)
-        }
-        self.observers.removeAll()
-        print("VolumeViewModel: Volume observers removed")
-    }
-
-    /// Loads all removable volumes connected to the system.
-    /// - Returns: An array of `Volume` objects representing the removable volumes.
-    func loadVolumes() -> [Volume] {
-        print("loadVolumes: Loading volumes")
-        let fileManager = FileManager.default
-        let keys: [URLResourceKey] = [
-            .volumeNameKey,
-            .volumeUUIDStringKey,
-            .volumeIsRemovableKey,
-        ]
-        guard
-            let mountedVolumeURLs = fileManager.mountedVolumeURLs(
-                includingResourceValuesForKeys: keys,
-                options: [.skipHiddenVolumes])
-        else {
-            print("loadVolumes: Failed to get mounted volume URLs")
-            return []
-        }
-
-        return mountedVolumeURLs.compactMap { url -> Volume? in
-            do {
-                let resourceValues = try url.resourceValues(forKeys: Set(keys))
-                guard resourceValues.volumeIsRemovable == true else {
-                    return nil
+    init(volumeManager: VolumeManager, mediaScanner: MediaScanner, settingsStore: SettingsStore) {
+        self.volumeManager = volumeManager
+        self.mediaScanner = mediaScanner
+        self.settingsStore = settingsStore
+        
+        // Subscribe to volume changes
+        volumeManager.$volumes
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newVolumes in
+                self?.volumes = newVolumes
+                if self?.selectedVolume == nil || !newVolumes.contains(where: { $0.devicePath == self?.selectedVolume }) {
+                    self?.ensureVolumeSelection()
                 }
-                print(
-                    "loadVolumes: Found removable volume: \(resourceValues.volumeName ?? "Unnamed Volume") at \(url.path)"
-                )
-                return Volume(
-                    name: resourceValues.volumeName ?? "Unnamed Volume",
-                    devicePath: url.path,
-                    volumeUUID: resourceValues.volumeUUIDString ?? ""
-                )
-            } catch {
-                print(
-                    "Error getting resource values for volume at \(url): \(error)"
-                )
-                return nil
             }
-        }
-    }
+            .store(in: &cancellables)
+            
+        // Subscribe to selection changes
+        self.$selectedVolume
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] devicePath in
+                self?.startScan(for: devicePath)
+            }
+            .store(in: &cancellables)
 
-    /// This function is called when the app is started or the selected volume was unmounted and we need to select a new volume
-    /// Select the first available one, or nil if none are available
+        // Initial state
+        self.volumes = volumeManager.volumes
+        ensureVolumeSelection()
+    }
+    
     func ensureVolumeSelection() {
         if let firstVolume = self.volumes.first {
-            print("VolumeViewModel: Selecting first available volume")
-            self.selectVolume(firstVolume.devicePath)
+            self.selectedVolume = firstVolume.devicePath
         } else {
-            print("VolumeViewModel: No volumes available to select")
-            self.selectVolume(nil)
+            self.selectedVolume = nil
         }
     }
 
-    /// Selects a volume with the given ID.
-    /// - Parameter id: The ID of the volume to select.
-    func selectVolume(_ id: String?) {
-        if id == self.selectedVolume {
-            // Shouldn't happen, but we're selecting the already selected volume again
-            // Do nothing
+    private func startScan(for devicePath: String?) {
+        scanTask?.cancel()
+        
+        self.files = []
+        self.filesScanned = 0
+        self.state = .idle
+        self.error = nil
+
+        guard let devicePath = devicePath, let url = URL(string: "file://\(devicePath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!)") else {
             return
         }
-
-        // Either a new volume was selected, or volume was de-selected
-        // In either case, empty out the files array
-        // Cancel any ongoing scan first
-        enumerationTask?.cancel()
-
-        enumerationTask = Task {
-            await MainActor.run {
-                self.files = []
-                self.filesScanned = 0
-            }
-
-            guard let id = id else {
-                self.selectedVolume = nil
-                return
-            }
-
-            print("VolumeViewModel: Selecting volume with ID: \(id)")
-            await MainActor.run {
-                self.selectedVolume = id
-            }
-            await self.enumerateFiles()
-        }
-    }
-
-    /// Ejects the specified volume.
-    /// - Parameter volume: The `Volume` to eject.
-    /// - Throws: An error if the ejection fails.
-    func ejectVolume(_ volume: Volume) {
-        print("Attempting to eject volume: \(volume.name)")
-        let url = URL(fileURLWithPath: volume.devicePath)
-        do {
-            try NSWorkspace.shared.unmountAndEjectDevice(at: url)
-            print("Successfully ejected volume: \(volume.name)")
-        } catch {
-            print("Error ejecting volume \(volume.devicePath): \(error)")
-        }
-    }
-
-    /// Cancels the currently running file enumeration, if any.
-    func cancelEnumeration() {
-        enumerationTask?.cancel()
-    }
-
-    func printMetadata(_ dict: [String: Any], indent: String = "") {
-        for (key, value) in dict {
-            if let nestedDict = value as? [String: Any] {
-                print("\(indent)\(key):")
-                printMetadata(nestedDict, indent: indent + "  ")
-            } else {
-                print("\(indent)\(key): \(value)")
-            }
-        }
-    }
-
-    func enumerateFiles() async {
-        let fileManager = FileManager.default
-        var batch: [File] = []
-
-        guard let selectedVolume = selectedVolume else {
-            print(
-                "Couldn't get folder URL and thus couldn't enumerate files on \(selectedVolume ?? "nil")"
-            )
-            return
-        }
-
-        let rootURL = URL(fileURLWithPath: selectedVolume)
-        await MainActor.run {
-            state = programState.enumeratingFiles
-        }
-        print("Enumerating files in \(rootURL.path)")
-
-        do {
-            let resourceKeys: Set<URLResourceKey> = [
-                .creationDateKey, .contentModificationDateKey, .fileSizeKey,
-            ]
-            let enumerator = fileManager.enumerator(
-                at: rootURL, includingPropertiesForKeys: Array(resourceKeys))
-            print("Enumerator: \(String(describing: enumerator))")
-
-            var isDirectory: ObjCBool = false
-            if !fileManager.fileExists(
-                atPath: rootURL.path, isDirectory: &isDirectory)
-                || !isDirectory.boolValue
-            {
-                print(
-                    "Error: Specified path does not exist or is not a directory"
-                )
-            }
-
-            while let fileURL = enumerator?.nextObject() as? URL {
-                // Respect structured concurrency: bail out quickly if the task was cancelled.
-                if Task.isCancelled { break }
-
-                print("Checking fileURL.path: \(fileURL.path)")
-                guard fileURL.hasDirectoryPath == false else {
-                    if fileURL.lastPathComponent == "THMBNL" {
-                        enumerator?.skipDescendants()
-                    }
-                    continue
-                }
-                let mediaType = determineMediaType(for: fileURL.path)
-                if mediaType == MediaType.unknown { continue }
-
-                let resourceValues = try fileURL.resourceValues(
-                    forKeys: resourceKeys)
-                let creationDate = resourceValues.creationDate
-                let modificationDate = resourceValues.contentModificationDate
-                let size = Int64(resourceValues.fileSize ?? 0)
-
-                // mediaDate is a date which stores the date the media was created
-                // Because Swift pretends date is UTC, we convert all dates back or
-                // forward by the current timezone. Before using this value, just
-                // remember to convert it "back to current timezone" to get the local date
-                var mediaDate: Date?
-
-                if mediaType == MediaType.video {
-                    do {
-                        // Create an AVAsset for the video file
-                        let asset = AVURLAsset(url: fileURL)
-
-                        if let creationDate = try await asset.load(.creationDate) {
-                            if let dateValue = try await creationDate.load(.dateValue) {
-                                let dateFormatter = DateFormatter()
-                                dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
-                                dateFormatter.timeZone = TimeZone.current
-
-                                mediaDate = dateValue
-                                print("Creation date date from metadata: \(dateFormatter.string(from: dateValue))")
-                            }
+        
+        self.state = .enumeratingFiles
+        
+        self.scanTask = Task {
+            let streams = await mediaScanner.enumerateFiles(at: url)
+            
+            // Handle results
+            Task {
+                do {
+                    for try await batch in streams.results {
+                        await MainActor.run {
+                            self.files.append(contentsOf: batch)
                         }
-
-                    } catch {
-                        print("Error loading video metadata: \(error.localizedDescription)")
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.error = .scanFailed(reason: error.localizedDescription)
                     }
                 }
-
-                if mediaType == MediaType.image {
-                    if let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
-                        let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any]
-                    {
-                        // Get DateTimeOriginal from Exif or TIFF
-                        let exifMetadata = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any]
-                        let tiffMetadata = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any]
-
-                        let dateTimeOriginal: String? =
-                            exifMetadata?["DateTimeOriginal"] as? String ?? tiffMetadata?["DateTime"] as? String
-
-                        if let dateTimeOriginal = dateTimeOriginal {
-                            let dateFormatter = DateFormatter()
-                            dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-                            mediaDate = dateFormatter.date(from: dateTimeOriginal)
-                            print("DateTimeOriginal: \(dateTimeOriginal)")
-                            // mediaDate now has a mangled date that needs to be moved
-                            // back by "current timezone" before being used
-                        } else {
-                            print("DateTimeOriginal not found in Exif or TIFF metadata.")
-                        }
-                    } else {
-                        print("Failed to retrieve image metadata.")
-                    }
-                }
-
-                if mediaDate == nil {
-                    // Convert creation and modification dates to local time
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
-                    dateFormatter.timeZone = TimeZone.current
-
-                    if let creationDate = creationDate {
-                        mediaDate = creationDate
-                        print("Creation date (local): \(dateFormatter.string(from: creationDate))")
-                    } else if let modificationDate = modificationDate {
-                        mediaDate = modificationDate
-                        print("Modification date (local): \(dateFormatter.string(from: modificationDate))")
-                    }
-                }
-
-                let file = File(
-                    sourcePath: fileURL.path,
-                    mediaType: mediaType,
-                    date: mediaDate,
-                    size: size,
-                    status: FileStatus.waiting
-                )
-
-                batch.append(file)
-
-                // Update live progress approximately once per file.
                 await MainActor.run {
-                    self.filesScanned += 1
-                }
-
-                if batch.count >= 50 {
-                    await appendFiles(batch)
-                    batch.removeAll()
+                    self.state = .idle
                 }
             }
-
-            if !batch.isEmpty {
-                await appendFiles(batch)
-                batch.removeAll()
+            
+            // Handle progress
+            Task {
+                do {
+                    for try await count in streams.progress {
+                        await MainActor.run {
+                            self.filesScanned = count
+                        }
+                    }
+                } catch {
+                    // Progress stream failed
+                }
             }
-            print("Done with enumeration")
-        } catch {
-            print("Error enumerating files: \(error)")
-        }
-
-        await MainActor.run {
-            state = programState.idle
         }
     }
-
-    func appendFiles(_ batch: [File]) async {
-        await MainActor.run {
-            files.append(contentsOf: batch)
-        }
+    
+    func cancelScan() {
+        scanTask?.cancel()
+        self.state = .idle
     }
-
+    
     func importFiles() async {
         print("Importing files")
         let fileManager = FileManager.default
-        if !fileManager.isWritableFile(atPath: settingDestinationFolder) {
-            await MainActor.run {
-                self.error = errorState.destinationFolderNotWritable
-            }
+        let destination = settingsStore.settingDestinationFolder
+        
+        if !fileManager.isWritableFile(atPath: destination) {
+            self.error = .destinationNotWritable(path: destination)
             return
         } else {
-            await MainActor.run {
-                self.error = errorState.none
-            }
+            self.error = nil
         }
 
         print("Total source files: \(files.count)")
         
-        // For each file
-        // See, if file has exact same datetime and size as previous, already processed file
-        // Invent a new name for file. If the destination exists or is a name taken by a previous file, come up with a new one
-        // If the destination exists, and is the same datetime and size, set status to pre-existing
-
-        // Print all files and their projections
-
-        // Copy files
-
-        // Delete original files
-
+        // ... import logic stub ...
+        
         print("Import done")
     }
 }

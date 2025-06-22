@@ -36,7 +36,6 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | DM-1 | As a user, I see a sidebar list of all mounted removable volumes. | **Finished** |
 | DM-2 | As a user, I can eject a selected volume safely from within the app. | **Finished** |
 | DM-3 | As a power user, the app should ignore non-removable internal drives. | **Finished** |
-| DM-4 | As a user, the app should detect PTP/MTP cameras. | **Not Started** |
 
 ### EPIC 2 – Media Discovery  
 | ID | User Story | Status |

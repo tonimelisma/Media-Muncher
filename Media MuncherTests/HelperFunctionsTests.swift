@@ -5,10 +5,10 @@ struct HelperFunctionsTests {
 
     // MARK: - determineMediaType(for:)
     @Test func classifierDetectsCommonExtensions() throws {
-        #expect(determineMediaType(for: "/tmp/file.jpg") == .image)
-        #expect(determineMediaType(for: "/tmp/clip.MOV") == .video)
-        #expect(determineMediaType(for: "/tmp/audio.Mp3") == .audio)
-        #expect(determineMediaType(for: "/tmp/unknown.xyz") == .unknown)
+        #expect(MediaType.from(filePath: "/tmp/file.jpg") == .image)
+        #expect(MediaType.from(filePath: "/tmp/clip.MOV") == .video)
+        #expect(MediaType.from(filePath: "/tmp/audio.Mp3") == .audio)
+        #expect(MediaType.from(filePath: "/tmp/unknown.xyz") == .unknown)
     }
 
     // MARK: - preferredFileExtension(for:)

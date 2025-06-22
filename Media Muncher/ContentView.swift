@@ -21,14 +21,14 @@ struct ContentView: View {
                 MediaView()
                 Spacer()
                 HStack {
-                    if appState.state == programState.enumeratingFiles {
+                    if appState.state == .enumeratingFiles {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                         Text("\(appState.filesScanned) files")
                             .font(.caption)
                             .padding(.leading, 4)
                         Button("Stop") {
-                            appState.cancelEnumeration()
+                            appState.cancelScan()
                         }
                         .buttonStyle(.plain)
                         .padding(.horizontal, 6)
@@ -40,6 +40,7 @@ struct ContentView: View {
                             await appState.importFiles()
                         }
                     }
+                    .disabled(appState.state != .idle || appState.files.isEmpty)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -61,5 +62,7 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(AppState())
+        .environmentObject(AppState(volumeManager: VolumeManager(), mediaScanner: MediaScanner(), settingsStore: SettingsStore()))
+        .environmentObject(VolumeManager())
+        .environmentObject(SettingsStore())
 }

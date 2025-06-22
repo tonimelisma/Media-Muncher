@@ -11,12 +11,13 @@ struct ErrorView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        if(appState.error != errorState.none) {
-            Image(systemName: "exclamationmark.circle.fill")
-                .font(.title)
-                .foregroundColor(.red)
-            if appState.error == errorState.destinationFolderNotWritable {
-                Text("Destination folder not writable")
+        if let error = appState.error {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.red)
+                Text(error.localizedDescription)
+                    .font(.caption)
+                    .foregroundColor(.red)
             }
         }
     }

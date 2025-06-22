@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct FolderPickerView: View {
-    @EnvironmentObject var appState: AppState
+    let title: String
+    @Binding var selectedFolder: String
     @State private var customFolder: String?
 
     let presetFolders: [(name: String, url: URL)] = [
@@ -31,9 +32,9 @@ struct FolderPickerView: View {
 
     var body: some View {
         Picker(
-            "Destination folder:",
+            title,
             selection: Binding(
-                get: { appState.settingDestinationFolder },
+                get: { self.selectedFolder },
                 set: { newValue in
                     if newValue == "other" {
                         selectCustomFolder()
@@ -50,7 +51,7 @@ struct FolderPickerView: View {
                         .foregroundColor(.blue)
                     Text(folder.name)
                     Spacer()
-                    if folder.url.path == appState.settingDestinationFolder {
+                    if folder.url.path == selectedFolder {
                         Image(systemName: "checkmark")
                     }
                 }
@@ -66,7 +67,7 @@ struct FolderPickerView: View {
                         .foregroundColor(.blue)
                     Text(URL(fileURLWithPath: customFolder).lastPathComponent)
                     Spacer()
-                    if customFolder == appState.settingDestinationFolder {
+                    if customFolder == selectedFolder {
                         Image(systemName: "checkmark")
                     }
                 }
@@ -85,7 +86,7 @@ struct FolderPickerView: View {
     }
 
     private func selectFolder(_ path: String) {
-        appState.setSettingDestinationFolder(path)
+        selectedFolder = path
         if !presetFolders.map({ $0.url.path }).contains(path) {
             customFolder = path
             UserDefaults.standard.setValue(path, forKey: "customFolder")
@@ -110,17 +111,17 @@ struct FolderPickerView: View {
 }
 
 struct SettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var settingsStore: SettingsStore
 
     var body: some View {
         Form {
-            Toggle("Delete originals after import", isOn: $appState.settingDeleteOriginals)
-            Toggle("Delete previously imported originals", isOn: $appState.settingDeletePrevious)
-            Spacer()
-                .frame(maxHeight: 20)
-            FolderPickerView()
-                .frame(maxWidth: 415)
+            Toggle("Delete originals after import", isOn: $settingsStore.settingDeleteOriginals)
+            FolderPickerView(
+                title: "Destination Folder",
+                selectedFolder: $settingsStore.settingDestinationFolder
+            )
         }
-        .padding(30)
+        .padding()
+        .frame(width: 400)
     }
 }

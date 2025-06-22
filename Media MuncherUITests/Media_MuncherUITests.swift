@@ -28,7 +28,7 @@ final class Media_MuncherUITests: XCTestCase {
         app.launch()
 
         // Expect the placeholder text to be visible when no removable volumes are attached.
-        let placeholder = app.staticTexts["Please insert a removable volume"]
+        let placeholder = app.staticTexts["Select a volume to begin"]
         XCTAssertTrue(placeholder.waitForExistence(timeout: 3), "The no-volume placeholder should appear on launch when no removable devices are present.")
     }
 

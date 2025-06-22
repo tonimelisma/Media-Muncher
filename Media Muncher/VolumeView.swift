@@ -9,46 +9,38 @@ import SwiftUI
 
 struct VolumeView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var volumeManager: VolumeManager
 
     var body: some View {
-        List(
-            selection: Binding(
-                get: { appState.selectedVolume },
-                set: appState.selectVolume
-            )
-        ) {
-            Section(
-                header:
-                    HStack {
-                        Text("DEVICES")
-                        if appState.volumes.count == 0 {
-                            Spacer()
-                            Image(systemName: "0.square")
+        VStack {
+            if volumeManager.volumes.isEmpty {
+                Image(systemName: "externaldrive.badge.questionmark")
+                    .font(.largeTitle)
+                    .padding()
+                Text("No removable drives detected.")
+                    .font(.headline)
+            } else {
+                List(selection: $appState.selectedVolume) {
+                    Section(header: Text("Devices")) {
+                        ForEach(volumeManager.volumes) { volume in
+                            HStack {
+                                Image(systemName: "externaldrive.fill")
+                                Text(volume.name)
+                                Spacer()
+                                Button(action: {
+                                    volumeManager.ejectVolume(volume)
+                                }) {
+                                    Image(systemName: "eject.circle.fill")
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                            .tag(volume.devicePath)
                         }
                     }
-            ) {
-                ForEach(appState.volumes) { volume in
-                    HStack {
-                        Image(systemName: "sdcard")
-                            .foregroundColor(.blue)
-                        Text("\(volume.name)")
-                        Spacer()
-                        Button {
-                            appState.ejectVolume(volume)
-                        } label: {
-                            Image(systemName: "eject.fill")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .tag(volume.id)
                 }
             }
         }
-        .listStyle(SidebarListStyle())
         .onAppear {
-            print("Volume list appeared")
-            appState.volumes = appState.loadVolumes()
             appState.ensureVolumeSelection()
         }
     }
