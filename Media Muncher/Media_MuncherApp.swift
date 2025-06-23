@@ -18,11 +18,19 @@ struct Media_MuncherApp: App {
     private let importService = ImportService()
 
     init() {
+        var launchVolumeUUID: String?
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "--volume-uuid"), index + 1 < arguments.count {
+            launchVolumeUUID = arguments[index + 1]
+            print("Launched with volume UUID: \(launchVolumeUUID!)")
+        }
+
         let state = AppState(
             volumeManager: volumeManager,
             mediaScanner: mediaScanner,
             settingsStore: settingsStore,
-            importService: importService
+            importService: importService,
+            launchVolumeUUID: launchVolumeUUID
         )
         _appState = StateObject(wrappedValue: state)
     }
@@ -41,6 +49,7 @@ struct Media_MuncherApp: App {
         Settings {
             SettingsView()
                 .environmentObject(settingsStore)
+                .environmentObject(volumeManager)
         }
     }
 }

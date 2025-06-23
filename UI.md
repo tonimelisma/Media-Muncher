@@ -110,11 +110,12 @@ The `SettingsView` will remain a **single-pane** sheet containing one `Form`. It
 *   **New Controls to be Added**:
     *   A section with checkboxes to filter which media types are imported (e.g., Photos, Videos, Audio) (**ST-5**).
     *   A section to manage automation:
-        *   A global toggle to enable/disable auto-launching the app for any new volume (**AU-3**).
-        *   A list of previously connected volumes where users can set per-volume behavior: `Ignore`, `Prepare for Manual Import`, or `Auto-Import & Eject` (**ST-4**, **AU-2**).
+        *   A global toggle to enable/disable auto-launching the app for any new volume (**AU-3, Finished**).
+        *   A list of currently connected volumes where users can set per-volume behavior: `Ignore`, `Prepare for Manual Import`, or `Auto-Import & Eject` (**ST-4, Started**; **AU-2, Started**).
         
 #### Current Implementation
 
 ![Settings View Screenshot](/.screenshots/settings_view_v0.2.1.png)
+This screenshot is now outdated. It should be updated to reflect the new Automation section.
 
 This revised specification is grounded entirely in the PRD and your explicit instructions.

@@ -68,7 +68,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | ST-1 | I can choose a destination folder from presets or custom path. | **Finished** |
 | ST-2 | I can toggle "Delete originals after import". It will delete both files imported now or earlier, as deemed based on metadata.| **Finished** |
 | ST-3 | I can define filename/directory templates with tokens. | **Finished** |
-| ST-4 | I can whitelist volumes for auto-import. | **Not Started** |
+| ST-4 | I can whitelist volumes for auto-import. | **Started** |
 | ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions (e.g., "raw" includes .ARW, .NEF, .CR3, etc.) so I know exactly what will be imported. | **Finished** |
 
 ### EPIC 5 – User Interface Polish  
@@ -89,9 +89,9 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 ### EPIC 7 – Automation & Launch Agents  
 | ID | User Story | Status |
 |----|------------|--------|
-| AU-1 | App can launch automatically when a new volume is detected. | **Not Started** |
-| AU-2 | When the app is automatically launched on a detected volume, the user can choose whether to always automatically launch and automatically import, automatically launch but not import, or never launch for that specific volume. | **Not Started** |
-| AU-3 | User can set setting on whether app launches automatically on inserted volumes or not. | **Not Started** |
+| AU-1 | App can launch automatically when a new volume is detected. | **Started** |
+| AU-2 | When the app is automatically launched on a detected volume, the user can choose whether to always automatically launch and automatically import, automatically launch but not import, or never launch for that specific volume. | **Started** |
+| AU-3 | User can set setting on whether app launches automatically on inserted volumes or not. | **Finished** |
 
 ### EPIC 8 – Logging & Telemetry  
 | ID | User Story | Status |
