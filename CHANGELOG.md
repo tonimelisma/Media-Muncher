@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-06-22
+### Added
+- **Thumbnail Folder Skipping**: The app now intelligently skips common thumbnail folders (e.g., `THMBNL`, `.thumbnails`) during media discovery. (Addresses PRD Story: MD-6)
+- **Associated Thumbnail Deletion**: When deleting original media files after import, the app now also deletes any associated thumbnail files (e.g., `.THM`). (Addresses PRD Story: IE-9)
+
 ## [0.4.0] - 2025-06-22
 ### Added
 - **Media Type Filtering**: Users can now select which media types (images, videos, audio) to scan for in the settings. This allows for more focused imports and avoids cluttering the file list with unwanted file types. (Addresses PRD Story: ST-5)

@@ -162,18 +162,35 @@ final class MediaScannerTests: XCTestCase {
         XCTAssertTrue(foundFiles.contains { $0.sourceName == "audio.mp3" })
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
+    func testEnumerateFilesSkipsThumbnailFolders() async throws {
+        // Arrange
+        let thumbnailFolder1 = tempDirectoryURL.appendingPathComponent("THMBNL")
+        let thumbnailFolder2 = tempDirectoryURL.appendingPathComponent(".thumbnails")
+        let regularFolder = tempDirectoryURL.appendingPathComponent("regular")
+        
+        try fileManager.createDirectory(at: thumbnailFolder1, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: thumbnailFolder2, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: regularFolder, withIntermediateDirectories: true)
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+        // Files that should be skipped
+        fileManager.createFile(atPath: thumbnailFolder1.appendingPathComponent("thumb1.jpg").path, contents: nil)
+        fileManager.createFile(atPath: thumbnailFolder2.appendingPathComponent("thumb2.mov").path, contents: nil)
+
+        // File that should be found
+        let expectedFile = regularFolder.appendingPathComponent("media.mp3")
+        fileManager.createFile(atPath: expectedFile.path, contents: nil)
+
+        let mediaScanner = MediaScanner()
+
+        // Act
+        let streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil, filterImages: true, filterVideos: true, filterAudio: true)
+        var foundFiles: [File] = []
+        for try await batch in streams.results {
+            foundFiles.append(contentsOf: batch)
         }
+
+        // Assert
+        XCTAssertEqual(foundFiles.count, 1, "Should only find one file, ignoring files in thumbnail directories.")
+        XCTAssertEqual(foundFiles.first?.sourcePath, expectedFile.path)
     }
 } 

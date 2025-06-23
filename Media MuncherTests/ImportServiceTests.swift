@@ -140,13 +140,20 @@ class ImportServiceTests: XCTestCase {
             File(sourcePath: "/source/file2.mov", mediaType: .video, date: nil, size: nil, status: .waiting)
         ]
 
+        // Setup a thumbnail for one of the files
+        let thumbnailFilePath = "/source/file1.thm"
+        mockFileManager.virtualFileSystem[thumbnailFilePath] = Data()
+
         try await importService.importFiles(files: fileModels, to: destinationURL, settings: settings)
 
-        XCTAssertEqual(mockFileManager.removedItems.count, 2)
+        XCTAssertEqual(mockFileManager.removedItems.count, 3, "Should have removed the two source files and one thumbnail.")
         XCTAssertTrue(mockFileManager.removedItems.contains(URL(fileURLWithPath: "/source/file1.jpg")))
         XCTAssertTrue(mockFileManager.removedItems.contains(URL(fileURLWithPath: "/source/file2.mov")))
+        XCTAssertTrue(mockFileManager.removedItems.contains(URL(fileURLWithPath: thumbnailFilePath)), "Thumbnail file should be deleted.")
+
         XCTAssertNil(mockFileManager.virtualFileSystem["/source/file1.jpg"])
         XCTAssertNil(mockFileManager.virtualFileSystem["/source/file2.mov"])
+        XCTAssertNil(mockFileManager.virtualFileSystem[thumbnailFilePath])
     }
 
     func testImportFiles_WhenDeleteOriginalsIsFalse_DoesNotDeleteSourceFiles() async throws {

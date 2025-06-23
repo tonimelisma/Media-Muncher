@@ -45,7 +45,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | MD-3 | Each file displayed includes a thumbnail. | **Finished** |
 | MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Finished** |
 | MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Not Started** |
-| MD-6 | The app skips thumbnails in the discovery part. | **Not Started** |
+| MD-6 | The app skips thumbnails in the discovery part. | **Finished** |
 
 ### EPIC 3 – Import Engine  
 | ID | User Story | Status |
@@ -57,7 +57,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Finished** |
 | IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Finished** |
 | IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Finished** |
-| IE-9 | After successful copy, thumbnails are deleted. | **Not Started** |
+| IE-9 | After successful copy, thumbnails are deleted. | **Finished** |
 | IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Finished** |
 | IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Finished** |
 | IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Not Started** |

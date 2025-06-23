@@ -103,6 +103,19 @@ class ImportService {
                 let sourceURL = URL(fileURLWithPath: file.sourcePath)
                 do {
                     try self.fileManager.removeItem(at: sourceURL)
+
+                    // Also try to remove an associated .thm file
+                    let thumbnailURL = sourceURL.deletingPathExtension().appendingPathExtension("thm")
+                    if self.fileManager.fileExists(atPath: thumbnailURL.path) {
+                        try? self.fileManager.removeItem(at: thumbnailURL)
+                    }
+                    
+                    // Also try to remove an associated .THM file (uppercase)
+                    let thumbnailURLUpper = sourceURL.deletingPathExtension().appendingPathExtension("THM")
+                    if self.fileManager.fileExists(atPath: thumbnailURLUpper.path) {
+                        try? self.fileManager.removeItem(at: thumbnailURLUpper)
+                    }
+
                 } catch {
                     throw ImportError.deleteFailed(source: sourceURL, error: error)
                 }

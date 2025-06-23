@@ -5,6 +5,7 @@ import QuickLookThumbnailing
 
 actor MediaScanner {
     private var enumerationTask: Task<Void, Error>?
+    private static let thumbnailFolderNames: Set<String> = ["thmbnl", ".thumbnails", "misc"]
 
     private func generateThumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
         let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 1.0, representationTypes: .all)
@@ -70,8 +71,8 @@ actor MediaScanner {
                 while let fileURL = enumerator?.nextObject() as? URL {
                     try Task.checkCancellation()
 
-                    guard fileURL.hasDirectoryPath == false else {
-                        if fileURL.lastPathComponent == "THMBNL" {
+                    if fileURL.hasDirectoryPath {
+                        if MediaScanner.thumbnailFolderNames.contains(fileURL.lastPathComponent.lowercased()) {
                             enumerator?.skipDescendants()
                         }
                         continue
