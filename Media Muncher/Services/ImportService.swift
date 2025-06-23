@@ -67,7 +67,12 @@ class ImportService {
         self.urlAccessWrapper = urlAccessWrapper
     }
     
-    func importFiles(files: [File], to destinationURL: URL, settings: SettingsStore) async throws {
+    func importFiles(
+        files: [File],
+        to destinationURL: URL,
+        settings: SettingsStore,
+        progressHandler: (@Sendable (Int, Int64) async -> Void)? = nil
+    ) async throws {
         let didStartAccessing = urlAccessWrapper.startAccessingSecurityScopedResource(for: destinationURL)
         guard didStartAccessing else {
             throw ImportError.destinationNotReachable
@@ -77,7 +82,12 @@ class ImportService {
             urlAccessWrapper.stopAccessingSecurityScopedResource(for: destinationURL)
         }
         
+        var filesProcessed = 0
+        var bytesProcessed: Int64 = 0
+        
         for file in files {
+            try Task.checkCancellation()
+            
             let sourceURL = URL(fileURLWithPath: file.sourcePath)
             
             let destinationPath = try buildDestinationURL(for: file, in: destinationURL, settings: settings)
@@ -93,6 +103,9 @@ class ImportService {
             
             do {
                 try self.fileManager.copyItem(at: sourceURL, to: destinationPath)
+                filesProcessed += 1
+                bytesProcessed += file.size ?? 0
+                await progressHandler?(filesProcessed, bytesProcessed)
             } catch {
                 throw ImportError.copyFailed(source: sourceURL, destination: destinationPath, error: error)
             }

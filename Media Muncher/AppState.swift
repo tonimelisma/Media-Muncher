@@ -41,6 +41,12 @@ class AppState: ObservableObject {
     @Published private(set) var state: ProgramState = .idle
     @Published private(set) var error: AppError? = nil
     
+    // Import Progress
+    @Published var totalFilesToImport: Int = 0
+    @Published var importedFileCount: Int = 0
+    @Published var totalBytesToImport: Int64 = 0
+    @Published var importedBytes: Int64 = 0
+    
     private var cancellables = Set<AnyCancellable>()
     private var scanTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
@@ -140,14 +146,33 @@ class AppState: ObservableObject {
         self.state = .idle
     }
     
+    func cancelImport() {
+        importTask?.cancel()
+    }
+    
     func importFiles() {
         self.error = nil
+        
+        let filesToImport = self.files.filter { $0.status != .pre_existing }
+        
+        guard !filesToImport.isEmpty else { return }
+        
+        // Reset progress and set totals
+        self.importedFileCount = 0
+        self.importedBytes = 0
+        self.totalFilesToImport = filesToImport.count
+        self.totalBytesToImport = filesToImport.reduce(0) { $0 + ($1.size ?? 0) }
+
         self.state = .importingFiles
 
         importTask = Task {
             defer {
                 Task { @MainActor in
                     self.state = .idle
+                    self.totalFilesToImport = 0
+                    self.importedFileCount = 0
+                    self.totalBytesToImport = 0
+                    self.importedBytes = 0
                 }
             }
             
@@ -168,13 +193,19 @@ class AppState: ObservableObject {
             }
             
             do {
-                let filesToImport = self.files.filter { $0.status != .pre_existing }
-                try await importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore)
+                try await importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore) { filesProcessed, bytesProcessed in
+                    await MainActor.run {
+                        self.importedFileCount = filesProcessed
+                        self.importedBytes = bytesProcessed
+                    }
+                }
                 
                 if settingsStore.settingAutoEject {
                     volumeManager.ejectVolume(volumeToEject)
                 }
 
+            } catch is CancellationError {
+                // User cancelled the import, do nothing, just let the state reset to idle.
             } catch let importError as ImportService.ImportError {
                 await MainActor.run {
                     switch importError {

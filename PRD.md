@@ -76,7 +76,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 |----|------------|--------|
 | UI-1 | The grid view adapts to window width. | **Finished** |
 | UI-2 | Each media type has a specific icon before thumbnail loads. | **Finished** |
-| UI-3 | Import progress bar and time estimate are shown. | **Started** |
+| UI-3 | Import progress bar and time estimate are shown. | **Finished** |
 | UI-4 | Errors appear inline with helpful messages. | **Started** (destination-writable error) |
 | UI-5 | Full dark/light-mode compliance. | **Started** |
 

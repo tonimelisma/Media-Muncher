@@ -40,6 +40,7 @@ NavigationSplitView
      ├─ Spacer()
      └─ Bottom Bar (HStack, maxWidth = ∞)
           ├─ ProgressView + "N files" + Stop (when scanning)
+          ├─ OR ProgressView + "X of Y files (Z MB of N GB)" + Cancel (when importing)
           ├─ ErrorView
           ├─ Spacer()
           └─ Import Button
@@ -77,15 +78,14 @@ This section details how the UI will evolve to meet all remaining requirements i
 
 The main window remains a `NavigationSplitView`. The key evolution is in the bottom bar:
 
-*   **Button Lifecycle**: The main action button will be context-aware:
+*   **Button Lifecycle**: The main action button is context-aware:
     *   **Import**: The default state when files are enumerated and ready.
     *   **Cancel**: Replaces "Import" when an import is running.
     *   **Eject**: Replaces "Cancel" after a successful import if auto-eject is off. It is disabled during the import process.
-*   **Determinate Progress Bar**: When an import is active, a progress bar will appear, showing:
-    *   Time elapsed and estimated time remaining.
-    *   Number of items copied vs. total items.
-    *   Data size copied vs. total data size (e.g., "1.5/10.2 GB").
-    *   This is required by **UI-3**.
+*   **Determinate Progress Bar**: An import progress bar is now shown in the bottom bar during an active import (**UI-3, Finished**). It displays:
+    *   A visual `ProgressView` showing overall progress based on byte count.
+    *   Text labels showing the number of files copied versus the total (`X of Y files`) and the data size copied versus the total (`A of B GB`).
+*   The "Import" button becomes a "Cancel" button during the operation. Time estimation is not yet implemented.
 *   **Error View**: The existing `ErrorView` will be enhanced to show other critical errors inline, such as "insufficient disk space," as defined in **UI-4**.
 
 ### 4.2 Media Grid (`MediaFilesGridView`)

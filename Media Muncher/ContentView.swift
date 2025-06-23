@@ -33,18 +33,31 @@ struct ContentView: View {
                         .buttonStyle(.plain)
                         .padding(.horizontal, 6)
                     } else if appState.state == .importingFiles {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                        Text("Importing \(appState.files.count) files...")
+                        VStack(alignment: .leading, spacing: 4) {
+                            ProgressView(value: Double(appState.importedBytes), total: Double(appState.totalBytesToImport > 0 ? appState.totalBytesToImport : 1))
+                                .progressViewStyle(LinearProgressViewStyle())
+                            
+                            HStack {
+                                Text("\(appState.importedFileCount) / \(appState.totalFilesToImport) files")
+                                Spacer()
+                                Text(byteCountFormatter.string(fromByteCount: appState.importedBytes) + " / " + byteCountFormatter.string(fromByteCount: appState.totalBytesToImport))
+                            }
                             .font(.caption)
-                            .padding(.leading, 4)
+                        }
+                        Button("Cancel") {
+                            appState.cancelImport()
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 6)
                     }
                     ErrorView()
                     Spacer()
-                    Button("Import") {
-                        appState.importFiles()
+                    if appState.state != .importingFiles {
+                        Button("Import") {
+                            appState.importFiles()
+                        }
+                        .disabled(appState.state != .idle || appState.files.isEmpty)
                     }
-                    .disabled(appState.state != .idle || appState.files.isEmpty)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -75,3 +88,10 @@ struct ContentView: View {
         .environmentObject(VolumeManager())
         .environmentObject(SettingsStore())
 }
+
+private let byteCountFormatter: ByteCountFormatter = {
+    let formatter = ByteCountFormatter()
+    formatter.allowedUnits = [.useKB, .useMB, .useGB]
+    formatter.countStyle = .file
+    return formatter
+}()

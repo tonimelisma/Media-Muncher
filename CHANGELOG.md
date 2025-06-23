@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **File Organization and Renaming**: Added options in Settings to automatically organize imported files into date-based folders (`YYYY/MM`) and rename them using a `TYPE_YYYYMMDD_HHMMSS` format. This feature helps users keep their media libraries tidy. (Addresses PRD Story: IE-2, IE-7, IE-4, IE-10, ST-3)
+- **Advanced Conflict Resolution**: The import service now detects filename collisions and appends a numerical suffix (`_1`, `_2`, etc.) to prevent overwriting existing files.
+- **Thumbnail Generation**: The grid view now displays asynchronously-loaded thumbnails for image and video files, replacing the generic SF Symbol icons. This provides a much richer visual preview of media on a volume. (Addresses PRD Story: MD-3)
+
+## [0.6.0] - 2025-06-23
+### Added
+- Implemented a detailed import progress bar in the bottom toolbar (UI-3).
+- The progress view shows the number of files copied, the total size of the import, and a visual progress bar.
+- A "Cancel" button is now shown during import to allow the user to stop the operation.
+
 ## [0.5.0] - 2025-06-22
 ### Added
 - **Thumbnail Folder Skipping**: The app now intelligently skips common thumbnail folders (e.g., `THMBNL`, `.thumbnails`) during media discovery. (Addresses PRD Story: MD-6)
@@ -23,13 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The settings screen now includes a toggle for the new auto-eject feature.
 - Import logic now includes post-import steps for deletion and ejection.
-
-## [Unreleased]
-
-### Added
-- **File Organization and Renaming**: Added options in Settings to automatically organize imported files into date-based folders (`YYYY/MM`) and rename them using a `TYPE_YYYYMMDD_HHMMSS` format. This feature helps users keep their media libraries tidy. (Addresses PRD Story: IE-2, IE-7, IE-4, IE-10, ST-3)
-- **Advanced Conflict Resolution**: The import service now detects filename collisions and appends a numerical suffix (`_1`, `_2`, etc.) to prevent overwriting existing files.
-- **Thumbnail Generation**: The grid view now displays asynchronously-loaded thumbnails for image and video files, replacing the generic SF Symbol icons. This provides a much richer visual preview of media on a volume. (Addresses PRD Story: MD-3)
 
 ## [0.2.1] - 2025-06-17
 
@@ -52,15 +58,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Multiple build errors related to protocol conformance, equatable implementation, and incorrect mock usage during the development of the import feature.
+- Files are now correctly renamed according to the `TYPE_YYYYMMDD_HHMMSS.ext` template when the setting is enabled.
+- Destination subdirectories (`YYYY/MM`) are now created as expected when the setting is enabled.
 
-## [0.1.0] - 2025-06-21
-
+## [0.2.0] - 2025-06-15
 ### Added
-- Initial project setup.
-- Basic volume detection and display.
-- Media file scanning and listing.
-- Basic import functionality.
-- Settings screen with destination folder and delete options.
+- Users can now choose to have files renamed by date (`TYPE_YYYYMMDD_HHMMSS.ext`) and organized into date-based subfolders (`YYYY/MM`).
+- Added corresponding toggles to the Settings view.
 
-### Changed
-- Updated PRD statuses: `UI-2` **Finished**; `MD-2` **Finished** (live progress & cancel).
+## [0.1.0] - 2025-02-15
+### Added
+- Initial release.
+- Lists removable volumes.
+- Scans volumes for media files and displays them in a grid.
+- Basic import functionality to a user-selected destination.
+- Settings for choosing destination and deleting originals after import.
