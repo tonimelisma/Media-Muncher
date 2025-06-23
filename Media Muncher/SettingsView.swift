@@ -73,22 +73,33 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Toggle("Delete originals after import", isOn: $settingsStore.settingDeleteOriginals)
-            Toggle("Eject volume after successful import", isOn: $settingsStore.settingAutoEject)
-            Toggle("Organize into date-based folders (YYYY/MM)", isOn: $settingsStore.organizeByDate)
-            Toggle("Rename files by date and time", isOn: $settingsStore.renameByDate)
+            Section(header: Text("Import Options")) {
+                Toggle("Delete originals after import", isOn: $settingsStore.settingDeleteOriginals)
+                Toggle("Eject volume after successful import", isOn: $settingsStore.settingAutoEject)
+            }
 
-            FolderPickerView(
-                title: "Destination Folder",
-                selectedURL: Binding(
-                    get: { settingsStore.destinationURL },
-                    set: { newURL in
-                        if let url = newURL {
-                            settingsStore.setDestination(url: url)
+            Section(header: Text("File Organization")) {
+                Toggle("Organize into date-based folders (YYYY/MM)", isOn: $settingsStore.organizeByDate)
+                Toggle("Rename files by date and time", isOn: $settingsStore.renameByDate)
+
+                FolderPickerView(
+                    title: "Destination Folder",
+                    selectedURL: Binding(
+                        get: { settingsStore.destinationURL },
+                        set: { newURL in
+                            if let url = newURL {
+                                settingsStore.setDestination(url: url)
+                            }
                         }
-                    }
+                    )
                 )
-            )
+            }
+            
+            Section(header: Text("Media Types to Scan")) {
+                Toggle("Scan for Images", isOn: $settingsStore.filterImages)
+                Toggle("Scan for Videos", isOn: $settingsStore.filterVideos)
+                Toggle("Scan for Audio", isOn: $settingsStore.filterAudio)
+            }
         }
         .padding()
         .frame(width: 400)

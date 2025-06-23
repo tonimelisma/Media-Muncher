@@ -20,6 +20,24 @@ class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var filterImages: Bool {
+        didSet {
+            UserDefaults.standard.set(filterImages, forKey: "filterImages")
+        }
+    }
+
+    @Published var filterVideos: Bool {
+        didSet {
+            UserDefaults.standard.set(filterVideos, forKey: "filterVideos")
+        }
+    }
+
+    @Published var filterAudio: Bool {
+        didSet {
+            UserDefaults.standard.set(filterAudio, forKey: "filterAudio")
+        }
+    }
+
     @Published var settingAutoEject: Bool {
         didSet {
             UserDefaults.standard.set(settingAutoEject, forKey: "settingAutoEject")
@@ -41,6 +59,12 @@ class SettingsStore: ObservableObject {
         self.organizeByDate = UserDefaults.standard.bool(forKey: "organizeByDate")
         self.renameByDate = UserDefaults.standard.bool(forKey: "renameByDate")
         self.settingAutoEject = UserDefaults.standard.bool(forKey: "settingAutoEject")
+
+        // Default to true if no value is set
+        self.filterImages = UserDefaults.standard.object(forKey: "filterImages") as? Bool ?? true
+        self.filterVideos = UserDefaults.standard.object(forKey: "filterVideos") as? Bool ?? true
+        self.filterAudio = UserDefaults.standard.object(forKey: "filterAudio") as? Bool ?? true
+
         self.destinationBookmark = UserDefaults.standard.data(forKey: "destinationBookmarkData")
         self.destinationURL = resolveBookmark()
 

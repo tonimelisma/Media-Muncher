@@ -20,7 +20,13 @@ actor MediaScanner {
         enumerationTask?.cancel()
     }
 
-    func enumerateFiles(at rootURL: URL, destinationURL: URL?) -> (results: AsyncThrowingStream<[File], Error>, progress: AsyncStream<Int>) {
+    func enumerateFiles(
+        at rootURL: URL,
+        destinationURL: URL?,
+        filterImages: Bool,
+        filterVideos: Bool,
+        filterAudio: Bool
+    ) -> (results: AsyncThrowingStream<[File], Error>, progress: AsyncStream<Int>) {
         let (progressStream, progressContinuation) = AsyncStream.makeStream(of: Int.self)
         let (resultsStream, resultsContinuation) = AsyncThrowingStream.makeStream(of: [File].self)
         
@@ -73,6 +79,18 @@ actor MediaScanner {
                     
                     let mediaType = MediaType.from(filePath: fileURL.path)
                     if mediaType == .unknown { continue }
+
+                    // Apply filters
+                    switch mediaType {
+                    case .image where !filterImages:
+                        continue
+                    case .video where !filterVideos:
+                        continue
+                    case .audio where !filterAudio:
+                        continue
+                    default:
+                        break
+                    }
 
                     let resourceValues = try fileURL.resourceValues(forKeys: resourceKeys)
                     let creationDate = resourceValues.creationDate

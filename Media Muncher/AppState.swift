@@ -98,7 +98,13 @@ class AppState: ObservableObject {
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
-            let streams = await mediaScanner.enumerateFiles(at: url, destinationURL: settingsStore.destinationURL)
+            let streams = await mediaScanner.enumerateFiles(
+                at: url,
+                destinationURL: settingsStore.destinationURL,
+                filterImages: settingsStore.filterImages,
+                filterVideos: settingsStore.filterVideos,
+                filterAudio: settingsStore.filterAudio
+            )
             
             // Handle results
             Task {

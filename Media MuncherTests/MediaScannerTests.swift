@@ -29,7 +29,7 @@ final class MediaScannerTests: XCTestCase {
         let mediaScanner = MediaScanner()
         
         // Act
-        let streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil)
+        let streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil, filterImages: true, filterVideos: true, filterAudio: true)
         var foundFiles: [File] = []
         for try await batch in streams.results {
             foundFiles.append(contentsOf: batch)
@@ -79,7 +79,7 @@ final class MediaScannerTests: XCTestCase {
         let mediaScanner = MediaScanner()
         
         // Act
-        let streams = await mediaScanner.enumerateFiles(at: sourceURL, destinationURL: destinationURL)
+        let streams = await mediaScanner.enumerateFiles(at: sourceURL, destinationURL: destinationURL, filterImages: true, filterVideos: true, filterAudio: true)
         var foundFiles: [File] = []
         for try await batch in streams.results {
             foundFiles.append(contentsOf: batch)
@@ -99,6 +99,67 @@ final class MediaScannerTests: XCTestCase {
         let file3 = foundFiles.first { $0.sourceName == "image3.jpg" }
         XCTAssertNotNil(file3)
         XCTAssertEqual(file3?.status, .waiting, "image3.jpg should be marked as waiting because its size is different")
+    }
+
+    func testEnumerateFilesWithFilters() async throws {
+        // Arrange
+        let testFiles = ["image.jpg", "video.mov", "audio.mp3", "document.txt"]
+        for fileName in testFiles {
+            let fileURL = tempDirectoryURL.appendingPathComponent(fileName)
+            fileManager.createFile(atPath: fileURL.path, contents: Data("test".utf8), attributes: nil)
+        }
+        
+        let mediaScanner = MediaScanner()
+        
+        // Act & Assert
+        
+        // 1. Test filtering for only images
+        var streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil, filterImages: true, filterVideos: false, filterAudio: false)
+        var foundFiles: [File] = []
+        for try await batch in streams.results {
+            foundFiles.append(contentsOf: batch)
+        }
+        XCTAssertEqual(foundFiles.count, 1)
+        XCTAssertEqual(foundFiles.first?.sourceName, "image.jpg")
+
+        // 2. Test filtering for only videos
+        streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil, filterImages: false, filterVideos: true, filterAudio: false)
+        foundFiles = []
+        for try await batch in streams.results {
+            foundFiles.append(contentsOf: batch)
+        }
+        XCTAssertEqual(foundFiles.count, 1)
+        XCTAssertEqual(foundFiles.first?.sourceName, "video.mov")
+        
+        // 3. Test filtering for only audio
+        streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil, filterImages: false, filterVideos: false, filterAudio: true)
+        foundFiles = []
+        for try await batch in streams.results {
+            foundFiles.append(contentsOf: batch)
+        }
+        XCTAssertEqual(foundFiles.count, 1)
+        XCTAssertEqual(foundFiles.first?.sourceName, "audio.mp3")
+
+        // 4. Test filtering for images and videos
+        streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil, filterImages: true, filterVideos: true, filterAudio: false)
+        foundFiles = []
+        for try await batch in streams.results {
+            foundFiles.append(contentsOf: batch)
+        }
+        XCTAssertEqual(foundFiles.count, 2)
+        XCTAssertTrue(foundFiles.contains { $0.sourceName == "image.jpg" })
+        XCTAssertTrue(foundFiles.contains { $0.sourceName == "video.mov" })
+        
+        // 5. Test filtering for all media types
+        streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil, filterImages: true, filterVideos: true, filterAudio: true)
+        foundFiles = []
+        for try await batch in streams.results {
+            foundFiles.append(contentsOf: batch)
+        }
+        XCTAssertEqual(foundFiles.count, 3)
+        XCTAssertTrue(foundFiles.contains { $0.sourceName == "image.jpg" })
+        XCTAssertTrue(foundFiles.contains { $0.sourceName == "video.mov" })
+        XCTAssertTrue(foundFiles.contains { $0.sourceName == "audio.mp3" })
     }
 
     func testExample() throws {

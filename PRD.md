@@ -69,7 +69,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | ST-2 | I can toggle "Delete originals after import". It will delete both files imported now or earlier, as deemed based on metadata.| **Finished** |
 | ST-3 | I can define filename/directory templates with tokens. | **Finished** |
 | ST-4 | I can whitelist volumes for auto-import. | **Not Started** |
-| ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions (e.g., "raw" includes .ARW, .NEF, .CR3, etc.) so I know exactly what will be imported. | **Not Started** |
+| ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions (e.g., "raw" includes .ARW, .NEF, .CR3, etc.) so I know exactly what will be imported. | **Finished** |
 
 ### EPIC 5 – User Interface Polish  
 | ID | User Story | Status |
