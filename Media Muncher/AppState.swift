@@ -98,7 +98,7 @@ class AppState: ObservableObject {
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
-            let streams = await mediaScanner.enumerateFiles(at: url)
+            let streams = await mediaScanner.enumerateFiles(at: url, destinationURL: settingsStore.destinationURL)
             
             // Handle results
             Task {
@@ -152,9 +152,32 @@ class AppState: ObservableObject {
                 return
             }
             
+            guard let selectedVolumePath = selectedVolume,
+                  let volumeToEject = volumes.first(where: { $0.devicePath == selectedVolumePath }) else {
+                // This case is unlikely if files are present, but as a safeguard:
+                await MainActor.run {
+                    self.error = .importFailed(reason: "No volume selected or found.")
+                }
+                return
+            }
+            
             do {
-                let filesToImport = self.files
-                try await importService.importFiles(files: filesToImport, to: destinationURL)
+                let filesToImport = self.files.filter { $0.status != .pre_existing }
+                try await importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore)
+                
+                if settingsStore.settingAutoEject {
+                    volumeManager.ejectVolume(volumeToEject)
+                }
+
+            } catch let importError as ImportService.ImportError {
+                await MainActor.run {
+                    switch importError {
+                    case .deleteFailed(_, let error):
+                        self.error = .importSucceededWithDeletionErrors(reason: error.localizedDescription)
+                    default:
+                        self.error = .importFailed(reason: importError.localizedDescription)
+                    }
+                }
             } catch {
                 await MainActor.run {
                     self.error = .importFailed(reason: error.localizedDescription)

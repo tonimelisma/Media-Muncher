@@ -1,7 +1,7 @@
 import XCTest
 @testable import Media_Muncher
 
-class MediaScannerTests: XCTestCase {
+final class MediaScannerTests: XCTestCase {
     var tempDirectoryURL: URL!
     let fileManager = FileManager.default
 
@@ -29,7 +29,7 @@ class MediaScannerTests: XCTestCase {
         let mediaScanner = MediaScanner()
         
         // Act
-        let streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL)
+        let streams = await mediaScanner.enumerateFiles(at: tempDirectoryURL, destinationURL: nil)
         var foundFiles: [File] = []
         for try await batch in streams.results {
             foundFiles.append(contentsOf: batch)
@@ -46,5 +46,73 @@ class MediaScannerTests: XCTestCase {
         
         let videoFiles = foundFiles.filter { $0.mediaType == .video }
         XCTAssertEqual(videoFiles.count, 1)
+    }
+
+    func testEnumerateFilesDetectsPreExistingFiles() async throws {
+        // Arrange
+        let sourceURL = tempDirectoryURL.appendingPathComponent("source")
+        let destinationURL = tempDirectoryURL.appendingPathComponent("destination")
+        try fileManager.createDirectory(at: sourceURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: destinationURL, withIntermediateDirectories: true)
+
+        // 1. File that exists in both source and destination (should be marked pre_existing)
+        let file1URL = sourceURL.appendingPathComponent("image1.jpg")
+        let destFile1URL = destinationURL.appendingPathComponent("image1.jpg")
+        let file1Content = "samedata".data(using: .utf8)
+        fileManager.createFile(atPath: file1URL.path, contents: file1Content)
+        fileManager.createFile(atPath: destFile1URL.path, contents: file1Content)
+        // Ensure modification dates are close
+        try fileManager.setAttributes([.modificationDate: Date()], ofItemAtPath: file1URL.path)
+        try fileManager.setAttributes([.modificationDate: Date()], ofItemAtPath: destFile1URL.path)
+
+
+        // 2. File that only exists in source (should be marked waiting)
+        let file2URL = sourceURL.appendingPathComponent("image2.jpg")
+        fileManager.createFile(atPath: file2URL.path, contents: "newdata".data(using: .utf8))
+
+        // 3. File with same name but different content/size (should be marked waiting)
+        let file3URL = sourceURL.appendingPathComponent("image3.jpg")
+        let destFile3URL = destinationURL.appendingPathComponent("image3.jpg")
+        fileManager.createFile(atPath: file3URL.path, contents: "source_data_for_3".data(using: .utf8))
+        fileManager.createFile(atPath: destFile3URL.path, contents: "destination_data_for_3_is_different".data(using: .utf8))
+        
+        let mediaScanner = MediaScanner()
+        
+        // Act
+        let streams = await mediaScanner.enumerateFiles(at: sourceURL, destinationURL: destinationURL)
+        var foundFiles: [File] = []
+        for try await batch in streams.results {
+            foundFiles.append(contentsOf: batch)
+        }
+
+        // Assert
+        XCTAssertEqual(foundFiles.count, 3)
+        
+        let file1 = foundFiles.first { $0.sourceName == "image1.jpg" }
+        XCTAssertNotNil(file1)
+        XCTAssertEqual(file1?.status, .pre_existing, "image1.jpg should be marked as pre_existing")
+
+        let file2 = foundFiles.first { $0.sourceName == "image2.jpg" }
+        XCTAssertNotNil(file2)
+        XCTAssertEqual(file2?.status, .waiting, "image2.jpg should be marked as waiting")
+
+        let file3 = foundFiles.first { $0.sourceName == "image3.jpg" }
+        XCTAssertNotNil(file3)
+        XCTAssertEqual(file3?.status, .waiting, "image3.jpg should be marked as waiting because its size is different")
+    }
+
+    func testExample() throws {
+        // This is an example of a functional test case.
+        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        // Any test you write for XCTest can be annotated as throws and async.
+        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
+        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    }
+
+    func testPerformanceExample() throws {
+        // This is an example of a performance test case.
+        self.measure {
+            // Put the code you want to measure the time of here.
+        }
     }
 } 

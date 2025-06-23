@@ -104,13 +104,17 @@ The `SettingsView` will remain a **single-pane** sheet containing one `Form`. It
 *   **Existing Controls**:
     *   Destination Folder Picker (**ST-1**).
     *   A single "Delete originals after import" toggle, which applies to all imported files per **ST-2**.
-*   **New Controls to be Added**:
-    *   A toggle to enable/disable renaming files via the hard-coded template (`YYYY-MM-DD.ext`) (**IE-2**).
-    *   A toggle to enable/disable creating subdirectories via the hard-coded template (`YYYY/MM/DD`) (**IE-7**).
+    *   A toggle to enable/disable renaming files via the hard-coded template (`TYPE_YYYYMMDD_HHMMSS.ext`) (**IE-2**).
+    *   A toggle to enable/disable creating subdirectories via the hard-coded template (`YYYY/MM`) (**IE-7**).
     *   A toggle for "Eject volume automatically after successful import" (**IE-6**).
+*   **New Controls to be Added**:
     *   A section with checkboxes to filter which media types are imported (e.g., Photos, Videos, Audio) (**ST-5**).
     *   A section to manage automation:
         *   A global toggle to enable/disable auto-launching the app for any new volume (**AU-3**).
         *   A list of previously connected volumes where users can set per-volume behavior: `Ignore`, `Prepare for Manual Import`, or `Auto-Import & Eject` (**ST-4**, **AU-2**).
+        
+#### Current Implementation
+
+![Settings View Screenshot](/.screenshots/settings_view_v0.2.1.png)
 
 This revised specification is grounded entirely in the PRD and your explicit instructions.

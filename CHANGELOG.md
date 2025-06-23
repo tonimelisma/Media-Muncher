@@ -5,12 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-06-22
+### Added
+- Users can now enable a setting to automatically delete original files from the source volume after a successful import.
+- A new setting allows users to automatically eject the source volume after a successful import, further streamlining the workflow.
+- New error state to inform the user when an import succeeds but the deletion of original files fails.
+
+### Changed
+- The settings screen now includes a toggle for the new auto-eject feature.
+- Import logic now includes post-import steps for deletion and ejection.
+
 ## [Unreleased]
 
 ### Added
+- **File Organization and Renaming**: Added options in Settings to automatically organize imported files into date-based folders (`YYYY/MM`) and rename them using a `TYPE_YYYYMMDD_HHMMSS` format. This feature helps users keep their media libraries tidy. (Addresses PRD Story: IE-2, IE-7, IE-4, IE-10, ST-3)
+- **Advanced Conflict Resolution**: The import service now detects filename collisions and appends a numerical suffix (`_1`, `_2`, etc.) to prevent overwriting existing files.
 - **Thumbnail Generation**: The grid view now displays asynchronously-loaded thumbnails for image and video files, replacing the generic SF Symbol icons. This provides a much richer visual preview of media on a volume. (Addresses PRD Story: MD-3)
 
-## [0.2.0] - 2025-06-22
+## [0.2.1] - 2025-06-17
 
 ### Added
 - Core import functionality to copy files from a source volume to a user-selected destination folder.

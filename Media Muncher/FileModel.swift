@@ -64,6 +64,12 @@ struct File: Identifiable {
     var sourceName: String {
         (sourcePath as NSString).lastPathComponent
     }
+    var filenameWithoutExtension: String {
+        (sourceName as NSString).deletingPathExtension
+    }
+    var fileExtension: String {
+        (sourceName as NSString).pathExtension
+    }
     var mediaType: MediaType
     var date: Date?
     var size: Int64?

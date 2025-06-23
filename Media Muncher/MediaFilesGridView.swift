@@ -16,31 +16,42 @@ struct MediaFilesGridView: View {
                 let columnWidth: CGFloat = 120
                 let columnsCount = Int(
                     (geometry.size.width - 20)/(columnWidth + 10))
-                let iconSize: CGFloat = columnWidth - 20
                 let columns = Array(
                     repeating: GridItem(
                         .fixed(columnWidth), spacing: 10, alignment: .topLeading
                     ), count: columnsCount)
 
                 LazyVGrid(columns: columns) {
-                    ForEach(appState.files) {
-                        file in
+                    ForEach(appState.files) { file in
                         VStack {
-                            if let thumbnail = file.thumbnail {
-                                thumbnail
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: iconSize, height: iconSize)
-                                    .clipped()
-                            } else {
-                                Image(systemName: file.mediaType.sfSymbolName)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: iconSize, height: iconSize)
+                            ZStack {
+                                if let thumbnail = file.thumbnail {
+                                    thumbnail
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 100, height: 100)
+                                } else {
+                                    Image(systemName: file.mediaType.sfSymbolName)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 50, height: 50)
+                                        .padding(.vertical, 25)
+                                }
+                                
+                                if file.status == .pre_existing {
+                                    Color.black.opacity(0.4)
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.white)
+                                        .font(.largeTitle)
+                                }
                             }
+                            .frame(width: 100, height: 100)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
                             Text(file.sourceName)
+                                .lineLimit(1)
                                 .font(.caption)
-                                .multilineTextAlignment(.center)
+                                .frame(width: 100)
                         }
                     }
                 }

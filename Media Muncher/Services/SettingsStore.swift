@@ -8,6 +8,24 @@ class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var organizeByDate: Bool {
+        didSet {
+            UserDefaults.standard.set(organizeByDate, forKey: "organizeByDate")
+        }
+    }
+    
+    @Published var renameByDate: Bool {
+        didSet {
+            UserDefaults.standard.set(renameByDate, forKey: "renameByDate")
+        }
+    }
+
+    @Published var settingAutoEject: Bool {
+        didSet {
+            UserDefaults.standard.set(settingAutoEject, forKey: "settingAutoEject")
+        }
+    }
+
     @Published private(set) var destinationBookmark: Data? {
         didSet {
             UserDefaults.standard.set(destinationBookmark, forKey: "destinationBookmarkData")
@@ -20,6 +38,9 @@ class SettingsStore: ObservableObject {
 
     init() {
         self.settingDeleteOriginals = UserDefaults.standard.bool(forKey: "settingDeleteOriginals")
+        self.organizeByDate = UserDefaults.standard.bool(forKey: "organizeByDate")
+        self.renameByDate = UserDefaults.standard.bool(forKey: "renameByDate")
+        self.settingAutoEject = UserDefaults.standard.bool(forKey: "settingAutoEject")
         self.destinationBookmark = UserDefaults.standard.data(forKey: "destinationBookmarkData")
         self.destinationURL = resolveBookmark()
 

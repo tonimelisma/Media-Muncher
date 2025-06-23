@@ -74,6 +74,9 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Toggle("Delete originals after import", isOn: $settingsStore.settingDeleteOriginals)
+            Toggle("Eject volume after successful import", isOn: $settingsStore.settingAutoEject)
+            Toggle("Organize into date-based folders (YYYY/MM)", isOn: $settingsStore.organizeByDate)
+            Toggle("Rename files by date and time", isOn: $settingsStore.renameByDate)
 
             FolderPickerView(
                 title: "Destination Folder",

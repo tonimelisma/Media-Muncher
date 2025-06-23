@@ -20,7 +20,7 @@ actor MediaScanner {
         enumerationTask?.cancel()
     }
 
-    func enumerateFiles(at rootURL: URL) -> (results: AsyncThrowingStream<[File], Error>, progress: AsyncStream<Int>) {
+    func enumerateFiles(at rootURL: URL, destinationURL: URL?) -> (results: AsyncThrowingStream<[File], Error>, progress: AsyncStream<Int>) {
         let (progressStream, progressContinuation) = AsyncStream.makeStream(of: Int.self)
         let (resultsStream, resultsContinuation) = AsyncThrowingStream.makeStream(of: [File].self)
         
@@ -28,7 +28,27 @@ actor MediaScanner {
             var filesScanned = 0
             var batch: [File] = []
             let fileManager = FileManager.default
+            var destinationFiles: [String: (size: Int64, date: Date)] = [:]
             
+            if let destinationURL = destinationURL {
+                if fileManager.fileExists(atPath: destinationURL.path) {
+                    let destResourceKeys: Set<URLResourceKey> = [.contentModificationDateKey, .creationDateKey, .fileSizeKey]
+                    if let enumerator = fileManager.enumerator(at: destinationURL, includingPropertiesForKeys: Array(destResourceKeys)) {
+                        while let fileURL = enumerator.nextObject() as? URL {
+                            guard !fileURL.hasDirectoryPath else { continue }
+                            do {
+                                let resourceValues = try fileURL.resourceValues(forKeys: destResourceKeys)
+                                let size = Int64(resourceValues.fileSize ?? 0)
+                                let date = resourceValues.contentModificationDate ?? resourceValues.creationDate ?? Date.distantPast
+                                destinationFiles[fileURL.lastPathComponent] = (size, date)
+                            } catch {
+                                // Log error or handle, for now, we'll just skip this file
+                            }
+                        }
+                    }
+                }
+            }
+
             do {
                 defer {
                     resultsContinuation.finish()
@@ -58,6 +78,7 @@ actor MediaScanner {
                     let creationDate = resourceValues.creationDate
                     let modificationDate = resourceValues.contentModificationDate
                     let size = Int64(resourceValues.fileSize ?? 0)
+                    let sourceName = fileURL.lastPathComponent
                     
                     var mediaDate: Date?
                     
@@ -85,6 +106,13 @@ actor MediaScanner {
                         mediaDate = creationDate ?? modificationDate
                     }
                     
+                    var status: FileStatus = .waiting
+                    if let destFile = destinationFiles[sourceName], let mediaDate = mediaDate {
+                        if destFile.size == size && abs(destFile.date.timeIntervalSince(mediaDate)) < 2 { // allow 1s variance
+                            status = .pre_existing
+                        }
+                    }
+                    
                     let thumbnail = await generateThumbnail(for: fileURL)
                     
                     let file = File(
@@ -92,7 +120,7 @@ actor MediaScanner {
                         mediaType: mediaType,
                         date: mediaDate,
                         size: size,
-                        status: FileStatus.waiting,
+                        status: status,
                         thumbnail: thumbnail
                     )
                     

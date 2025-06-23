@@ -43,7 +43,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | MD-1 | When I select or insert a volume the app scans it for media files. | **Finished** |
 | MD-2 | The scan shows live progress and can be cancelled. | **Finished** |
 | MD-3 | Each file displayed includes a thumbnail. | **Finished** |
-| MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Not Started** |
+| MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Finished** |
 | MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Not Started** |
 | MD-6 | The app skips thumbnails in the discovery part. | **Not Started** |
 
@@ -51,15 +51,15 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | ID | User Story | Status |
 |----|------------|--------|
 | IE-1 | I press **Import** and files copy to my destination folder. | **Finished** |
-| IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g., `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Not Started** |
-| IE-7 | If user sets a setting, destination folder names follow a template (e.g., `YYYY/MM/DD/…`). | **Not Started** |
-| IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Not Started** |
-| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Not Started** |
-| IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Not Started** |
-| IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Not Started** |
+| IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g., `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Finished** |
+| IE-7 | If user sets a setting, destination folder names follow a template (e.g., `YYYY/MM/DD/…`). | **Finished** |
+| IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Finished** |
+| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Finished** |
+| IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Finished** |
+| IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Finished** |
 | IE-9 | After successful copy, thumbnails are deleted. | **Not Started** |
-| IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Not Started** |
-| IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Not Started** |
+| IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Finished** |
+| IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Finished** |
 | IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Not Started** |
 
 ### EPIC 4 – Settings & Preferences  
@@ -67,7 +67,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 |----|------------|--------|
 | ST-1 | I can choose a destination folder from presets or custom path. | **Finished** |
 | ST-2 | I can toggle "Delete originals after import". It will delete both files imported now or earlier, as deemed based on metadata.| **Finished** |
-| ST-3 | I can define filename/directory templates with tokens. | **Not Started** |
+| ST-3 | I can define filename/directory templates with tokens. | **Finished** |
 | ST-4 | I can whitelist volumes for auto-import. | **Not Started** |
 | ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions (e.g., "raw" includes .ARW, .NEF, .CR3, etc.) so I know exactly what will be imported. | **Not Started** |
 

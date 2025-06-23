@@ -43,7 +43,7 @@
 | **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
-| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread. Uses **QuickLookThumbnailing** to generate thumbnails. | `MediaScanner` |
+| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread. Uses **QuickLookThumbnailing** to generate thumbnails and detects pre-existing files in the destination. | `MediaScanner` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. | `ImportService` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
@@ -55,7 +55,7 @@
 | **SettingsView.swift** | Toggles & folder picker. Binds to `SettingsStore`. | `SettingsView`, `FolderPickerView` |
 | **ErrorView.swift** | Inline error banner. Binds to `AppState`. | `ErrorView` |
 | **ContentView.swift** | Arranges split-view, toolbar, Import button. | `ContentView` |
-| Tests folders | Boiler-plate test targets | (empty) |
+| Tests folders | Unit tests for services and helpers. | `MediaScannerTests`, `ImportServiceTests`, etc. |
 
 > **Observation** – The previous monolithic `AppState` has been refactored into focused services, improving separation of concerns.
 
@@ -194,6 +194,12 @@ graph TD;
 
 ---
 ## 14. Recent Maintenance (2025-06-22)
+* **Implemented Date-Based Organization and Renaming.** The `ImportService` now contains logic to organize files into `YYYY/MM` subdirectories and rename them to a `TYPE_YYYYMMDD_HHMMSS` format based on user settings. This completes stories IE-2, IE-7, IE-4, and IE-10.
+* **Refactored `ImportService` for Testability.**
+    *   Introduced a `nowProvider: () -> Date` property to allow injecting a fixed date during tests, making date-based logic deterministic and verifiable.
+    *   Defined a `FileManagerProtocol` and `SecurityScopedURLAccessWrapperProtocol` to enable mocking of `FileManager` and security-scoped URL access, fully isolating the service from the filesystem and OS security features during unit tests.
+    *   Created `MockFileManager` and `MockSecurityScopedURLAccessWrapper` to support the new testing strategy.
+* **Implemented pre-existing file detection.** The `MediaScanner` now accepts a destination URL and checks if a file with the same name already exists, setting a `.pre_existing` status on the `FileModel`. The grid view visually marks these files, and they are excluded from import. This completes user stories MD-4 and IE-3.
 * **Implemented Thumbnail Generation.** The `MediaScanner` now uses the `QuickLookThumbnailing` framework to asynchronously generate and display thumbnails for media files, replacing generic icons. This completes user story MD-3.
 * **Refactored the application to a service-based architecture.** Decomposed the monolithic `AppState` into `VolumeManager`, `MediaScanner`, and `SettingsStore` services to improve separation of concerns, testability, and maintainability.
 * Implemented media-type specific icons in `MediaFilesGridView` backed by a new `MediaType.sfSymbolName` helper.
