@@ -9,6 +9,7 @@
 - **DestinationPathBuilder**: new helper centralising destination path generation and extension normalisation.
 
 ### Changed
+- **Architectural Refactoring**: Centralized all destination path generation and filename collision logic into the `DestinationPathBuilder` helper. The `ImportService` is now a simpler service that delegates all path decisions, removing redundant logic and improving maintainability.
 - The settings UI now shows automation controls only for currently connected volumes.
 - `ImportService` and `MediaScanner` now delegate all path-building to `DestinationPathBuilder`, removing duplicate logic and ensuring consistent duplicate detection.
 

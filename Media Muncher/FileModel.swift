@@ -86,18 +86,6 @@ struct File: Identifiable {
     var thumbnail: Image?
 }
 
-func preferredFileExtension(for ext: String) -> String {
-    let extensionMapping: [String: String] = [
-        "jpeg": "jpg", "jpe": "jpg", "jif": "jpg", "jfif": "jpg", "jfi": "jpg",
-        "jp2": "jp2", "j2k": "jp2", "jpf": "jp2", "jpm": "jp2", "jpg2": "jp2",
-        "j2c": "jp2", "jpc": "jp2", "jpx": "jp2", "mj2": "jp2", "tif": "tiff",
-        "heifs": "heif", "heic": "heif", "heics": "heif", "avci": "heif",
-        "avcs": "heif",
-        "hif": "heif",
-    ]
-    return extensionMapping[ext.lowercased()] ?? ext.lowercased()
-}
-
 extension MediaType {
     /// Returns an appropriate SF Symbol name for the given media type so the UI can render a context-specific icon.
     var sfSymbolName: String {

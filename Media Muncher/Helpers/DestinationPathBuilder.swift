@@ -4,12 +4,15 @@ struct DestinationPathBuilder {
     /// Normalises extension (e.g. jpeg → jpg)
     static func preferredFileExtension(_ ext: String) -> String {
         let e = ext.lowercased()
-        switch e {
-        case "jpeg":
-            return "jpg"
-        default:
-            return e
-        }
+        let extensionMapping: [String: String] = [
+            "jpeg": "jpg", "jpe": "jpg", "jif": "jpg", "jfif": "jpg", "jfi": "jpg",
+            "jp2": "jp2", "j2k": "jp2", "jpf": "jp2", "jpm": "jp2", "jpg2": "jp2",
+            "j2c": "jp2", "jpc": "jp2", "jpx": "jp2", "mj2": "jp2", "tif": "tiff",
+            "heifs": "heif", "heic": "heif", "heics": "heif", "avci": "heif",
+            "avcs": "heif",
+            "hif": "heif",
+        ]
+        return extensionMapping[e] ?? e
     }
 
     /// Returns the *relative* path (inside destination root) a file *should* have, **without** collision-resolution suffixes.
@@ -46,5 +49,30 @@ struct DestinationPathBuilder {
 
         let ext = preferredFileExtension(file.fileExtension)
         return directory + base + "." + ext
+    }
+
+    static func buildFinalDestinationUrl(
+        for file: File,
+        in rootURL: URL,
+        settings: SettingsStore,
+        fileManager: FileManagerProtocol
+    ) -> URL {
+        let relativePath = Self.relativePath(for: file, organizeByDate: settings.organizeByDate, renameByDate: settings.renameByDate)
+        
+        let idealURL = rootURL.appendingPathComponent(relativePath)
+        
+        var finalURL = idealURL
+        var suffix = 1
+        
+        let baseFilename = (idealURL.lastPathComponent as NSString).deletingPathExtension
+        let fileExtension = idealURL.pathExtension
+        
+        while fileManager.fileExists(atPath: finalURL.path) {
+            let newFilename = "\(baseFilename)_\(suffix).\(fileExtension)"
+            finalURL = idealURL.deletingLastPathComponent().appendingPathComponent(newFilename)
+            suffix += 1
+        }
+        
+        return finalURL
     }
 } 

@@ -13,9 +13,9 @@ struct HelperFunctionsTests {
 
     // MARK: - preferredFileExtension(for:)
     @Test func preferredExtensionMapping() throws {
-        #expect(preferredFileExtension(for: "jpeg") == "jpg")
-        #expect(preferredFileExtension(for: "tif") == "tiff")
-        #expect(preferredFileExtension(for: "png") == "png")
+        #expect(DestinationPathBuilder.preferredFileExtension("jpeg") == "jpg")
+        #expect(DestinationPathBuilder.preferredFileExtension("tif") == "tiff")
+        #expect(DestinationPathBuilder.preferredFileExtension("png") == "png")
     }
 
     // MARK: - Volume equality logic

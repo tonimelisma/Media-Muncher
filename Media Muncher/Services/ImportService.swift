@@ -90,10 +90,15 @@ class ImportService {
             
             let sourceURL = URL(fileURLWithPath: file.sourcePath)
             
-            let destinationPath = try buildDestinationURL(for: file, in: destinationURL, settings: settings)
+            let destinationPath = DestinationPathBuilder.buildFinalDestinationUrl(
+                for: file,
+                in: destinationURL,
+                settings: settings,
+                fileManager: self.fileManager
+            )
 
-            if settings.organizeByDate {
-                let destinationDirectory = destinationPath.deletingLastPathComponent()
+            let destinationDirectory = destinationPath.deletingLastPathComponent()
+            if !self.fileManager.fileExists(atPath: destinationDirectory.path) {
                 do {
                     try self.fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true, attributes: nil)
                 } catch {
@@ -134,30 +139,5 @@ class ImportService {
                 }
             }
         }
-    }
-    
-    private func buildDestinationURL(for file: File, in rootDestinationURL: URL, settings: SettingsStore) throws -> URL {
-        // Base relative path (no collision resolution)
-        let relative = DestinationPathBuilder.relativePath(for: file, organizeByDate: settings.organizeByDate, renameByDate: settings.renameByDate)
-
-        let destinationDirectory = rootDestinationURL.appendingPathComponent((relative as NSString).deletingLastPathComponent)
-        let baseFilename = (relative as NSString).lastPathComponent.replacingOccurrences(of: ".\(file.fileExtension)", with: "", options: .caseInsensitive)
-        let fileExtension = DestinationPathBuilder.preferredFileExtension(file.fileExtension)
-
-        var finalFilename = baseFilename + "." + fileExtension
-        var finalPath = destinationDirectory.appendingPathComponent(finalFilename)
-
-        var suffix = 1
-        while self.fileManager.fileExists(atPath: finalPath.path) {
-            finalFilename = "\(baseFilename)_\(suffix).\(fileExtension)"
-            finalPath = destinationDirectory.appendingPathComponent(finalFilename)
-            suffix += 1
-        }
-
-        return finalPath.standardized
-    }
-    
-    private func preferredFileExtension(for fileExtension: String) -> String {
-        DestinationPathBuilder.preferredFileExtension(fileExtension)
     }
 } 

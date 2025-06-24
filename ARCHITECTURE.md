@@ -45,8 +45,8 @@
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
 | **Services/MediaScanner.swift** | Scans a volume for media files on a background thread, maintains an in-actor **LRU thumbnail cache (2 000 entries)**, and detects pre-existing files in the destination (now considers relative `YYYY/MM` sub-folders + rename-template). | `MediaScanner` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
-| **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. | `ImportService` |
-| **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `preferredFileExtension(_:)`; used by both **MediaScanner** and **ImportService** to eliminate duplicated path-building logic. | `DestinationPathBuilder` |
+| **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. Delegates all path calculation to `DestinationPathBuilder`. | `ImportService` |
+| **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **MediaScanner** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
 | **Models/FileModel.swift** | Immutable record for a media file & helpers | `File`, `MediaType`, `FileStatus`, `MediaType.from(filePath:)` |
 | **Models/AppError.swift**| Domain-specific error types. | `AppError` |
