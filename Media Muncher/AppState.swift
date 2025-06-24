@@ -50,20 +50,17 @@ class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var scanTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
-    private var launchVolumeUUID: String?
 
     init(
         volumeManager: VolumeManager,
         mediaScanner: MediaScanner,
         settingsStore: SettingsStore,
-        importService: ImportService,
-        launchVolumeUUID: String? = nil
+        importService: ImportService
     ) {
         self.volumeManager = volumeManager
         self.mediaScanner = mediaScanner
         self.settingsStore = settingsStore
         self.importService = importService
-        self.launchVolumeUUID = launchVolumeUUID
         
         // Subscribe to volume changes
         volumeManager.$volumes
@@ -90,55 +87,13 @@ class AppState: ObservableObject {
     }
     
     func ensureVolumeSelection() {
-        // If launched for a specific volume, wait for it and select it.
-        if let uuid = launchVolumeUUID, let volume = volumes.first(where: { $0.volumeUUID == uuid }) {
-            // Clear the launch UUID so we don't re-trigger this logic
-            self.launchVolumeUUID = nil
-            self.selectedVolume = volume.devicePath
-            
-            // Now, trigger action based on settings
-            let setting = settingsStore.automationSetting(for: uuid)
-            handleAutomation(for: setting)
-            
-        } else if selectedVolume == nil {
+        if selectedVolume == nil {
             // Standard behavior: select the first volume if none is selected
             if let firstVolume = self.volumes.first {
                 self.selectedVolume = firstVolume.devicePath
             } else {
                 self.selectedVolume = nil
             }
-        }
-    }
-
-    private func handleAutomation(for setting: AutomationSetting) {
-        switch setting {
-        case .autoImport:
-            // The scan will start automatically when selectedVolume is set.
-            // We need to wait for the scan to finish and then import.
-            // Awaiting the scan completion can be done by observing state changes.
-            var importCancellable: AnyCancellable?
-            importCancellable = self.$state
-                .sink { [weak self] currentState in
-                    // When the scan is done (.idle) and we have files, import them.
-                    if currentState == .idle && !(self?.files.isEmpty ?? true) {
-                        print("Auto-importing files...")
-                        self?.importFiles()
-                        importCancellable?.cancel() // Clean up the subscription
-                    }
-                }
-            importCancellable?.store(in: &cancellables)
-            
-        case .ask:
-            // Do nothing, the UI will show the volume selected.
-            print("Automation setting is 'ask', waiting for user.")
-            
-        case .ignore:
-            // Do nothing, but also don't select the volume. This part is tricky because
-            // selection already happened. A better approach might be to not select it at all.
-            // For now, we just log it.
-            print("Automation setting is 'ignore'.")
-            // A potential improvement: clear the selection.
-            self.selectedVolume = nil
         }
     }
 
@@ -150,9 +105,8 @@ class AppState: ObservableObject {
         self.state = .idle
         self.error = nil
 
-        guard let devicePath = devicePath, let url = URL(string: "file://\(devicePath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!)") else {
-            return
-        }
+        guard let devicePath = devicePath else { return }
+        let url = URL(fileURLWithPath: devicePath, isDirectory: true)
         
         self.state = .enumeratingFiles
         
@@ -162,7 +116,9 @@ class AppState: ObservableObject {
                 destinationURL: settingsStore.destinationURL,
                 filterImages: settingsStore.filterImages,
                 filterVideos: settingsStore.filterVideos,
-                filterAudio: settingsStore.filterAudio
+                filterAudio: settingsStore.filterAudio,
+                organizeByDate: settingsStore.organizeByDate,
+                renameByDate: settingsStore.renameByDate
             )
             
             // Handle results
@@ -264,6 +220,10 @@ class AppState: ObservableObject {
                     switch importError {
                     case .deleteFailed(_, let error):
                         self.error = .importSucceededWithDeletionErrors(reason: error.localizedDescription)
+                    case .copyFailed(let src, _, let error):
+                        self.error = .copyFailed(source: src.lastPathComponent, reason: error.localizedDescription)
+                    case .directoryCreationError(let path, let error):
+                        self.error = .directoryCreationFailed(path: path.path, reason: error.localizedDescription)
                     default:
                         self.error = .importFailed(reason: importError.localizedDescription)
                     }

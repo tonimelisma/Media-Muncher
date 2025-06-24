@@ -43,7 +43,7 @@
 | **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
-| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread. Uses **QuickLookThumbnailing** to generate thumbnails and detects pre-existing files in the destination. | `MediaScanner` |
+| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread, maintains an in-actor **LRU thumbnail cache (2 000 entries)**, and detects pre-existing files in the destination (now considers relative `YYYY/MM` sub-folders + rename-template). | `MediaScanner` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. | `ImportService` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
@@ -114,11 +114,11 @@ No service depends back on SwiftUI, keeping layers clean.
 * Never store plain file paths outside sandbox container.
 
 ---
-## 9. Testing Strategy
+## 9. Testing Strategy (current)
 * **Unit Tests** for utility functions and services (use protocol mocks for `FileManager`, `NSWorkspace`).
 * **Integration Tests** mount a dmg volume fixture with synthetic media.
-* **UI Tests** cover end-to-end import flow.
-* CI: GitHub Actions workflow runs `xcodebuild test` on every PR.
+
+> Note – UI-level tests and CI pipelines have been **removed for now**. They will be re-introduced when the UI stabilises and the automation epic is revisited.
 
 ---
 ## 10. Code Style & Contribution Guidelines
@@ -128,7 +128,7 @@ No service depends back on SwiftUI, keeping layers clean.
 3. **Documentation** – Every public symbol must have a MarkDown doc comment.
 4. **Commits** – Conventional Commits (`feat:`, `fix:`, `chore:`). Reference PRD user-story IDs.
 5. **Branches** – `main` (protected), `feature/<story-id>`, `bugfix/<issue>`, `release/*`.
-6. **Pull Requests** – Must pass CI and review; include before/after screenshots for UI.
+6. **Pull Requests** – Must pass the full unit-test suite (`xcodebuild test`) and peer review; include before/after screenshots for UI where relevant.
 7. **Feature Flags** – Use compile-time flags (`#if DEBUG`) or runtime `UserDefaults` keys for experimental work.
 
 ---

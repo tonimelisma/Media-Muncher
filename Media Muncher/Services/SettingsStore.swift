@@ -44,23 +44,6 @@ class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var autoLaunchEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(autoLaunchEnabled, forKey: "autoLaunchEnabled")
-            if autoLaunchEnabled {
-                LaunchAgentManager.shared.enable()
-            } else {
-                LaunchAgentManager.shared.disable()
-            }
-        }
-    }
-
-    @Published private(set) var volumeAutomationSettings: [String: AutomationSetting] {
-        didSet {
-            saveVolumeAutomationSettings()
-        }
-    }
-
     @Published private(set) var destinationBookmark: Data? {
         didSet {
             UserDefaults.standard.set(destinationBookmark, forKey: "destinationBookmarkData")
@@ -77,24 +60,18 @@ class SettingsStore: ObservableObject {
         self.renameByDate = UserDefaults.standard.bool(forKey: "renameByDate")
         self.settingAutoEject = UserDefaults.standard.bool(forKey: "settingAutoEject")
         
-        let initialAutoLaunch = UserDefaults.standard.bool(forKey: "autoLaunchEnabled")
-        self.autoLaunchEnabled = initialAutoLaunch
-        // Sync state on init, but don't toggle if already in desired state
-        if initialAutoLaunch != LaunchAgentManager.shared.isEnabled {
-             if initialAutoLaunch {
-                LaunchAgentManager.shared.enable()
-            } else {
-                LaunchAgentManager.shared.disable()
-            }
-        }
+        // Automation feature removed – auto-launch toggle deprecated.
 
         // Default to true if no value is set
         self.filterImages = UserDefaults.standard.object(forKey: "filterImages") as? Bool ?? true
         self.filterVideos = UserDefaults.standard.object(forKey: "filterVideos") as? Bool ?? true
         self.filterAudio = UserDefaults.standard.object(forKey: "filterAudio") as? Bool ?? true
 
+        // Remove obsolete automation keys (version <0.3)
+        UserDefaults.standard.removeObject(forKey: "autoLaunchEnabled")
+        UserDefaults.standard.removeObject(forKey: "volumeAutomationSettings")
+
         self.destinationBookmark = UserDefaults.standard.data(forKey: "destinationBookmarkData")
-        self.volumeAutomationSettings = Self.loadVolumeAutomationSettings()
         self.destinationURL = resolveBookmark()
 
         // If no bookmark is stored, default to the Pictures directory.
@@ -138,36 +115,5 @@ class SettingsStore: ObservableObject {
         }
     }
 
-    func automationSetting(for volumeUUID: String) -> AutomationSetting {
-        return volumeAutomationSettings[volumeUUID] ?? .ask
-    }
-    
-    func setAutomationSetting(for volumeUUID: String, setting: AutomationSetting) {
-        volumeAutomationSettings[volumeUUID] = setting
-    }
-    
-    private static let volumeAutomationSettingsKey = "volumeAutomationSettings"
-    
-    private static func loadVolumeAutomationSettings() -> [String: AutomationSetting] {
-        guard let data = UserDefaults.standard.data(forKey: volumeAutomationSettingsKey) else {
-            return [:]
-        }
-        
-        do {
-            let settings = try JSONDecoder().decode([String: AutomationSetting].self, from: data)
-            return settings
-        } catch {
-            print("Error decoding volume automation settings: \(error)")
-            return [:]
-        }
-    }
-    
-    private func saveVolumeAutomationSettings() {
-        do {
-            let data = try JSONEncoder().encode(volumeAutomationSettings)
-            UserDefaults.standard.set(data, forKey: Self.volumeAutomationSettingsKey)
-        } catch {
-            print("Error encoding volume automation settings: \(error)")
-        }
-    }
+    // Volume-specific automation logic removed.
 } 

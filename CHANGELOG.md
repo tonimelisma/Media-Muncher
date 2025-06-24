@@ -10,6 +10,9 @@
 ### Changed
 - The settings UI now shows automation controls only for currently connected volumes.
 
+### Removed
+- Partially implemented Automation & auto-launch functionality has been fully removed and marked as not started.
+
 ---
 
 ## [0.2.1] - 2025-06-19

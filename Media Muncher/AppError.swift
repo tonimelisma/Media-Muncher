@@ -14,6 +14,8 @@ enum AppError: Error, Identifiable, LocalizedError {
     case destinationNotSet
     case importFailed(reason: String)
     case importSucceededWithDeletionErrors(reason: String)
+    case copyFailed(source: String, reason: String)
+    case directoryCreationFailed(path: String, reason: String)
     
     var errorDescription: String? {
         switch self {
@@ -25,6 +27,10 @@ enum AppError: Error, Identifiable, LocalizedError {
             return "Import failed: \(reason)"
         case .importSucceededWithDeletionErrors(let reason):
             return "Import successful, but failed to delete some original files. Please check permissions. Reason: \(reason)"
+        case .copyFailed(_, let reason):
+            return "Failed to copy file: \(reason)"
+        case .directoryCreationFailed(_, let reason):
+            return "Failed to create destination directory: \(reason)"
         }
     }
 } 

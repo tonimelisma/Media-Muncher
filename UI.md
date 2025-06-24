@@ -109,13 +109,11 @@ The `SettingsView` will remain a **single-pane** sheet containing one `Form`. It
     *   A toggle for "Eject volume automatically after successful import" (**IE-6**).
 *   **New Controls to be Added**:
     *   A section with checkboxes to filter which media types are imported (e.g., Photos, Videos, Audio) (**ST-5**).
-    *   A section to manage automation:
-        *   A global toggle to enable/disable auto-launching the app for any new volume (**AU-3, Finished**).
-        *   A list of currently connected volumes where users can set per-volume behavior: `Ignore`, `Prepare for Manual Import`, or `Auto-Import & Eject` (**ST-4, Started**; **AU-2, Started**).
-        
-#### Current Implementation
+    *   (Automation controls have been deferred and removed from the Settings sheet.)
 
-![Settings View Screenshot](/.screenshots/settings_view_v0.2.1.png)
-This screenshot is now outdated. It should be updated to reflect the new Automation section.
+#### Current Implementation (June 2025)
+
+![Settings View Screenshot](/.screenshots/settings_view_v0.2.2.png)
+The Settings sheet now contains only the controls listed above. Automation options have been removed and will re-appear when Epic 7 restarts.
 
 This revised specification is grounded entirely in the PRD and your explicit instructions.

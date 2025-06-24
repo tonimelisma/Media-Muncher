@@ -74,22 +74,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Automation")) {
-                Toggle("Automatically launch when a new volume is connected", isOn: $settingsStore.autoLaunchEnabled)
-
-                if settingsStore.autoLaunchEnabled {
-                    ForEach(volumeManager.volumes) { volume in
-                        Picker(volume.name, selection: Binding(
-                            get: { settingsStore.automationSetting(for: volume.volumeUUID) },
-                            set: { settingsStore.setAutomationSetting(for: volume.volumeUUID, setting: $0) }
-                        )) {
-                            ForEach(AutomationSetting.allCases) { setting in
-                                Text(setting.localizedDescription).tag(setting)
-                            }
-                        }
-                    }
-                }
-            }
+            // Automation section removed (feature deferred)
 
             Section(header: Text("Import Options")) {
                 Toggle("Delete originals after import", isOn: $settingsStore.settingDeleteOriginals)

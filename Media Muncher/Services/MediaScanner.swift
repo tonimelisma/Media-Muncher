@@ -4,17 +4,33 @@ import AVFoundation
 import QuickLookThumbnailing
 
 actor MediaScanner {
+    // LRU thumbnail cache (FIFO eviction) to cap memory use.
+    private var thumbnailCache: [String: Image] = [:] // key = file path
+    private var thumbnailOrder: [String] = []
+    private let thumbnailCacheLimit = 2000
+
     private var enumerationTask: Task<Void, Error>?
     private static let thumbnailFolderNames: Set<String> = ["thmbnl", ".thumbnails", "misc"]
 
     private func generateThumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
+        let key = url.path
+        if let cached = thumbnailCache[key] {
+            return cached
+        }
+
         let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 1.0, representationTypes: .all)
-        
         guard let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
             return nil
         }
-        
-        return Image(nsImage: thumbnail.nsImage)
+        let img = Image(nsImage: thumbnail.nsImage)
+        // Store in cache and evict oldest if needed.
+        thumbnailCache[key] = img
+        thumbnailOrder.append(key)
+        if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.first {
+            thumbnailOrder.removeFirst()
+            thumbnailCache.removeValue(forKey: oldestKey)
+        }
+        return img
     }
 
     func cancelEnumeration() {
@@ -26,7 +42,9 @@ actor MediaScanner {
         destinationURL: URL?,
         filterImages: Bool,
         filterVideos: Bool,
-        filterAudio: Bool
+        filterAudio: Bool,
+        organizeByDate: Bool = false,
+        renameByDate: Bool = false
     ) -> (results: AsyncThrowingStream<[File], Error>, progress: AsyncStream<Int>) {
         let (progressStream, progressContinuation) = AsyncStream.makeStream(of: Int.self)
         let (resultsStream, resultsContinuation) = AsyncThrowingStream.makeStream(of: [File].self)
@@ -35,6 +53,7 @@ actor MediaScanner {
             var filesScanned = 0
             var batch: [File] = []
             let fileManager = FileManager.default
+            // Map relativePath -> (size,date) for faster lookup
             var destinationFiles: [String: (size: Int64, date: Date)] = [:]
             
             if let destinationURL = destinationURL {
@@ -47,7 +66,8 @@ actor MediaScanner {
                                 let resourceValues = try fileURL.resourceValues(forKeys: destResourceKeys)
                                 let size = Int64(resourceValues.fileSize ?? 0)
                                 let date = resourceValues.contentModificationDate ?? resourceValues.creationDate ?? Date.distantPast
-                                destinationFiles[fileURL.lastPathComponent] = (size, date)
+                                let relPath = fileURL.path.replacingOccurrences(of: destinationURL.path + "/", with: "")
+                                destinationFiles[relPath] = (size, date)
                             } catch {
                                 // Log error or handle, for now, we'll just skip this file
                             }
@@ -97,7 +117,7 @@ actor MediaScanner {
                     let creationDate = resourceValues.creationDate
                     let modificationDate = resourceValues.contentModificationDate
                     let size = Int64(resourceValues.fileSize ?? 0)
-                    let sourceName = fileURL.lastPathComponent
+                    // filename captured below via DestinationPathBuilder; no need for local variable
                     
                     var mediaDate: Date?
                     
@@ -126,9 +146,20 @@ actor MediaScanner {
                     }
                     
                     var status: FileStatus = .waiting
-                    if let destFile = destinationFiles[sourceName], let mediaDate = mediaDate {
-                        if destFile.size == size && abs(destFile.date.timeIntervalSince(mediaDate)) < 2 { // allow 1s variance
-                            status = .pre_existing
+                    if let mediaDate = mediaDate {
+                        let tempFile = File(
+                            sourcePath: fileURL.path,
+                            mediaType: mediaType,
+                            date: mediaDate,
+                            size: size,
+                            status: .waiting,
+                            thumbnail: nil
+                        )
+                        let relPath = DestinationPathBuilder.relativePath(for: tempFile, organizeByDate: organizeByDate, renameByDate: renameByDate)
+                        if let destFile = destinationFiles[relPath] {
+                            if destFile.size == size && abs(destFile.date.timeIntervalSince(mediaDate)) < 2 {
+                                status = .pre_existing
+                            }
                         }
                     }
                     

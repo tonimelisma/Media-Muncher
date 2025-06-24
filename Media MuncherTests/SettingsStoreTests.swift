@@ -21,71 +21,7 @@ class SettingsStoreTests: XCTestCase {
         super.tearDown()
     }
     
-    // MARK: - Automation Settings Tests
-    
-    func test_automationSetting_defaultsToAsk() {
-        // Given
-        let uuid = UUID().uuidString
-        
-        // When
-        let setting = settingsStore.automationSetting(for: uuid)
-        
-        // Then
-        XCTAssertEqual(setting, .ask, "The default automation setting for an unknown UUID should be .ask")
-    }
-    
-    func test_setAutomationSetting_persistsSetting() {
-        // Given
-        let uuid = UUID().uuidString
-        let expectedSetting = AutomationSetting.autoImport
-        
-        // When
-        settingsStore.setAutomationSetting(for: uuid, setting: expectedSetting)
-        
-        // Then
-        let newSettingsStore = SettingsStore() // Create a new instance to force reload from UserDefaults
-        let actualSetting = newSettingsStore.automationSetting(for: uuid)
-        XCTAssertEqual(actualSetting, expectedSetting, "The setting should be persisted and reloaded correctly.")
-    }
-
-    func test_setAutomationSetting_doesNotAffectOtherUUIDs() {
-        // Given
-        let uuid1 = UUID().uuidString
-        let uuid2 = UUID().uuidString
-        let setting1 = AutomationSetting.autoImport
-        let setting2_default = settingsStore.automationSetting(for: uuid2)
-
-        // When
-        settingsStore.setAutomationSetting(for: uuid1, setting: setting1)
-        
-        // Then
-        let newSettingsStore = SettingsStore()
-        let actualSetting1 = newSettingsStore.automationSetting(for: uuid1)
-        let actualSetting2 = newSettingsStore.automationSetting(for: uuid2)
-
-        XCTAssertEqual(actualSetting1, setting1, "The setting for the first UUID should be correctly set.")
-        XCTAssertEqual(actualSetting2, .ask, "The setting for the second UUID should remain the default.")
-        XCTAssertEqual(actualSetting2, setting2_default, "The setting for the second UUID should not have changed.")
-    }
-    
-    func test_volumeAutomationSettings_encodesAndDecodesSuccessfully() {
-        // Given
-        let uuid1 = UUID().uuidString
-        let uuid2 = UUID().uuidString
-        
-        settingsStore.setAutomationSetting(for: uuid1, setting: .ignore)
-        settingsStore.setAutomationSetting(for: uuid2, setting: .autoImport)
-        
-        // When
-        // The saving is done automatically via didSet. We create a new store to trigger loading.
-        let newSettingsStore = SettingsStore()
-        
-        // Then
-        let settings = newSettingsStore.volumeAutomationSettings
-        XCTAssertEqual(settings.count, 2)
-        XCTAssertEqual(settings[uuid1], .ignore)
-        XCTAssertEqual(settings[uuid2], .autoImport)
-    }
+    // Automation-related tests removed (feature deferred)
 }
 
 // MARK: - Import Logic Tests (Driven by Settings)

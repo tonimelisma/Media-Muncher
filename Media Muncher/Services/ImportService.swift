@@ -137,62 +137,27 @@ class ImportService {
     }
     
     private func buildDestinationURL(for file: File, in rootDestinationURL: URL, settings: SettingsStore) throws -> URL {
-        let date = file.date ?? nowProvider()
-        
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "UTC")!
+        // Base relative path (no collision resolution)
+        let relative = DestinationPathBuilder.relativePath(for: file, organizeByDate: settings.organizeByDate, renameByDate: settings.renameByDate)
 
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
-        guard let year = components.year,
-              let month = components.month,
-              let day = components.day,
-              let hour = components.hour,
-              let minute = components.minute,
-              let second = components.second else {
-            // This should realistically never happen if we have a valid date.
-            // Fallback to a simple name to avoid crashing.
-            return rootDestinationURL.appendingPathComponent(file.sourceName)
-        }
-        
-        // 1. Determine Directory
-        var destinationDirectory = rootDestinationURL
-        if settings.organizeByDate {
-            destinationDirectory = destinationDirectory.appendingPathComponent(String(format: "%04d", year))
-                                                      .appendingPathComponent(String(format: "%02d", month))
-        }
-        
-        // 2. Determine Filename
-        let baseName: String
-        let fileExtension = preferredFileExtension(for: file.fileExtension)
-        
-        if settings.renameByDate {
-            let prefix = file.mediaType == .video ? "VID" : "IMG"
-            baseName = String(format: "%@_%04d%02d%02d_%02d%02d%02d", prefix, year, month, day, hour, minute, second)
-        } else {
-            baseName = file.filenameWithoutExtension
-        }
-        
-        // 3. Resolve Conflicts
-        var finalFilename = "\(baseName).\(fileExtension)"
+        let destinationDirectory = rootDestinationURL.appendingPathComponent((relative as NSString).deletingLastPathComponent)
+        let baseFilename = (relative as NSString).lastPathComponent.replacingOccurrences(of: ".\(file.fileExtension)", with: "", options: .caseInsensitive)
+        let fileExtension = DestinationPathBuilder.preferredFileExtension(file.fileExtension)
+
+        var finalFilename = baseFilename + "." + fileExtension
         var finalPath = destinationDirectory.appendingPathComponent(finalFilename)
-        
+
         var suffix = 1
         while self.fileManager.fileExists(atPath: finalPath.path) {
-            finalFilename = "\(baseName)_\(suffix).\(fileExtension)"
+            finalFilename = "\(baseFilename)_\(suffix).\(fileExtension)"
             finalPath = destinationDirectory.appendingPathComponent(finalFilename)
             suffix += 1
         }
-        
+
         return finalPath.standardized
     }
     
     private func preferredFileExtension(for fileExtension: String) -> String {
-        let ext = fileExtension.lowercased()
-        switch ext {
-            case "jpeg":
-                return "jpg"
-            default:
-                return ext
-        }
+        DestinationPathBuilder.preferredFileExtension(fileExtension)
     }
 } 
