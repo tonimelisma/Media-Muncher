@@ -94,3 +94,96 @@ No service depends back on SwiftUI, keeping layers clean.
 ---
 ## 5. Concurrency Model
 * **Actors** – `MediaScanner` & `ImportService`
+* **MainActor** – Only UI changes run here; services stay off the main thread.
+* **Task Cancellation** – Long-running scans / imports call `Task.checkCancellation()` each iteration.
+
+---
+## 6. Error Handling Strategy
+* Domain-specific `enum AppError : Error` with associated values for context.
+* Services throw typed errors; `AppState` converts them into user-facing banners or alerts.
+* Never crash on disk-I/O error – report & allow the user to retry.
+
+---
+## 7. Persistence & Idempotency
+* Destination file uniqueness is guaranteed by capture-date + file-size; no hashes / no DB.
+* The **filesystem is the single source of truth**. Import operations always recompute the expected destination path; if a file already exists it is skipped.
+* User settings are stored in `UserDefaults` (some as security-scoped bookmarks).
+
+---
+## 8. Security & Sandboxing
+* Entitlements: `com.apple.security.device.usb`, `com.apple.security.files.user-selected.read-write`, `com.apple.security.files.removable`.
+* Destination folder persisted as a security-scoped bookmark so user grants access once.
+* No plain file paths are stored outside the sandbox container.
+
+---
+## 9. Testing Strategy
+* **Unit Tests** for helpers & services (mocking `FileManager`, `NSWorkspace`).
+* **Integration Tests** mount a DMG volume fixture with synthetic media.
+* UI tests & CI have been removed temporarily and will return when the UI stabilises.
+
+---
+## 10. Code Style & Contribution Guidelines
+1. **Formatting** – `swiftformat` with repo-pinned rules.
+2. **Naming** – Apple conventions; acronyms upper-cased (`UUID`, `URL`).
+3. **Docs** – Every public symbol must have a Markdown doc comment.
+4. **Commits** – Conventional Commits prefixed with PRD story ID.
+5. **Branches** – `main`, `feature/<story-id>`, `bugfix/<issue>`, `release/*`.
+6. **Pull Requests** – Must pass unit tests (`xcodebuild test`) and review; include before/after screenshots for UI.
+7. **Feature Flags** – Use `#if DEBUG` or `UserDefaults` keys.
+
+---
+## 11. Build & Run (developers)
+```bash
+# prereqs
+xcode-select --install  # command-line tools
+brew install swiftformat swiftlint
+
+open "Media Muncher.xcodeproj"
+```
+* Deployment target macOS 13+.
+* Run the **Media Muncher** scheme; press ⌘U for tests.
+
+---
+## 12. Frequently Asked Questions
+**Q:** Why not just use Photos.app import?  
+**A:** Media Muncher offers a custom folder hierarchy, no proprietary library, automation hooks, and supports professional RAW/video formats that Photos ignores.
+
+---
+## 13. File Interaction Diagram
+```mermaid
+graph TD;
+  subgraph Services
+    VM(VolumeManager)
+    MS(MediaScanner)
+    SS(SettingsStore)
+    IS(ImportService)
+  end
+
+  subgraph UI
+    CV(ContentView)
+    VV(VolumeView)
+    GV(MediaFilesGridView)
+    SV(SettingsView)
+    EV(ErrorView)
+  end
+  
+  App(Media_MuncherApp) -- instantiates --> AS(AppState)
+  App --> VM & MS & SS & IS
+
+  AS --> VM & MS & SS & IS
+  
+  CV --> AS
+  VV --> VM & AS
+  GV --> AS
+  SV --> SS
+  EV --> AS
+
+  VM -- publishes volumes --> AS
+  MS -- streams files --> AS
+```
+
+---
+## 14. Recent Maintenance (2025-06-24)
+* **ALT-1** – Introduced `DestinationPathBuilder` helper; `ImportService` & `MediaScanner` now delegate path logic → single source of truth.
+* Purged all Automation/LaunchAgent code (Epic-7 reset).
+* Added LRU thumbnail cache (2 000 entries) into `MediaScanner` actor.

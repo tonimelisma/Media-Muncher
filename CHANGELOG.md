@@ -6,9 +6,11 @@
 - **Automation Engine**: The app can now be configured to automatically launch when a removable volume is connected.
 - A new "Automation" section in Settings allows users to enable/disable the auto-launch feature globally.
 - Per-volume automation settings: For each connected volume, users can choose to "Automatically Import", "Ask What to Do", or "Ignore".
+- **DestinationPathBuilder**: new helper centralising destination path generation and extension normalisation.
 
 ### Changed
 - The settings UI now shows automation controls only for currently connected volumes.
+- `ImportService` and `MediaScanner` now delegate all path-building to `DestinationPathBuilder`, removing duplicate logic and ensuring consistent duplicate detection.
 
 ### Removed
 - Partially implemented Automation & auto-launch functionality has been fully removed and marked as not started.
