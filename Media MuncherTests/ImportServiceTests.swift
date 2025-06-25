@@ -37,7 +37,7 @@ class ImportServiceTests: XCTestCase {
         let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
 
         // Act
-        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let stream = await importService.importFiles(files: files, to: destinationURL, settings: settings)
         let results = try await collectStreamResults(for: stream)
 
         // Assert
@@ -60,7 +60,7 @@ class ImportServiceTests: XCTestCase {
         settings.settingDeleteOriginals = true
 
         // Act
-        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let stream = await importService.importFiles(files: files, to: destinationURL, settings: settings)
         _ = try await collectStreamResults(for: stream)
 
         // Assert
@@ -77,7 +77,7 @@ class ImportServiceTests: XCTestCase {
         let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
 
         // Act
-        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let stream = await importService.importFiles(files: files, to: destinationURL, settings: settings)
         let results = try await collectStreamResults(for: stream)
 
         // Assert
@@ -97,7 +97,7 @@ class ImportServiceTests: XCTestCase {
         let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
         
         // Act
-        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let stream = await importService.importFiles(files: files, to: destinationURL, settings: settings)
         let results = try await collectStreamResults(for: stream)
 
         // Assert
@@ -124,7 +124,7 @@ class ImportServiceTests: XCTestCase {
         let files = [file1, file2, file3]
         
         // Act
-        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let stream = await importService.importFiles(files: files, to: destinationURL, settings: settings)
         let results = try await collectStreamResults(for: stream)
 
         // Assert
@@ -153,13 +153,14 @@ class ImportServiceTests: XCTestCase {
         mockFileManager.virtualFileSystem[sourcePath] = Data(count: 50)
         mockFileManager.virtualFileSystem[sidecarUpper] = Data(count: 3)
         let files = [File(sourcePath: sourcePath, mediaType: .image, size: 50, destPath: destPath, status: .waiting)]
+        settings.settingDeleteOriginals = false // Explicitly set to false
 
         // Act
-        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings) // settings.deleteOriginals remains false
+        let stream = await importService.importFiles(files: files, to: destinationURL, settings: settings)
         _ = try await collectStreamResults(for: stream)
 
-        // Assert – originals kept, but THM should be gone
-        XCTAssertTrue(mockFileManager.fileExists(atPath: sourcePath))
-        XCTAssertFalse(mockFileManager.fileExists(atPath: sidecarUpper), "THM sidecar should be deleted even when originals remain")
+        // Assert – originals and sidecars should be kept because settingDeleteOriginals is false
+        XCTAssertTrue(mockFileManager.fileExists(atPath: sourcePath), "Source file should NOT be deleted")
+        XCTAssertTrue(mockFileManager.fileExists(atPath: sidecarUpper), "THM sidecar should NOT be deleted when originals are kept")
     }
 } 

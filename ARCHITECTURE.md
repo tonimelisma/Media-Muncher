@@ -25,7 +25,7 @@
                └────────────────┘ files, progress    │
                                              ┌───────────────┐
                                              │ ImportService │
-                                             │  (Service)    │
+                                             │  (Service Actor)    │
                                              └───────────────┘
 ```
 

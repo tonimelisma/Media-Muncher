@@ -33,7 +33,7 @@ struct SecurityScopedURLAccessWrapper: SecurityScopedURLAccessWrapperProtocol {
     }
 }
 
-class ImportService {
+actor ImportService {
     enum ImportError: Error, LocalizedError, Equatable {
         case destinationNotReachable
         case copyFailed(source: URL, destination: URL, error: Error)
@@ -141,31 +141,17 @@ class ImportService {
                     // 3. Deletion
                     if settings.settingDeleteOriginals {
                         do {
-                            try self.fileManager.removeItem(at: sourceURL)
-                            // Optionally remove common sidecar files, ignoring errors
-                            let thmUpper = sourceURL.deletingPathExtension().appendingPathExtension("THM")
-                            try? self.fileManager.removeItem(at: thmUpper)
-                            let thmLower = sourceURL.deletingPathExtension().appendingPathExtension("thm")
-                            try? self.fileManager.removeItem(at: thmLower)
+                            try self.deleteSourceFiles(for: sourceURL)
                         } catch {
                             // This is a non-critical error. We can report it but still mark the import as successful.
-                            // For now, we'll just log it. A future improvement could be a "warnings" array.
-                            print("Non-critical error: Failed to delete source file \(sourceURL.path): \(error.localizedDescription)")
+                            // A future improvement could be a "warnings" array on the File model.
+                            print("Non-critical error: Failed to delete source file or its sidecars for \(sourceURL.path): \(error.localizedDescription)")
                         }
                     }
 
                     // 4. Success
                     file.status = .imported
                     continuation.yield(file)
-
-                    // 5. Thumbnail side-car cleanup (IE-9)
-                    do {
-                        try self.deleteThumbnailSidecars(for: sourceURL)
-                    } catch {
-                        // Only report as a non-fatal warning when the side-car DID exist but we failed to remove it.
-                        file.importError = (file.importError ?? "") + " Thumbnail deletion failed: \(error.localizedDescription)"
-                        continuation.yield(file)
-                    }
                 }
                 
                 continuation.finish()
@@ -175,34 +161,39 @@ class ImportService {
 
     // MARK: - Private helpers
 
-    /// Removes common QuickTime/GoPro style thumbnail side-car files (e.g. .THM) that share the same stem as the source file.
-    /// If the side-car does not exist, the call is a no-op. An error is only thrown when the file exists **and** cannot be deleted.
-    private func deleteThumbnailSidecars(for sourceURL: URL) throws {
+    /// Removes the source file and any common QuickTime/GoPro style thumbnail side-car files (e.g. .THM) that share the same stem.
+    /// This function is designed to not throw, as deletion is a non-critical part of the import. It will log errors to the console.
+    private func deleteSourceFiles(for sourceURL: URL) throws {
         let stem = sourceURL.deletingPathExtension()
-        let variants = [stem.appendingPathExtension("THM"), stem.appendingPathExtension("thm")]
+        // Include the original file in the list of files to delete.
+        let variants = [sourceURL, stem.appendingPathExtension("THM"), stem.appendingPathExtension("thm")]
+        
         #if DEBUG
-        print("[DEBUG] Starting sidecar cleanup; variants: \(variants.map { $0.path }))")
+        print("[DEBUG] Starting source file and sidecar cleanup; variants: \(variants.map { $0.path }))")
         #endif
+
         for url in variants {
+            guard fileManager.fileExists(atPath: url.path) else {
+                continue // Skip if file doesn't exist
+            }
+            
             #if DEBUG
-            print("[DEBUG] Attempting to remove sidecar: \(url.path)")
+            print("[DEBUG] Attempting to remove: \(url.path)")
             #endif
+            
             do {
                 try fileManager.removeItem(at: url)
                 #if DEBUG
-                print("[DEBUG] Sidecar removed: \(url.path)")
+                print("[DEBUG] Removed: \(url.path)")
                 #endif
             } catch {
-                let nsError = error as NSError
-                if nsError.domain == NSCocoaErrorDomain && nsError.code == NSFileReadNoSuchFileError {
-                    continue
-                } else {
-                    throw error
-                }
+                // Log the error but do not rethrow, as we want to continue trying to delete other files.
+                print("Failed to delete file at \(url.path): \(error.localizedDescription)")
             }
         }
+        
         #if DEBUG
-        print("[DEBUG] Sidecar cleanup finished.")
+        print("[DEBUG] Source file and sidecar cleanup finished.")
         #endif
     }
 } 

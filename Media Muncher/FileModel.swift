@@ -56,7 +56,7 @@ enum FileStatus: String {
     case waiting, pre_existing, copying, verifying, imported, failed, duplicate_in_source
 }
 
-struct File: Identifiable {
+struct File: Identifiable, Sendable {
     var id: String {
         sourcePath
     }
@@ -75,7 +75,7 @@ struct File: Identifiable {
     var size: Int64?
     var destPath: String?
     var status: FileStatus
-    var thumbnail: Image?
+    nonisolated(unsafe) var thumbnail: Image?
     var importError: String?
 }
 

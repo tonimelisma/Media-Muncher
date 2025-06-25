@@ -203,7 +203,7 @@ class AppState: ObservableObject {
             }
             
             do {
-                let stream = importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore)
+                let stream = await importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore)
                 for try await updatedFile in stream {
                     await MainActor.run {
                         if let index = self.files.firstIndex(where: { $0.id == updatedFile.id }) {
