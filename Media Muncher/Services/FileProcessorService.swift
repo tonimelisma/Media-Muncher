@@ -99,7 +99,6 @@ actor FileProcessorService {
                 for: newFile,
                 in: destRootURL,
                 settings: settings,
-                fileManager: fileManager,
                 suffix: suffix > 0 ? suffix : nil
             )
 

@@ -54,6 +54,8 @@ class ImportServiceTests: XCTestCase {
         let sourcePath = "/source/photo.jpg"
         let destPath = "/dest/photo.jpg"
         mockFileManager.virtualFileSystem[sourcePath] = Data(count: 1234)
+        let sidecarPath = "/source/photo.thm"
+        mockFileManager.virtualFileSystem[sidecarPath] = Data(count: 5)
         let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
         settings.settingDeleteOriginals = true
 
@@ -63,6 +65,7 @@ class ImportServiceTests: XCTestCase {
 
         // Assert
         XCTAssertFalse(mockFileManager.fileExists(atPath: sourcePath), "Source file should have been deleted")
+        XCTAssertFalse(mockFileManager.fileExists(atPath: sidecarPath), "Sidecar thumbnail should have been deleted")
     }
 
     func testCopyFailure() async throws {
@@ -140,5 +143,23 @@ class ImportServiceTests: XCTestCase {
         XCTAssertEqual(verifyFailFile?.status, .failed)
         XCTAssert(verifyFailFile?.importError?.contains("Verification failed") ?? false)
         XCTAssert(mockFileManager.fileExists(atPath: verifyFailFile!.destPath!))
+    }
+
+    func testThumbnailDeletionOccursEvenWhenDeleteOriginalsOff() async throws {
+        // Arrange
+        let sourcePath = "/source/photo2.jpg"
+        let destPath = "/dest/photo2.jpg"
+        let sidecarUpper = "/source/photo2.THM"
+        mockFileManager.virtualFileSystem[sourcePath] = Data(count: 50)
+        mockFileManager.virtualFileSystem[sidecarUpper] = Data(count: 3)
+        let files = [File(sourcePath: sourcePath, mediaType: .image, size: 50, destPath: destPath, status: .waiting)]
+
+        // Act
+        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings) // settings.deleteOriginals remains false
+        _ = try await collectStreamResults(for: stream)
+
+        // Assert – originals kept, but THM should be gone
+        XCTAssertTrue(mockFileManager.fileExists(atPath: sourcePath))
+        XCTAssertFalse(mockFileManager.fileExists(atPath: sidecarUpper), "THM sidecar should be deleted even when originals remain")
     }
 } 

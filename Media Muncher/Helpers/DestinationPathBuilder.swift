@@ -55,7 +55,6 @@ struct DestinationPathBuilder {
         for file: File,
         in rootURL: URL,
         settings: SettingsStore,
-        fileManager: FileManagerProtocol,
         suffix: Int? = nil
     ) -> URL {
         let relativePath = Self.relativePath(for: file, organizeByDate: settings.organizeByDate, renameByDate: settings.renameByDate)

@@ -27,6 +27,18 @@ struct BottomBarView: View {
                         Text(byteCountFormatter.string(fromByteCount: appState.importedBytes) + " / " + byteCountFormatter.string(fromByteCount: appState.totalBytesToImport))
                     }
                     .font(.caption)
+
+                    // Timing row
+                    if let elapsed = appState.elapsedSeconds {
+                        HStack(spacing: 8) {
+                            Text("Elapsed " + formatTime(elapsed))
+                            if let remaining = appState.remainingSeconds {
+                                Text("· ETA " + formatTime(remaining))
+                            }
+                        }
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    }
                 }
                 Button("Cancel") {
                     appState.cancelImport()
@@ -54,4 +66,11 @@ private let byteCountFormatter: ByteCountFormatter = {
     formatter.allowedUnits = [.useKB, .useMB, .useGB]
     formatter.countStyle = .file
     return formatter
-}() 
+}()
+
+private func formatTime(_ seconds: TimeInterval) -> String {
+    let formatter = DateComponentsFormatter()
+    formatter.allowedUnits = [.hour, .minute, .second]
+    formatter.unitsStyle = .abbreviated
+    return formatter.string(from: seconds) ?? ""
+} 

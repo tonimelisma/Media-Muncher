@@ -157,10 +157,52 @@ class ImportService {
                     // 4. Success
                     file.status = .imported
                     continuation.yield(file)
+
+                    // 5. Thumbnail side-car cleanup (IE-9)
+                    do {
+                        try self.deleteThumbnailSidecars(for: sourceURL)
+                    } catch {
+                        // Only report as a non-fatal warning when the side-car DID exist but we failed to remove it.
+                        file.importError = (file.importError ?? "") + " Thumbnail deletion failed: \(error.localizedDescription)"
+                        continuation.yield(file)
+                    }
                 }
                 
                 continuation.finish()
             }
         }
+    }
+
+    // MARK: - Private helpers
+
+    /// Removes common QuickTime/GoPro style thumbnail side-car files (e.g. .THM) that share the same stem as the source file.
+    /// If the side-car does not exist, the call is a no-op. An error is only thrown when the file exists **and** cannot be deleted.
+    private func deleteThumbnailSidecars(for sourceURL: URL) throws {
+        let stem = sourceURL.deletingPathExtension()
+        let variants = [stem.appendingPathExtension("THM"), stem.appendingPathExtension("thm")]
+        #if DEBUG
+        print("[DEBUG] Starting sidecar cleanup; variants: \(variants.map { $0.path }))")
+        #endif
+        for url in variants {
+            #if DEBUG
+            print("[DEBUG] Attempting to remove sidecar: \(url.path)")
+            #endif
+            do {
+                try fileManager.removeItem(at: url)
+                #if DEBUG
+                print("[DEBUG] Sidecar removed: \(url.path)")
+                #endif
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain == NSCocoaErrorDomain && nsError.code == NSFileReadNoSuchFileError {
+                    continue
+                } else {
+                    throw error
+                }
+            }
+        }
+        #if DEBUG
+        print("[DEBUG] Sidecar cleanup finished.")
+        #endif
     }
 } 

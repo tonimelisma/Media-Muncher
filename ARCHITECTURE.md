@@ -81,7 +81,7 @@
 |--------|----------------|-------|
 | `VolumeManager` | Discover, eject & monitor volumes, expose `Publisher<[Volume]>` | Wrap `NSWorkspace` & external devices (future PTP/MTP). |
 | `MediaScanner` | **Phase 1:** fast filesystem walk that emits basic `File` structs (path, name, size) immediately; **Phase 2:** schedules asynchronous enrichment tasks that add heavy metadata (EXIF, thumbnails) without blocking the UI | Move initial `enumerateFiles()` here and spin-off a `MetadataEnricher` actor (or background `Task`) for phase 2. |
-| `ImportService` | Copy files, handle duplicates & deletions **and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting** | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
+| `ImportService` | Copy files, handle duplicates, **remove thumbnail side-cars (".THM"/".thm") after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
 | `SettingsStore` | Type-safe wrapper around `UserDefaults` & security bookmarks | Provides Combine `@Published` properties. |
 | `Logger` | Structured logging (os
 data, rotating file handler) | Respect user privacy; in dev builds default to `stdout`. |
@@ -270,3 +270,5 @@ If any step fails, the service yields a `File` with status `.failed` and an `imp
 6.  `AppState` finds the corresponding file in its main array and updates it.
 7.  Because the `files` array is `@Published` and `File` is a struct, the UI is notified of the change, and the specific icon for the processed file is updated with its thumbnail and status overlay.
 8.  This continues until all files have been processed.
+
+* **AppState** is injected as `@EnvironmentObject` **everywhere**. Views observe `@Published` properties for reactive updates. `AppState` now also tracks `importStartTime`, publishes `elapsedSeconds` and `remainingSeconds`, enabling ETA display in `BottomBarView`.

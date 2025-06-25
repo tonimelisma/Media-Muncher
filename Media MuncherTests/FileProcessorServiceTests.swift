@@ -13,9 +13,9 @@ class FileProcessorServiceTests: XCTestCase {
         super.setUp()
         service = FileProcessorService()
         settings = SettingsStore()
-        mockFileManager = MockFileManager()
         settings.renameByDate = false // Keep original filenames for easier testing
         settings.organizeByDate = false
+        mockFileManager = MockFileManager()
     }
 
     // MARK: - Test Cases

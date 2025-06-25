@@ -15,11 +15,6 @@ enum ProgramState {
     case importingFiles
 }
 
-enum errorState {
-    case none
-    case destinationFolderNotWritable
-}
-
 // MARK: - Scan Progress & Cancellation Support
 
 /// Convenience alias for the async task that enumerates files. Storing this
@@ -47,6 +42,24 @@ class AppState: ObservableObject {
     @Published var importedFileCount: Int = 0
     @Published var totalBytesToImport: Int64 = 0
     @Published var importedBytes: Int64 = 0
+    
+    // Timing
+    @Published private(set) var importStartTime: Date? = nil
+    
+    /// Returns seconds elapsed since the current import started. Nil when no import is running.
+    var elapsedSeconds: TimeInterval? {
+        guard let start = importStartTime, state == .importingFiles else { return nil }
+        return Date().timeIntervalSince(start)
+    }
+    
+    /// Estimated seconds remaining based on current throughput (bytes/sec). Nil if not computable yet.
+    var remainingSeconds: TimeInterval? {
+        guard let elapsed = elapsedSeconds, elapsed > 0, importedBytes > 0 else { return nil }
+        let throughput = Double(importedBytes) / elapsed
+        guard throughput > 0 else { return nil }
+        let remainingBytes = Double(max(0, totalBytesToImport - importedBytes))
+        return remainingBytes / throughput
+    }
     
     private var cancellables = Set<AnyCancellable>()
     private var scanTask: Task<Void, Never>?
@@ -171,6 +184,8 @@ class AppState: ObservableObject {
         self.totalFilesToImport = filesToImport.count
         self.totalBytesToImport = filesToImport.reduce(0) { $0 + ($1.size ?? 0) }
 
+        self.importStartTime = Date()
+
         self.state = .importingFiles
 
         importTask = Task {
@@ -207,6 +222,10 @@ class AppState: ObservableObject {
                    let selectedVolumePath = selectedVolume,
                    let volumeToEject = volumes.first(where: { $0.devicePath == selectedVolumePath }) {
                     volumeManager.ejectVolume(volumeToEject)
+                }
+
+                await MainActor.run {
+                    self.importStartTime = nil // clear when done
                 }
 
             } catch is CancellationError {

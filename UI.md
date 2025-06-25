@@ -87,7 +87,8 @@ The main window remains a `NavigationSplitView`. The key evolution is in the bot
 *   **Determinate Progress Bar**: An import progress bar is now shown in the bottom bar during an active import (**UI-3, Finished**). It displays:
     *   A visual `ProgressView` showing overall progress based on byte count.
     *   Text labels showing the number of files copied versus the total (`X of Y files`) and the data size copied versus the total (`A of B GB`).
-*   The "Import" button becomes a "Cancel" button during the operation. Time estimation is not yet implemented.
+*   The "Import" button becomes a "Cancel" button during the operation.
+*   **Elapsed / Remaining Time**: The bar now shows a concise elapsed timer and an ETA that auto-updates every second, rendered with `DateComponentsFormatter` for friendly units (sec, min, hr). (Implemented 2025-06-25.)
 *   **Error View**: The existing `ErrorView` will be enhanced to show other critical errors inline, such as "insufficient disk space," as defined in **UI-4**.
 
 ### 4.2 Media Grid (`MediaFilesGridView`)
