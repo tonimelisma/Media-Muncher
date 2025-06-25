@@ -34,11 +34,6 @@ class AppState: ObservableObject {
     private let settingsStore: SettingsStore
     private let importService: ImportService
     
-    // Thumbnail Cache
-    private var thumbnailCache: [String: Image] = [:] // key = file path
-    private var thumbnailOrder: [String] = []
-    private let thumbnailCacheLimit = 2000
-
     // Published UI State
     @Published private(set) var volumes: [Volume] = []
     @Published var selectedVolume: String? = nil
@@ -101,42 +96,6 @@ class AppState: ObservableObject {
                 self.selectedVolume = nil
             }
         }
-    }
-
-    private func loadThumbnails(for filesToLoad: [File]) {
-        Task {
-            for file in filesToLoad {
-                let url = URL(fileURLWithPath: file.sourcePath)
-                let thumbnail = await generateThumbnail(for: url)
-                
-                if let thumbnail = thumbnail, let index = self.files.firstIndex(where: { $0.id == file.id }) {
-                    await MainActor.run {
-                        self.files[index].thumbnail = thumbnail
-                    }
-                }
-            }
-        }
-    }
-
-    private func generateThumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
-        let key = url.path
-        if let cached = thumbnailCache[key] {
-            return cached
-        }
-
-        let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 1.0, representationTypes: .all)
-        guard let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
-            return nil
-        }
-        let img = Image(nsImage: thumbnail.nsImage)
-        // Store in cache and evict oldest if needed.
-        thumbnailCache[key] = img
-        thumbnailOrder.append(key)
-        if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.first {
-            thumbnailOrder.removeFirst()
-            thumbnailCache.removeValue(forKey: oldestKey)
-        }
-        return img
     }
 
     private func startScan(for devicePath: String?) {

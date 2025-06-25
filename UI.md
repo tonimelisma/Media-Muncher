@@ -30,6 +30,8 @@ flowchart LR
 | **ErrorView.swift** | Tiny inline view for error banner (currently only "destination folder not writable"). | Conditional `if`, `Image`, `Text` |
 | **SettingsView.swift** | Sheet shown via **Settings** scene. Contains two toggles and a folder picker. | `Form`, custom `FolderPickerView` |
 | **FolderPickerView** | Provides preset folder list + "Other…" path picker. | `Picker`, `HStack`, uses `NSOpenPanel` |
+| **MediaFileCellView** | A small view that represents a single cell in the `MediaFilesGridView`, displaying the thumbnail and status overlays. | `Image`, `Text`, `Spacer` |
+| **BottomBarView** | The view at the bottom of the window that shows scan progress, import progress, and action buttons. | `HStack`, `ProgressView`, `Button` |
 
 ### 2.1 ContentView Layout Details
 ```
@@ -102,21 +104,4 @@ The grid of files will become richer to provide more immediate feedback:
 
 ### 4.3 Settings Window (`SettingsView`)
 
-The `SettingsView` will remain a **single-pane** sheet containing one `Form`. It will be expanded to include all remaining user settings from the PRD:
-
-*   **Existing Controls**:
-    *   Destination Folder Picker (**ST-1**).
-    *   A single "Delete originals after import" toggle, which applies to all imported files per **ST-2**.
-    *   A toggle to enable/disable renaming files via the hard-coded template (`TYPE_YYYYMMDD_HHMMSS.ext`) (**IE-2**).
-    *   A toggle to enable/disable creating subdirectories via the hard-coded template (`YYYY/MM`) (**IE-7**).
-    *   A toggle for "Eject volume automatically after successful import" (**IE-6**).
-*   **New Controls to be Added**:
-    *   A section with checkboxes to filter which media types are imported (e.g., Photos, Videos, Audio) (**ST-5**).
-    *   (Automation controls have been deferred and removed from the Settings sheet.)
-
-#### Current Implementation (June 2025)
-
-![Settings View Screenshot](/.screenshots/settings_view_v0.2.2.png)
-The Settings sheet now contains only the controls listed above. Automation options have been removed and will re-appear when Epic 7 restarts.
-
-This revised specification is grounded entirely in the PRD and your explicit instructions.
+The `SettingsView` will remain a **single-pane** sheet containing one `

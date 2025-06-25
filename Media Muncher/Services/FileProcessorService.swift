@@ -5,6 +5,11 @@ import QuickLookThumbnailing
 
 actor FileProcessorService {
 
+    // Thumbnail Cache
+    private var thumbnailCache: [String: Image] = [:] // key = file path
+    private var thumbnailOrder: [String] = []
+    private let thumbnailCacheLimit = 2000
+
     func fastEnumerate(
         at rootURL: URL,
         filterImages: Bool,
@@ -182,10 +187,27 @@ actor FileProcessorService {
     }
 
     private func generateThumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
+        let key = url.path
+        if let cached = thumbnailCache[key] {
+            return cached
+        }
+
         let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 1.0, representationTypes: .all)
+        
         guard let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
             return nil
         }
-        return Image(nsImage: thumbnail.nsImage)
+        
+        let img = Image(nsImage: thumbnail.nsImage)
+        
+        // Store in cache and evict oldest if needed.
+        thumbnailCache[key] = img
+        thumbnailOrder.append(key)
+        if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.first {
+            thumbnailOrder.removeFirst()
+            thumbnailCache.removeValue(forKey: oldestKey)
+        }
+        
+        return img
     }
 } 

@@ -234,7 +234,7 @@ The `AppState` is a global `ObservableObject` that holds the application's state
 
 #### File Processor Service
 
-The `FileProcessorService` is a stateless actor responsible for all logic related to analyzing files on the source media. It performs a two-stage process:
+The `FileProcessorService` is a stateless actor responsible for all logic related to analyzing files on the source media. It performs a two-phase process:
 
 1.  **Fast Enumeration**: A quick pass over the source directory to identify all valid media files and return a list of placeholder `File` objects. This allows the UI to populate instantly.
 2.  **File Processing**: A more intensive, asynchronous operation that takes a single `File` object and enriches it with:
@@ -243,7 +243,7 @@ The `FileProcessorService` is a stateless actor responsible for all logic relate
     *   Its final, collision-resolved destination path.
     *   Its status (`pre_existing`, `duplicate_in_source`, etc.)
 
-This service contains the complex logic for both source-to-source duplicate detection and destination collision resolution.
+This service contains the complex logic for both source-to-source duplicate detection and destination collision resolution. It is responsible for the two-phase scan: a fast enumeration of files, followed by a slower, asynchronous enrichment phase that gathers metadata and generates thumbnails. It contains an in-memory LRU cache for thumbnails to avoid regenerating them unnecessarily. It also handles the complex logic of resolving destination file names to avoid collisions, both with files already on disk and with other files in the current import session.
 
 #### Import Service
 
