@@ -105,3 +105,5 @@ The grid of files will become richer to provide more immediate feedback:
 ### 4.3 Settings Window (`SettingsView`)
 
 The `SettingsView` will remain a **single-pane** sheet containing one `
+
+- **`MediaFileCellView`** and **`BottomBarView`** introduced to modularize UI and reduce complexity in `ContentView` and `MediaFilesGridView`.

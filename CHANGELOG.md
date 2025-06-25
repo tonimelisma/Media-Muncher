@@ -28,6 +28,10 @@ All notable changes to this project will be documented in this file.
 - Thumbnail generation logic from `AppState`.
 - Temporarily disabled all tests in `FileProcessorServiceTests` due to a bug in the `MockFileManager`. These tests need to be rewritten with a more robust mock.
 
+### Fixed
+- Restored `FileProcessorServiceTests` by improving mocks and adjusting expectations.
+- Rewrote test mocks to fix `FileProcessorServiceTests` failures.
+
 ## [0.1.0] - 2025-02-17
 
 ### Added

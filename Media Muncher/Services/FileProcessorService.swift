@@ -112,7 +112,7 @@ actor FileProcessorService {
             // Check if a DIFFERENT file exists at the destination
             var onDiskCollision = false
             if fileManager.fileExists(atPath: candidatePath.path) {
-                if await !isSameFile(sourceFile: newFile, destinationURL: candidatePath) {
+                if await !isSameFile(sourceFile: newFile, destinationURL: candidatePath, fileManager: fileManager) {
                     onDiskCollision = true
                 } else {
                     // It's the same file, mark as pre-existing
@@ -134,11 +134,11 @@ actor FileProcessorService {
         return newFile
     }
 
-    private func isSameFile(sourceFile: File, destinationURL: URL) async -> Bool {
+    private func isSameFile(sourceFile: File, destinationURL: URL, fileManager: FileManagerProtocol) async -> Bool {
         guard let sourceSize = sourceFile.size, let sourceDate = sourceFile.date else { return false }
 
         do {
-            let destAttr = try FileManager.default.attributesOfItem(atPath: destinationURL.path)
+            let destAttr = try fileManager.attributesOfItem(atPath: destinationURL.path)
             let destSize = destAttr[.size] as? Int64 ?? 0
             let destDate = destAttr[.modificationDate] as? Date ?? .distantPast
             

@@ -245,6 +245,8 @@ The `FileProcessorService` is a stateless actor responsible for all logic relate
 
 This service contains the complex logic for both source-to-source duplicate detection and destination collision resolution. It is responsible for the two-phase scan: a fast enumeration of files, followed by a slower, asynchronous enrichment phase that gathers metadata and generates thumbnails. It contains an in-memory LRU cache for thumbnails to avoid regenerating them unnecessarily. It also handles the complex logic of resolving destination file names to avoid collisions, both with files already on disk and with other files in the current import session.
 
+- Added in-memory LRU thumbnail cache (2 000 entries) and isolated thumbnail generation via QuickLook. This improves scanning performance and removes thumbnail responsibilities from `AppState`.
+
 #### Import Service
 
 The `ImportService` is an actor that handles the actual file copy operations from the source to the destination. It has been refactored to be fully transactional and resilient.

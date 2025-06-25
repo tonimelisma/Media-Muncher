@@ -114,6 +114,11 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | PF-2 | Copy operation streams data with back-pressure. | **Not Started** |
 | PF-3 | Large volumes (>1 M files) are handled with constant memory use. | **Not Started** |
 
+### 2025-06-24 – Recent Implementation Notes
+- Added thumbnail caching (LRU, 2 000 entries) to `FileProcessorService` improving scan performance (addresses EP-4 performance requirement).
+- Introduced `MediaFileCellView` and `BottomBarView` to simplify and modularize UI (supports UI maintainability goals).
+- Re-enabled and fixed `FileProcessorServiceTests` by enhancing mocks.
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  

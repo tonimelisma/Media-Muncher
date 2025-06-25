@@ -3,6 +3,7 @@ import Foundation
 
 class MockFileManager: FileManagerProtocol {
     var virtualFileSystem: [String: Data] = [:]
+    var virtualFileAttributes: [String: [FileAttributeKey: Any]] = [:]
     var createdDirectories = Set<String>()
     var copiedFiles = [(source: URL, destination: URL)]()
     var removedItems = [URL]()
@@ -67,6 +68,7 @@ class MockFileManager: FileManagerProtocol {
         if shouldThrowOnRemove {
             throw NSError(domain: "MockError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to remove item"])
         }
+        virtualFileAttributes.removeValue(forKey: URL.path)
         if virtualFileSystem.removeValue(forKey: URL.path) != nil {
             removedItems.append(URL)
         } else {
@@ -78,6 +80,21 @@ class MockFileManager: FileManagerProtocol {
         guard let data = virtualFileSystem[path] else {
             throw NSError(domain: "MockFileManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "File not found."])
         }
-        return [.size: data.count as NSNumber]
+        var attrs: [FileAttributeKey: Any] = [.size: data.count as NSNumber]
+        if let custom = virtualFileAttributes[path] {
+            for (k, v) in custom { attrs[k] = v }
+        }
+        return attrs
+    }
+
+    func setAttributes(_ attributes: [FileAttributeKey : Any], ofItemAtPath path: String) throws {
+        guard virtualFileSystem[path] != nil else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError, userInfo: nil)
+        }
+        if virtualFileAttributes[path] != nil {
+            for (k, v) in attributes { virtualFileAttributes[path]![k] = v }
+        } else {
+            virtualFileAttributes[path] = attributes
+        }
     }
 } 
