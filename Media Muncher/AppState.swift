@@ -1,6 +1,7 @@
 import AVFoundation
 import SwiftUI
 import Combine
+import QuickLookThumbnailing
 //
 //  AppState.swift
 //  Media Muncher
@@ -29,10 +30,15 @@ private typealias ScanTask = Task<Void, Never>
 class AppState: ObservableObject {
     // Services
     private let volumeManager: VolumeManager
-    private let mediaScanner: MediaScanner
+    private let fileProcessorService: FileProcessorService
     private let settingsStore: SettingsStore
     private let importService: ImportService
     
+    // Thumbnail Cache
+    private var thumbnailCache: [String: Image] = [:] // key = file path
+    private var thumbnailOrder: [String] = []
+    private let thumbnailCacheLimit = 2000
+
     // Published UI State
     @Published private(set) var volumes: [Volume] = []
     @Published var selectedVolume: String? = nil
@@ -53,12 +59,12 @@ class AppState: ObservableObject {
 
     init(
         volumeManager: VolumeManager,
-        mediaScanner: MediaScanner,
+        mediaScanner: FileProcessorService,
         settingsStore: SettingsStore,
         importService: ImportService
     ) {
         self.volumeManager = volumeManager
-        self.mediaScanner = mediaScanner
+        self.fileProcessorService = mediaScanner
         self.settingsStore = settingsStore
         self.importService = importService
         
@@ -97,6 +103,42 @@ class AppState: ObservableObject {
         }
     }
 
+    private func loadThumbnails(for filesToLoad: [File]) {
+        Task {
+            for file in filesToLoad {
+                let url = URL(fileURLWithPath: file.sourcePath)
+                let thumbnail = await generateThumbnail(for: url)
+                
+                if let thumbnail = thumbnail, let index = self.files.firstIndex(where: { $0.id == file.id }) {
+                    await MainActor.run {
+                        self.files[index].thumbnail = thumbnail
+                    }
+                }
+            }
+        }
+    }
+
+    private func generateThumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
+        let key = url.path
+        if let cached = thumbnailCache[key] {
+            return cached
+        }
+
+        let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 1.0, representationTypes: .all)
+        guard let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
+            return nil
+        }
+        let img = Image(nsImage: thumbnail.nsImage)
+        // Store in cache and evict oldest if needed.
+        thumbnailCache[key] = img
+        thumbnailOrder.append(key)
+        if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.first {
+            thumbnailOrder.removeFirst()
+            thumbnailCache.removeValue(forKey: oldestKey)
+        }
+        return img
+    }
+
     private func startScan(for devicePath: String?) {
         scanTask?.cancel()
         
@@ -111,41 +153,39 @@ class AppState: ObservableObject {
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
-            let streams = await mediaScanner.enumerateFiles(
+            let initialFiles = await fileProcessorService.fastEnumerate(
                 at: url,
-                destinationURL: settingsStore.destinationURL,
                 filterImages: settingsStore.filterImages,
                 filterVideos: settingsStore.filterVideos,
-                filterAudio: settingsStore.filterAudio,
-                organizeByDate: settingsStore.organizeByDate,
-                renameByDate: settingsStore.renameByDate
+                filterAudio: settingsStore.filterAudio
             )
-            
-            // Handle results
-            Task {
-                do {
-                    for try await batch in streams.results {
-                        await MainActor.run {
-                            self.files.append(contentsOf: batch)
-                        }
-                    }
-                } catch {
-                    await MainActor.run {
-                        self.error = .scanFailed(reason: error.localizedDescription)
-                    }
-                }
+
+            await MainActor.run {
+                self.files = initialFiles
+                self.filesScanned = initialFiles.count
+            }
+
+            // Now, process each file for enrichment and collision resolution
+            for i in 0..<initialFiles.count {
+                if Task.isCancelled { break }
+                
+                let processedFile = await fileProcessorService.processFile(
+                    initialFiles[i],
+                    allFiles: self.files,
+                    destinationURL: settingsStore.destinationURL,
+                    settings: settingsStore
+                )
+                
                 await MainActor.run {
-                    self.state = .idle
+                    // It's crucial to update the single source of truth
+                    if let index = self.files.firstIndex(where: { $0.id == processedFile.id }) {
+                        self.files[index] = processedFile
+                    }
                 }
             }
             
-            // Handle progress
-            Task {
-                for try await count in streams.progress {
-                    await MainActor.run {
-                        self.filesScanned = count
-                    }
-                }
+            await MainActor.run {
+                self.state = .idle
             }
         }
     }

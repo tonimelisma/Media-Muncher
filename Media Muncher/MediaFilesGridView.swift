@@ -44,6 +44,13 @@ struct MediaFilesGridView: View {
                                         .foregroundColor(.white)
                                         .font(.largeTitle)
                                 }
+                                
+                                if file.status == .duplicate_in_source {
+                                    Color.black.opacity(0.4)
+                                    Image(systemName: "doc.on.doc.fill")
+                                        .foregroundColor(.white)
+                                        .font(.largeTitle)
+                                }
                             }
                             .frame(width: 100, height: 100)
                             .clipShape(RoundedRectangle(cornerRadius: 8))

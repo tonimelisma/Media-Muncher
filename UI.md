@@ -93,8 +93,11 @@ The main window remains a `NavigationSplitView`. The key evolution is in the bot
 The grid of files will become richer to provide more immediate feedback:
 
 *   **Status Indicators**: Each grid cell will get a visual marker to indicate its status:
-    *   A badge/overlay for files that already exist in the destination folder (**MD-4**, **IE-3**).
-    *   Live status updates during import (e.g., a spinner overlay that becomes a checkmark), so the user knows which files are being processed (**part of IE-1**).
+    *   A semi-transparent black overlay to darken the thumbnail.
+    *   An SF Symbol in white to indicate the status:
+        *   `checkmark.circle.fill`: The file already exists at the destination.
+        *   `doc.on.doc.fill`: The file is a duplicate of another file in the source media.
+        *   `xmark.circle.fill`: An error occurred during the import of this specific file.
 *   **Smooth Updates**: Thumbnail loading and status changes will use `withAnimation` to prevent jarring UI updates (**MD-5**).
 
 ### 4.3 Settings Window (`SettingsView`)

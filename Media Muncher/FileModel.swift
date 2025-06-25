@@ -53,7 +53,7 @@ enum MediaType: String {
 }
 
 enum FileStatus: String {
-    case waiting, pre_existing, failed, copied
+    case waiting, pre_existing, failed, copied, duplicate_in_source
 }
 
 struct File: Identifiable {
@@ -73,15 +73,7 @@ struct File: Identifiable {
     var mediaType: MediaType
     var date: Date?
     var size: Int64?
-    var destDirectory: String?
-    var destFilename: String?
-    var destPath: String? {
-        guard let destDirectory = destDirectory, let destFilename = destFilename
-        else {
-            return nil
-        }
-        return destDirectory + "/" + destFilename
-    }
+    var destPath: String?
     var status: FileStatus
     var thumbnail: Image?
 }

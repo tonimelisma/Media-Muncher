@@ -187,3 +187,75 @@ graph TD;
 * **ALT-1** – Introduced `DestinationPathBuilder` helper; `ImportService` & `MediaScanner` now delegate path logic → single source of truth.
 * Purged all Automation/LaunchAgent code (Epic-7 reset).
 * Added LRU thumbnail cache (2 000 entries) into `MediaScanner` actor.
+
+The application follows a modern MVVM-inspired architecture, tailored for SwiftUI. The core components are:
+
+- **Views**: Pure SwiftUI views responsible for rendering the UI.
+- **AppState**: The central nervous system of the app. It acts as a ViewModel for the entire application, holding all the state and orchestrating the services.
+- **Services**: Asynchronous actors or classes responsible for specific domains of business logic (e.g., managing volumes, processing files).
+- **Models**: Simple data-holding structures.
+
+```mermaid
+graph TD
+    subgraph "Services"
+        A[VolumeManager]
+        B[FileProcessorService]
+        C[ImportService]
+        D[SettingsStore]
+    end
+
+    subgraph "UI"
+        F[ContentView]
+        G[VolumeView]
+        H[MediaFilesGridView]
+        I[SettingsView]
+    end
+    
+    J((AppState))
+
+    A -- Publishes Volumes --> J
+    B -- Streams Files --> J
+    C -- Called by --> J
+    D -- Read by --> J
+    
+    J -- Drives --> F
+    F --> G
+    F --> H
+    F --> I
+
+    click B "#file-processor-service"
+```
+
+### Core Components
+
+#### AppState
+
+The `AppState` is a global `ObservableObject` that holds the application's state. It is the single source of truth for the UI. It owns and orchestrates all the services.
+
+#### File Processor Service
+
+The `FileProcessorService` is a stateless actor responsible for all logic related to analyzing files on the source media. It performs a two-stage process:
+
+1.  **Fast Enumeration**: A quick pass over the source directory to identify all valid media files and return a list of placeholder `File` objects. This allows the UI to populate instantly.
+2.  **File Processing**: A more intensive, asynchronous operation that takes a single `File` object and enriches it with:
+    *   Metadata (EXIF date, size)
+    *   A thumbnail image
+    *   Its final, collision-resolved destination path.
+    *   Its status (`pre_existing`, `duplicate_in_source`, etc.)
+
+This service contains the complex logic for both source-to-source duplicate detection and destination collision resolution.
+
+#### Import Service
+
+The `ImportService` is an actor that handles the actual file copy operations from the source to the destination. It receives a list of `File` objects from the `AppState` and processes them.
+
+### Data Flow for a Scan
+
+1.  **User selects a volume.**
+2.  `AppState` initiates a scan by calling `FileProcessorService.fastEnumerate()`.
+3.  The service returns a complete list of placeholder `File` models, which `AppState` publishes. The UI immediately updates to show the grid of files (without thumbnails).
+4.  `AppState` starts a background task that iterates through the list of files. For each file, it calls `FileProcessorService.processFile()`.
+5.  As each file is processed, the service returns the fully enriched `File` model.
+6.  `AppState` finds the corresponding file in its main array and updates it.
+7.  Because the `files` array is `@Published` and `File` is a struct, the UI is notified of the change, and the specific icon for the processed file is updated with its thumbnail and status overlay.
+8.  This continues until all files have been processed.

@@ -81,7 +81,7 @@ struct ContentView: View {
     ContentView()
         .environmentObject(AppState(
             volumeManager: VolumeManager(),
-            mediaScanner: MediaScanner(),
+            mediaScanner: FileProcessorService(),
             settingsStore: SettingsStore(),
             importService: ImportService()
         ))

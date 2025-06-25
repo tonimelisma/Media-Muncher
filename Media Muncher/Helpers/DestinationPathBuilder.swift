@@ -55,24 +55,20 @@ struct DestinationPathBuilder {
         for file: File,
         in rootURL: URL,
         settings: SettingsStore,
-        fileManager: FileManagerProtocol
+        fileManager: FileManagerProtocol,
+        suffix: Int? = nil
     ) -> URL {
         let relativePath = Self.relativePath(for: file, organizeByDate: settings.organizeByDate, renameByDate: settings.renameByDate)
         
-        let idealURL = rootURL.appendingPathComponent(relativePath)
+        var idealURL = rootURL.appendingPathComponent(relativePath)
         
-        var finalURL = idealURL
-        var suffix = 1
-        
-        let baseFilename = (idealURL.lastPathComponent as NSString).deletingPathExtension
-        let fileExtension = idealURL.pathExtension
-        
-        while fileManager.fileExists(atPath: finalURL.path) {
+        if let suffix = suffix {
+            let baseFilename = (idealURL.lastPathComponent as NSString).deletingPathExtension
+            let fileExtension = idealURL.pathExtension
             let newFilename = "\(baseFilename)_\(suffix).\(fileExtension)"
-            finalURL = idealURL.deletingLastPathComponent().appendingPathComponent(newFilename)
-            suffix += 1
+            idealURL = idealURL.deletingLastPathComponent().appendingPathComponent(newFilename)
         }
         
-        return finalURL
+        return idealURL
     }
 } 

@@ -13,7 +13,7 @@ struct Media_MuncherApp: App {
     
     // Services
     private let volumeManager = VolumeManager()
-    private let mediaScanner = MediaScanner()
+    private let mediaScanner = FileProcessorService()
     private let settingsStore = SettingsStore()
     private let importService = ImportService()
 
