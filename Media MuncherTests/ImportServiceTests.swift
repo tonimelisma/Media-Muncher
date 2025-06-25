@@ -1,110 +1,144 @@
 import XCTest
 @testable import Media_Muncher
 
-// MARK: - Import Logic Tests (Driven by Settings)
-
-class ImportServiceWithSettingsTests: XCTestCase {
+class ImportServiceTests: XCTestCase {
 
     var importService: ImportService!
     var mockFileManager: MockFileManager!
     var mockURLAccessWrapper: MockSecurityScopedURLAccessWrapper!
-    var sourceURL: URL!
-    var destinationURL: URL!
-    // Use a fixed date to make tests deterministic
-    let fixedDate = Date(timeIntervalSince1970: 1672531200) // 2023-01-01 00:00:00 UTC
+    var settings: SettingsStore!
+    let destinationURL = URL(fileURLWithPath: "/dest")
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+    override func setUp() {
+        super.setUp()
         mockFileManager = MockFileManager()
         mockURLAccessWrapper = MockSecurityScopedURLAccessWrapper()
         importService = ImportService(fileManager: mockFileManager, urlAccessWrapper: mockURLAccessWrapper)
-        // Inject the fixed date provider
-        importService.nowProvider = { self.fixedDate }
-        
-        sourceURL = URL(fileURLWithPath: "/source")
-        destinationURL = URL(fileURLWithPath: "/destination")
-        
-        mockFileManager.virtualFileSystem = [
-            "/source/file1.jpg": Data(count: 100),
-            "/source/file2.mov": Data(count: 200),
-        ]
-    }
-
-    override func tearDownWithError() throws {
-        importService = nil
-        mockFileManager = nil
-        mockURLAccessWrapper = nil
-        sourceURL = nil
-        destinationURL = nil
-        try super.tearDownWithError()
+        settings = SettingsStore()
     }
     
-    private func createSettings(organize: Bool, rename: Bool, deleteOriginals: Bool = false) -> SettingsStore {
-        let settings = SettingsStore()
-        settings.organizeByDate = organize
-        settings.renameByDate = rename
-        settings.settingDeleteOriginals = deleteOriginals
-        return settings
+    private func collectStreamResults(for stream: AsyncThrowingStream<File, Error>) async throws -> [File] {
+        var results: [File] = []
+        for try await file in stream {
+            if let index = results.firstIndex(where: { $0.id == file.id }) {
+                results[index] = file
+            } else {
+                results.append(file)
+            }
+        }
+        return results
     }
 
-    func testImportFiles_NoOrganizeNoRename() async throws {
-        let settings = createSettings(organize: false, rename: false)
-        let fileModels = [
-            File(sourcePath: "/source/file1.jpg", mediaType: .image, date: nil, size: 100, status: .waiting),
-            File(sourcePath: "/source/file2.mov", mediaType: .video, date: nil, size: 200, status: .waiting)
-        ]
+    func testSuccessfulImport() async throws {
+        // Arrange
+        let sourcePath = "/source/photo.jpg"
+        let destPath = "/dest/photo.jpg"
+        mockFileManager.virtualFileSystem[sourcePath] = Data(count: 1234)
+        let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
 
-        try await importService.importFiles(files: fileModels, to: destinationURL, settings: settings, progressHandler: nil)
+        // Act
+        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let results = try await collectStreamResults(for: stream)
 
-        XCTAssertEqual(mockFileManager.copiedFiles.count, 2)
-        XCTAssertTrue(mockFileManager.fileExists(atPath: "/destination/file1.jpg"))
-        XCTAssertTrue(mockFileManager.fileExists(atPath: "/destination/file2.mov"))
+        // Assert
+        XCTAssertEqual(results.count, 1)
+        XCTAssertEqual(results.first?.status, .imported)
+        XCTAssertEqual(mockFileManager.copiedFiles.count, 1)
+        XCTAssertEqual(mockFileManager.copiedFiles.first?.destination, URL(fileURLWithPath: destPath))
+        XCTAssertTrue(mockFileManager.fileExists(atPath: destPath))
+        XCTAssertNil(results.first?.importError)
+    }
+    
+    func testSuccessfulImportWithDeletion() async throws {
+        // Arrange
+        let sourcePath = "/source/photo.jpg"
+        let destPath = "/dest/photo.jpg"
+        mockFileManager.virtualFileSystem[sourcePath] = Data(count: 1234)
+        let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
+        settings.settingDeleteOriginals = true
+
+        // Act
+        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        _ = try await collectStreamResults(for: stream)
+
+        // Assert
+        XCTAssertFalse(mockFileManager.fileExists(atPath: sourcePath), "Source file should have been deleted")
     }
 
-    func testImportFiles_OrganizeByDateOnly() async throws {
-        let settings = createSettings(organize: true, rename: false)
-        let fileModels = [File(sourcePath: "/source/file1.jpg", mediaType: .image, date: fixedDate, size: 100, status: .waiting)]
+    func testCopyFailure() async throws {
+        // Arrange
+        let sourcePath = "/source/photo.jpg"
+        let destPath = "/dest/photo.jpg"
+        mockFileManager.virtualFileSystem[sourcePath] = Data(count: 1234)
+        mockFileManager.failCopyForPaths = [sourcePath]
+        let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
 
-        try await importService.importFiles(files: fileModels, to: destinationURL, settings: settings, progressHandler: nil)
+        // Act
+        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let results = try await collectStreamResults(for: stream)
 
-        let expectedPath = "/destination/2023/01/file1.jpg"
-        XCTAssertTrue(mockFileManager.fileExists(atPath: expectedPath))
+        // Assert
+        XCTAssertEqual(results.count, 1)
+        XCTAssertEqual(results.first?.status, .failed)
+        XCTAssertNotNil(results.first?.importError)
+        XCTAssert(results.first?.importError?.contains("Copy failed") ?? false)
+        XCTAssertFalse(mockFileManager.fileExists(atPath: destPath))
     }
-
-    func testImportFiles_RenameByDateOnly() async throws {
-        let settings = createSettings(organize: false, rename: true)
-        let fileModels = [File(sourcePath: "/source/file1.jpg", mediaType: .image, date: fixedDate, size: 100, status: .waiting)]
+    
+    func testVerificationFailure() async throws {
+        // Arrange
+        let sourcePath = "/source/photo.jpg"
+        let destPath = "/dest/photo.jpg"
+        mockFileManager.virtualFileSystem[sourcePath] = Data(count: 1234)
+        mockFileManager.mismatchedFileSizeForPaths = [destPath: 999]
+        let files = [File(sourcePath: sourcePath, mediaType: .image, size: 1234, destPath: destPath, status: .waiting)]
         
-        try await importService.importFiles(files: fileModels, to: destinationURL, settings: settings, progressHandler: nil)
+        // Act
+        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let results = try await collectStreamResults(for: stream)
 
-        let expectedPath = "/destination/IMG_20230101_000000.jpg"
-        XCTAssertTrue(mockFileManager.fileExists(atPath: expectedPath))
+        // Assert
+        XCTAssertEqual(results.count, 1)
+        XCTAssertEqual(results.first?.status, .failed)
+        XCTAssertNotNil(results.first?.importError)
+        XCTAssert(results.first?.importError?.contains("Verification failed") ?? false)
     }
-
-    func testImportFiles_WithCollision_AppendsSuffix() async throws {
-        let settings = createSettings(organize: false, rename: true)
-        let fileModels = [File(sourcePath: "/source/file1.jpg", mediaType: .image, date: fixedDate, size: 100, status: .waiting)]
-
-        // Pre-seed the filesystem with an existing file
-        let existingPath = "/destination/IMG_20230101_000000.jpg"
-        mockFileManager.virtualFileSystem[existingPath] = Data()
-
-        try await importService.importFiles(files: fileModels, to: destinationURL, settings: settings, progressHandler: nil)
-
-        let expectedNewPath = "/destination/IMG_20230101_000000_1.jpg"
-        XCTAssertTrue(mockFileManager.fileExists(atPath: expectedNewPath))
-    }
-
-    func testImportFiles_WhenDeleteOriginalsIsTrue_DeletesSourceFiles() async throws {
-        let settings = createSettings(organize: false, rename: false, deleteOriginals: true)
-        let fileModels = [
-            File(sourcePath: "/source/file1.jpg", mediaType: .image, date: nil, size: 100, status: .waiting),
+    
+    func testFullBatchWithMixedResults() async throws {
+        // Arrange
+        let file1 = File(sourcePath: "/source/success.jpg", mediaType: .image, size: 100, destPath: "/dest/success.jpg", status: .waiting)
+        let file2 = File(sourcePath: "/source/copy_fail.jpg", mediaType: .image, size: 200, destPath: "/dest/copy_fail.jpg", status: .waiting)
+        let file3 = File(sourcePath: "/source/verify_fail.jpg", mediaType: .image, size: 300, destPath: "/dest/verify_fail.jpg", status: .waiting)
+        mockFileManager.virtualFileSystem = [
+            file1.sourcePath: Data(count: 100),
+            file2.sourcePath: Data(count: 200),
+            file3.sourcePath: Data(count: 300),
         ]
+        
+        mockFileManager.failCopyForPaths = [file2.sourcePath]
+        mockFileManager.mismatchedFileSizeForPaths = [file3.destPath!: 999]
 
-        try await importService.importFiles(files: fileModels, to: destinationURL, settings: settings, progressHandler: nil)
+        let files = [file1, file2, file3]
+        
+        // Act
+        let stream = importService.importFiles(files: files, to: destinationURL, settings: settings)
+        let results = try await collectStreamResults(for: stream)
 
-        XCTAssertEqual(mockFileManager.removedItems.count, 1)
-        XCTAssertTrue(mockFileManager.removedItems.contains(URL(fileURLWithPath: "/source/file1.jpg")))
-        XCTAssertNil(mockFileManager.virtualFileSystem["/source/file1.jpg"])
+        // Assert
+        XCTAssertEqual(results.count, 3)
+        
+        let successFile = results.first { $0.id == file1.id }
+        XCTAssertEqual(successFile?.status, .imported)
+        XCTAssert(mockFileManager.fileExists(atPath: successFile!.destPath!))
+
+        let copyFailFile = results.first { $0.id == file2.id }
+        XCTAssertEqual(copyFailFile?.status, .failed)
+        XCTAssert(copyFailFile?.importError?.contains("Copy failed") ?? false)
+        XCTAssertFalse(mockFileManager.fileExists(atPath: copyFailFile!.destPath!))
+        
+        let verifyFailFile = results.first { $0.id == file3.id }
+        XCTAssertEqual(verifyFailFile?.status, .failed)
+        XCTAssert(verifyFailFile?.importError?.contains("Verification failed") ?? false)
+        XCTAssert(mockFileManager.fileExists(atPath: verifyFailFile!.destPath!))
     }
 } 

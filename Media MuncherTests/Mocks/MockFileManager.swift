@@ -11,6 +11,10 @@ class MockFileManager: FileManagerProtocol {
     var shouldThrowOnCopy = false
     var shouldThrowOnRemove = false
     
+    var shouldFailOnCopy = false
+    var failCopyForPaths: [String] = []
+    var mismatchedFileSizeForPaths: [String: Int] = [:]
+    
     func fileExists(atPath path: String) -> Bool {
         return virtualFileSystem[path] != nil || createdDirectories.contains(path)
     }
@@ -40,14 +44,22 @@ class MockFileManager: FileManagerProtocol {
     }
     
     func copyItem(at srcURL: URL, to dstURL: URL) throws {
-        if shouldThrowOnCopy {
-            throw NSError(domain: "MockError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to copy item"])
+        if shouldFailOnCopy || failCopyForPaths.contains(srcURL.path) {
+            throw NSError(domain: "MockFileManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Forced copy failure for testing."])
         }
-        guard virtualFileSystem[srcURL.path] != nil else {
-            let error = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError, userInfo: [NSFilePathErrorKey: srcURL.path])
-            throw error
+        
+        guard let data = virtualFileSystem[srcURL.path] else {
+            throw NSError(domain: "MockFileManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Source file not found."])
         }
-        virtualFileSystem[dstURL.path] = virtualFileSystem[srcURL.path]
+        
+        let finalData: Data
+        if let mismatchedSize = mismatchedFileSizeForPaths[dstURL.path] {
+            finalData = Data(count: mismatchedSize)
+        } else {
+            finalData = data
+        }
+        
+        virtualFileSystem[dstURL.path] = finalData
         copiedFiles.append((source: srcURL, destination: dstURL))
     }
 
@@ -60,5 +72,12 @@ class MockFileManager: FileManagerProtocol {
         } else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError, userInfo: [NSFilePathErrorKey: URL.path])
         }
+    }
+
+    func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
+        guard let data = virtualFileSystem[path] else {
+            throw NSError(domain: "MockFileManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "File not found."])
+        }
+        return [.size: data.count as NSNumber]
     }
 } 

@@ -53,7 +53,7 @@ enum MediaType: String {
 }
 
 enum FileStatus: String {
-    case waiting, pre_existing, failed, copied, duplicate_in_source
+    case waiting, pre_existing, copying, verifying, imported, failed, duplicate_in_source
 }
 
 struct File: Identifiable {
@@ -76,6 +76,7 @@ struct File: Identifiable {
     var destPath: String?
     var status: FileStatus
     var thumbnail: Image?
+    var importError: String?
 }
 
 extension MediaType {

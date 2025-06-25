@@ -13,6 +13,7 @@ protocol FileManagerProtocol {
     func fileExists(atPath path: String) -> Bool
     func createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]?) throws
     func removeItem(at URL: URL) throws
+    func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any]
 }
 
 extension FileManager: FileManagerProtocol {}
@@ -70,73 +71,95 @@ class ImportService {
     func importFiles(
         files: [File],
         to destinationURL: URL,
-        settings: SettingsStore,
-        progressHandler: (@Sendable (Int, Int64) async -> Void)? = nil
-    ) async throws {
-        let didStartAccessing = urlAccessWrapper.startAccessingSecurityScopedResource(for: destinationURL)
-        guard didStartAccessing else {
-            throw ImportError.destinationNotReachable
-        }
-        
-        defer {
-            urlAccessWrapper.stopAccessingSecurityScopedResource(for: destinationURL)
-        }
-        
-        var filesProcessed = 0
-        var bytesProcessed: Int64 = 0
-        
-        for file in files {
-            try Task.checkCancellation()
-            
-            let sourceURL = URL(fileURLWithPath: file.sourcePath)
-            
-            let destinationPath = DestinationPathBuilder.buildFinalDestinationUrl(
-                for: file,
-                in: destinationURL,
-                settings: settings,
-                fileManager: self.fileManager
-            )
-
-            let destinationDirectory = destinationPath.deletingLastPathComponent()
-            if !self.fileManager.fileExists(atPath: destinationDirectory.path) {
-                do {
-                    try self.fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true, attributes: nil)
-                } catch {
-                    throw ImportError.directoryCreationError(path: destinationDirectory, error: error)
+        settings: SettingsStore
+    ) -> AsyncThrowingStream<File, Error> {
+        return AsyncThrowingStream { continuation in
+            Task {
+                let didStartAccessing = urlAccessWrapper.startAccessingSecurityScopedResource(for: destinationURL)
+                guard didStartAccessing else {
+                    continuation.finish(throwing: ImportError.destinationNotReachable)
+                    return
                 }
-            }
-            
-            do {
-                try self.fileManager.copyItem(at: sourceURL, to: destinationPath)
-                filesProcessed += 1
-                bytesProcessed += file.size ?? 0
-                await progressHandler?(filesProcessed, bytesProcessed)
-            } catch {
-                throw ImportError.copyFailed(source: sourceURL, destination: destinationPath, error: error)
-            }
-        }
-        
-        if settings.settingDeleteOriginals {
-            for file in files {
-                let sourceURL = URL(fileURLWithPath: file.sourcePath)
-                do {
-                    try self.fileManager.removeItem(at: sourceURL)
+                
+                defer {
+                    urlAccessWrapper.stopAccessingSecurityScopedResource(for: destinationURL)
+                }
 
-                    // Also try to remove an associated .thm file
-                    let thumbnailURL = sourceURL.deletingPathExtension().appendingPathExtension("thm")
-                    if self.fileManager.fileExists(atPath: thumbnailURL.path) {
-                        try? self.fileManager.removeItem(at: thumbnailURL)
+                let filesToImport = files.filter { $0.status == .waiting }
+
+                for var file in filesToImport {
+                    try Task.checkCancellation()
+                    
+                    let sourceURL = URL(fileURLWithPath: file.sourcePath)
+                    guard let destinationPath = file.destPath else {
+                        // This should have been resolved by FileProcessorService, but as a safeguard:
+                        file.status = .failed
+                        file.importError = "Destination path could not be determined."
+                        continuation.yield(file)
+                        continue
+                    }
+                    let finalDestinationURL = URL(fileURLWithPath: destinationPath)
+                    
+                    // 1. Copying
+                    do {
+                        file.status = .copying
+                        continuation.yield(file)
+                        
+                        let destDir = finalDestinationURL.deletingLastPathComponent()
+                        if !self.fileManager.fileExists(atPath: destDir.path) {
+                            try self.fileManager.createDirectory(at: destDir, withIntermediateDirectories: true, attributes: nil)
+                        }
+                        try self.fileManager.copyItem(at: sourceURL, to: finalDestinationURL)
+                    } catch {
+                        file.status = .failed
+                        file.importError = "Copy failed: \(error.localizedDescription)"
+                        continuation.yield(file)
+                        continue // Move to the next file
                     }
                     
-                    // Also try to remove an associated .THM file (uppercase)
-                    let thumbnailURLUpper = sourceURL.deletingPathExtension().appendingPathExtension("THM")
-                    if self.fileManager.fileExists(atPath: thumbnailURLUpper.path) {
-                        try? self.fileManager.removeItem(at: thumbnailURLUpper)
+                    // 2. Verification
+                    file.status = .verifying
+                    continuation.yield(file)
+                    
+                    do {
+                        let destAttrs = try fileManager.attributesOfItem(atPath: finalDestinationURL.path)
+                        let sourceAttrs = try fileManager.attributesOfItem(atPath: sourceURL.path)
+
+                        if (destAttrs[.size] as? NSNumber)?.int64Value != (sourceAttrs[.size] as? NSNumber)?.int64Value {
+                            file.status = .failed
+                            file.importError = "Verification failed: File size mismatch."
+                            continuation.yield(file)
+                            continue
+                        }
+                    } catch {
+                        file.status = .failed
+                        file.importError = "Verification failed: \(error.localizedDescription)"
+                        continuation.yield(file)
+                        continue
+                    }
+                    
+                    // 3. Deletion
+                    if settings.settingDeleteOriginals {
+                        do {
+                            try self.fileManager.removeItem(at: sourceURL)
+                            // Optionally remove common sidecar files, ignoring errors
+                            let thmUpper = sourceURL.deletingPathExtension().appendingPathExtension("THM")
+                            try? self.fileManager.removeItem(at: thmUpper)
+                            let thmLower = sourceURL.deletingPathExtension().appendingPathExtension("thm")
+                            try? self.fileManager.removeItem(at: thmLower)
+                        } catch {
+                            // This is a non-critical error. We can report it but still mark the import as successful.
+                            // For now, we'll just log it. A future improvement could be a "warnings" array.
+                            print("Non-critical error: Failed to delete source file \(sourceURL.path): \(error.localizedDescription)")
+                        }
                     }
 
-                } catch {
-                    throw ImportError.deleteFailed(source: sourceURL, error: error)
+                    // 4. Success
+                    file.status = .imported
+                    continuation.yield(file)
                 }
+                
+                continuation.finish()
             }
         }
     }

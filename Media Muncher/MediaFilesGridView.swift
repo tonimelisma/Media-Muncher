@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MediaFilesGridView: View {
     @EnvironmentObject var appState: AppState
+    @State private var showingErrorAlertFor: File?
 
     var body: some View {
         GeometryReader { geometry in
@@ -38,7 +39,7 @@ struct MediaFilesGridView: View {
                                         .padding(.vertical, 25)
                                 }
                                 
-                                if file.status == .pre_existing {
+                                if file.status == .pre_existing || file.status == .imported {
                                     Color.black.opacity(0.4)
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(.white)
@@ -50,6 +51,23 @@ struct MediaFilesGridView: View {
                                     Image(systemName: "doc.on.doc.fill")
                                         .foregroundColor(.white)
                                         .font(.largeTitle)
+                                }
+                                
+                                if file.status == .copying || file.status == .verifying {
+                                    Color.black.opacity(0.4)
+                                    ProgressView()
+                                        .controlSize(.large)
+                                        .tint(.white)
+                                }
+                                
+                                if file.status == .failed {
+                                    Color.black.opacity(0.4)
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.red)
+                                        .font(.largeTitle)
+                                        .onTapGesture {
+                                            self.showingErrorAlertFor = file
+                                        }
                                 }
                             }
                             .frame(width: 100, height: 100)
@@ -65,6 +83,13 @@ struct MediaFilesGridView: View {
                 .padding()
             }
             Spacer()
+        }
+        .alert(item: $showingErrorAlertFor) { file in
+            Alert(
+                title: Text("Import Failed"),
+                message: Text(file.importError ?? "An unknown error occurred."),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }

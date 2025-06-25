@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- **Transactional File Import**: The import process is now fully transactional and resilient. Each file is individually copied, verified, and marked as complete. This provides real-time progress updates in the UI (e.g., "Copying", "Verifying", "Imported") on a per-file basis.
+- **Per-File Error Handling**: If a file fails during copy or verification, it is visually marked as failed in the grid, and the user can see the specific error message. The import process continues with the remaining files.
 - **Source Duplicate Detection**: The app now detects and marks duplicate files within the source media itself, preventing them from being imported multiple times. An icon indicates these files in the grid.
 - **Robust Collision Handling**: Implemented a sophisticated file-naming collision algorithm that handles three types of conflicts:
     1.  Files that are identical to files already in the destination.

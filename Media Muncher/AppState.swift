@@ -218,10 +218,6 @@ class AppState: ObservableObject {
             defer {
                 Task { @MainActor in
                     self.state = .idle
-                    self.totalFilesToImport = 0
-                    self.importedFileCount = 0
-                    self.totalBytesToImport = 0
-                    self.importedBytes = 0
                 }
             }
             
@@ -232,42 +228,30 @@ class AppState: ObservableObject {
                 return
             }
             
-            guard let selectedVolumePath = selectedVolume,
-                  let volumeToEject = volumes.first(where: { $0.devicePath == selectedVolumePath }) else {
-                // This case is unlikely if files are present, but as a safeguard:
-                await MainActor.run {
-                    self.error = .importFailed(reason: "No volume selected or found.")
-                }
-                return
-            }
-            
             do {
-                try await importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore) { filesProcessed, bytesProcessed in
+                let stream = importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore)
+                for try await updatedFile in stream {
                     await MainActor.run {
-                        self.importedFileCount = filesProcessed
-                        self.importedBytes = bytesProcessed
+                        if let index = self.files.firstIndex(where: { $0.id == updatedFile.id }) {
+                            self.files[index] = updatedFile
+                            
+                            if updatedFile.status == .imported {
+                                self.importedFileCount += 1
+                                self.importedBytes += updatedFile.size ?? 0
+                            }
+                        }
                     }
                 }
                 
-                if settingsStore.settingAutoEject {
+                // After the import process is finished...
+                if settingsStore.settingAutoEject,
+                   let selectedVolumePath = selectedVolume,
+                   let volumeToEject = volumes.first(where: { $0.devicePath == selectedVolumePath }) {
                     volumeManager.ejectVolume(volumeToEject)
                 }
 
             } catch is CancellationError {
                 // User cancelled the import, do nothing, just let the state reset to idle.
-            } catch let importError as ImportService.ImportError {
-                await MainActor.run {
-                    switch importError {
-                    case .deleteFailed(_, let error):
-                        self.error = .importSucceededWithDeletionErrors(reason: error.localizedDescription)
-                    case .copyFailed(let src, _, let error):
-                        self.error = .copyFailed(source: src.lastPathComponent, reason: error.localizedDescription)
-                    case .directoryCreationError(let path, let error):
-                        self.error = .directoryCreationFailed(path: path.path, reason: error.localizedDescription)
-                    default:
-                        self.error = .importFailed(reason: importError.localizedDescription)
-                    }
-                }
             } catch {
                 await MainActor.run {
                     self.error = .importFailed(reason: error.localizedDescription)

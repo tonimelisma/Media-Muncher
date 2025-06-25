@@ -247,7 +247,16 @@ This service contains the complex logic for both source-to-source duplicate dete
 
 #### Import Service
 
-The `ImportService` is an actor that handles the actual file copy operations from the source to the destination. It receives a list of `File` objects from the `AppState` and processes them.
+The `ImportService` is an actor that handles the actual file copy operations from the source to the destination. It has been refactored to be fully transactional and resilient.
+
+It exposes a single function, `importFiles(...)`, which takes the list of files to import and returns an `AsyncThrowingStream<File, Error>`. As the service processes each file, it `yield`s updated `File` objects back to the caller, allowing for real-time UI updates.
+
+The import process for each file is:
+1.  **Copy**: The file is copied to its final destination. The service yields a `File` with status `.copying`.
+2.  **Verify**: After a successful copy, the service verifies that the destination file's size matches the source file's size. The service yields a `File` with status `.verifying`.
+3.  **Finalize**: If verification passes, the service yields the final `File` with status `.imported`. If the user has enabled it, the source file is deleted.
+
+If any step fails, the service yields a `File` with status `.failed` and an `importError` message, then continues processing the next file in the queue. This ensures that a single failure does not halt the entire import batch.
 
 ### Data Flow for a Scan
 

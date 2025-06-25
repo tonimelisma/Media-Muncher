@@ -61,6 +61,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Finished** |
 | IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Finished** |
 | IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Finished** |
+| IE-13 | As a user, if an import is interrupted or fails mid-way, I want to know exactly which files succeeded and which failed, so no data is silently lost. | **Finished** |
 
 ### EPIC 4 – Settings & Preferences  
 | ID | User Story | Status |
@@ -77,7 +78,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | UI-1 | The grid view adapts to window width. | **Finished** |
 | UI-2 | Each media type has a specific icon before thumbnail loads. | **Finished** |
 | UI-3 | Import progress bar and time estimate are shown. | **Finished** |
-| UI-4 | Errors appear inline with helpful messages. | **Started** (destination-writable error) |
+| UI-4 | Errors appear inline with helpful messages. | **Finished** |
 | UI-5 | Full dark/light-mode compliance. | **Started** |
 
 ### EPIC 6 – Security & Permissions  
