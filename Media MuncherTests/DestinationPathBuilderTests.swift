@@ -40,8 +40,8 @@ final class DestinationPathBuilderTests: XCTestCase {
         // When (rename only)
         let rel = DestinationPathBuilder.relativePath(for: file, organizeByDate: false, renameByDate: true)
 
-        // Then – IMG_YYYYMMDD_HHMMSS.heif (preferred ext)
-        XCTAssertEqual(rel, "IMG_20250101_120000.heif")
+        // Then – YYYYMMDD_HHMMSS.heif (preferred ext)
+        XCTAssertEqual(rel, "20250101_120000.heif")
     }
 
     func testRelativePath_OrganizeAndRename() {
@@ -51,8 +51,8 @@ final class DestinationPathBuilderTests: XCTestCase {
         // When (organize + rename)
         let rel = DestinationPathBuilder.relativePath(for: file, organizeByDate: true, renameByDate: true)
 
-        // Then – directory + renamed base with VID prefix
-        XCTAssertEqual(rel, "2025/01/VID_20250101_120000.mov")
+        // Then – directory + renamed base
+        XCTAssertEqual(rel, "2025/01/20250101_120000.mov")
     }
 
     func testBuildFinalDestinationUrl_AppendsSuffix() {
@@ -66,6 +66,6 @@ final class DestinationPathBuilderTests: XCTestCase {
         let url = DestinationPathBuilder.buildFinalDestinationUrl(for: file, in: rootURL, settings: settings, suffix: 2)
 
         // Then
-        XCTAssertEqual(url.path, "/Library/Destination/2025/01/AUD_20250101_120000_2.aac")
+        XCTAssertEqual(url.path, "/Library/Destination/2025/01/20250101_120000_2.aac")
     }
 }

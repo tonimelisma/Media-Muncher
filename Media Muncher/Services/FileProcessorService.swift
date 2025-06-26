@@ -157,6 +157,14 @@ actor FileProcessorService {
             }
         }
 
+        #if DEBUG
+        if settings.renameByDate && settings.organizeByDate {
+            if let p = newFile.destPath {
+                print("[FileProcessorService] DEBUG: final destPath = \(p)")
+            }
+        }
+        #endif
+
         return newFile
     }
 
@@ -195,8 +203,12 @@ actor FileProcessorService {
                     let tiffMetadata = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any]
                     
                     if let dateTimeOriginal = exifMetadata?["DateTimeOriginal"] as? String ?? tiffMetadata?["DateTime"] as? String {
+                        #if DEBUG
+                        print("[FileProcessorService] DEBUG: Exif dateString = \(dateTimeOriginal)")
+                        #endif
                         let dateFormatter = DateFormatter()
                         dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+                        dateFormatter.timeZone = TimeZone(identifier: "UTC")
                         mediaDate = dateFormatter.date(from: dateTimeOriginal)
                     }
                 }

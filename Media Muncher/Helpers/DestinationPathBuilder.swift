@@ -36,13 +36,7 @@ struct DestinationPathBuilder {
             cal.timeZone = TimeZone(identifier: "UTC")!
             let c = cal.dateComponents([.year,.month,.day,.hour,.minute,.second], from: date)
             let y = c.year ?? 0, mo = c.month ?? 0, d = c.day ?? 0, h = c.hour ?? 0, mi = c.minute ?? 0, s = c.second ?? 0
-            let prefix: String
-            switch file.mediaType {
-            case .video: prefix = "VID"
-            case .audio: prefix = "AUD"
-            default: prefix = "IMG"
-            }
-            base = String(format: "%@_%04d%02d%02d_%02d%02d%02d", prefix, y, mo, d, h, mi, s)
+            base = String(format: "%04d%02d%02d_%02d%02d%02d", y, mo, d, h, mi, s)
         } else {
             base = file.filenameWithoutExtension
         }

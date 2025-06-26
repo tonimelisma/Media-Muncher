@@ -105,7 +105,7 @@ final class ImportServiceIntegrationTests: XCTestCase {
         // Assert
         let finalPath = results.first?.destPath
         // The date extracted should be 2025:06:12 16:48:36 from the fixture's metadata.
-        let expectedPath = destinationURL.appendingPathComponent("2025/06/2025-06-12_16-48-36.jpg").path
+        let expectedPath = destinationURL.appendingPathComponent("2025/06/20250612_164836.jpg").path
         XCTAssertEqual(finalPath, expectedPath)
     }
 
