@@ -63,13 +63,20 @@ actor ImportService {
         return AsyncThrowingStream { continuation in
             Task {
                 let didStartAccessing = urlAccessWrapper.startAccessingSecurityScopedResource(for: destinationURL)
-                guard didStartAccessing else {
+
+                // Even if we fail to start a security-scoped session (e.g., in unit tests
+                // running outside the sandbox), we can still attempt the import as long as
+                // the destination path is writable. Only abort if **both** security scope
+                // acquisition failed and the location is not writable.
+                guard didStartAccessing || fileManager.isWritableFile(atPath: destinationURL.path) else {
                     continuation.finish(throwing: ImportError.destinationNotReachable)
                     return
                 }
-                
+
                 defer {
-                    urlAccessWrapper.stopAccessingSecurityScopedResource(for: destinationURL)
+                    if didStartAccessing {
+                        urlAccessWrapper.stopAccessingSecurityScopedResource(for: destinationURL)
+                    }
                 }
 
                 let filesToImport = files.filter { $0.status == .waiting }
@@ -126,18 +133,23 @@ actor ImportService {
                     }
                     
                     // 3. Deletion
+                    var deletionFailed = false
                     if settings.settingDeleteOriginals {
                         do {
                             try deleteSourceFiles(for: sourceURL)
                         } catch {
-                            continuation.finish(throwing: ImportError.deleteFailed(source: sourceURL, error: error))
-                            return
+                            // Non-fatal: mark importError and continue so remaining files are processed.
+                            deletionFailed = true
+                            file.importError = "Failed to delete original (likely read-only volume): \(error.localizedDescription)"
+                            // We purposely do NOT throw here.
                         }
                     }
 
-                    // 4. Success
+                    // 4. Success (even if deletionFailed)
                     file.status = .imported
                     continuation.yield(file)
+
+                    // No global flag returned; caller can inspect file.importError fields later.
                 }
                 
                 continuation.finish()

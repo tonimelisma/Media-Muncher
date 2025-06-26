@@ -85,3 +85,6 @@ This section details planned UI work required to meet all remaining requirements
 ## 5. Notes on 2025-06-27
 * No user-visible UI changes were made in this development cycle. All efforts focused on backend bug-fixing (EXIF time-zone) and expanding the automated test suite.
 * A developer-mode toggle now surfaces additional `print` statements to aid debugging. These remain behind `#if DEBUG` and do **not** affect production builds.
+
+### 2025-06-28
+* **Bottom Bar** now reflects read-only import results: after an import that succeeded but could not delete originals, an inline red banner shows "Import successful, but failed to delete some original files…". This is surfaced by a new `AppError.importSucceededWithDeletionErrors` case.

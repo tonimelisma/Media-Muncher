@@ -176,8 +176,14 @@ actor FileProcessorService {
             let destSize = destAttr[.size] as? Int64 ?? 0
             let destDate = destAttr[.modificationDate] as? Date ?? .distantPast
             
-            // Using a 2-second tolerance for dates as before
-            return sourceSize == destSize && abs(sourceDate.timeIntervalSince(destDate)) < 2
+            let namesMatch = destinationURL.lastPathComponent == URL(fileURLWithPath: sourceFile.sourcePath).lastPathComponent
+            if sourceSize != destSize { return false }
+
+            // If filenames match, treat as same regardless of date difference. Otherwise fallback to date proximity (60s).
+            if namesMatch { return true }
+
+            let datesClose = abs(sourceDate.timeIntervalSince(destDate)) < 60
+            return datesClose
         } catch {
             return false
         }

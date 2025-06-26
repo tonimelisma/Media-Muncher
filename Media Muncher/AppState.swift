@@ -201,8 +201,14 @@ class AppState: ObservableObject {
                     volumeManager.ejectVolume(volumeToEject)
                 }
 
+                // Detect any deletion failures recorded in File.importError
+                let deletionFailures = self.files.contains { $0.importError?.contains("Failed to delete original") == true }
+
                 await MainActor.run {
                     self.importStartTime = nil // clear when done
+                    if deletionFailures {
+                        self.error = .importSucceededWithDeletionErrors(reason: "One or more originals could not be deleted (read-only drive)")
+                    }
                 }
 
             } catch is CancellationError {

@@ -202,3 +202,8 @@ graph TD;
 * Added four new pure-Swift **unit-test suites** covering `DestinationPathBuilder`, `FileProcessorService`, `ImportService`, and filename-collision edge cases. This reverses the accidental deletion of unit tests and restores a solid safety-net for future refactors.
 * Fixed EXIF time-zone parsing bug by forcing `DateFormatter` to UTC inside `FileProcessorService`.
 * Introduced `BUGS.md` to keep a living list of test-proven regressions. Initial entries track collision-handling, pre-existing detection, thumbnail enumeration, and a failing integration path-generation test.
+
+## 16. Recent Maintenance (2025-06-26)
+* Enabled read-only volume support: `ImportService` continues imports when originals cannot be deleted. The failure is surfaced via `.importSucceededWithDeletionErrors` and shown by the BottomBar `ErrorView`.
+* Fixed filename-collision and pre-existing detection logic in `FileProcessorService`.
+* All automated tests now pass; collision/pre-existing tests moved from **Bug** to **Finished**.

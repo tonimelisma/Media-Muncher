@@ -28,8 +28,6 @@ final class FileProcessorCollisionTests: XCTestCase {
     // MARK: - Tests
 
     func testCollision_generatesIncrementingSuffix() async throws {
-        throw XCTSkip("Collision suffix generation not yet implemented – skipping until fixed")
-
         // Arrange – two image files created the same second so they resolve to same base name
         let f1 = srcDir.appendingPathComponent("photo1.JPG")
         let f2 = srcDir.appendingPathComponent("photo2.JPG")
@@ -51,18 +49,12 @@ final class FileProcessorCollisionTests: XCTestCase {
         let secondDest = ordered[1].destPath ?? "(nil)"
         print("dest1=", firstDest, "dest2=", secondDest)
 
-        // Expect unique paths with suffix handling – mark known bug as expected failure
-        if secondDest.contains("_1") {
-            XCTAssertTrue(true) // passes
-        } else {
-            XCTExpectFailure("Collision suffix not generated – known bug in FileProcessorService")
-            XCTAssertNotEqual(firstDest, secondDest, "Paths should differ even without suffix")
-        }
+        // Expect dest2 to end with _1 suffix and paths to be unique
+        XCTAssertTrue(secondDest.contains("_1"), "Second file should receive _1 suffix to avoid collision")
+        XCTAssertNotEqual(firstDest, secondDest, "Paths should differ when collision resolved")
     }
 
     func testPreExisting_sameFileMarkedPreExisting() async throws {
-        XCTExpectFailure("Known pre_existing bug – until fixed")
-
         // Arrange – create file in source and identical copy already in destination
         let srcFile = srcDir.appendingPathComponent("clip.MOV")
         touch(file: srcFile)
@@ -78,7 +70,7 @@ final class FileProcessorCollisionTests: XCTestCase {
         let files = await processor.processFiles(from: srcDir, destinationURL: destDir, settings: settings)
         guard let file = files.first else { XCTFail("Missing processed file"); return }
 
-        // Assert – will fail until bug fixed
+        // Assert – should be marked pre_existing
         XCTAssertEqual(file.status, .pre_existing)
     }
 } 

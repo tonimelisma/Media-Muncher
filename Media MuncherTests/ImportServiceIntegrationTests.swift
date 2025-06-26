@@ -126,6 +126,31 @@ final class ImportServiceIntegrationTests: XCTestCase {
         // Assert
         XCTAssertFalse(fileManager.fileExists(atPath: originalSourcePath), "Source file should have been deleted")
     }
+
+    func testImport_readOnlySource_deletionFailsButImportSucceeds() async throws {
+        // Arrange – make a read-only source directory with a single file
+        settings.renameByDate = false
+        settings.organizeByDate = false
+        settings.settingDeleteOriginals = true
+
+        let sourceURL = try createTestVolume(withFiles: ["no_exif_image.heic"])
+        let originalSourcePath = sourceURL.appendingPathComponent("no_exif_image.heic").path
+
+        // Make directory and file read-only (0555)
+        try fileManager.setAttributes([.posixPermissions: NSNumber(value: Int16(0o555))], ofItemAtPath: sourceURL.path)
+        try fileManager.setAttributes([.posixPermissions: NSNumber(value: Int16(0o444))], ofItemAtPath: originalSourcePath)
+
+        let processedFiles = await processFiles(from: sourceURL)
+
+        // Act
+        let stream = await importService.importFiles(files: processedFiles, to: destinationURL, settings: settings)
+        let results = try await collectStreamResults(for: stream)
+
+        // Assert – import succeeded (status .imported) but originals remain because deletion failed
+        XCTAssertEqual(results.first?.status, .imported)
+        XCTAssertTrue(fileManager.fileExists(atPath: originalSourcePath), "Original should remain on read-only volume")
+        XCTAssertNotNil(results.first?.importError)
+    }
 }
 
 enum TestError: Error, LocalizedError {

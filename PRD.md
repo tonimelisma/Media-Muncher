@@ -53,12 +53,12 @@ Statuses use: **Finished**, **Started**, **Not Started**, **Bug**.
 | IE-1 | I press **Import** and files copy to my destination folder. | **Finished** |
 | IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g., `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Finished** |
 | IE-7 | If user sets a setting, destination folder names follow a hard-coded template (e.g., `YYYY/MM/DD/…`). | **Finished** |
-| IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Bug** |
-| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Bug** |
+| IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Finished** |
+| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Finished** |
 | IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Finished** |
 | IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Finished** |
 | IE-9 | After successful copy, thumbnails are deleted. | **Finished** |
-| IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Bug** |
+| IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Finished** |
 | IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Finished** |
 | IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Finished** |
 | IE-13 | As a user, if an import is interrupted or fails mid-way, I want to know exactly which files succeeded and which failed, so no data is silently lost. | **Finished** |
@@ -130,6 +130,10 @@ The specific file extensions for each category in **ST-5** are:
 - Repaired a broken build state by simplifying service architecture back to a clean, actor-based model and removing failed dependency injection code.
 - Replaced fragile, mock-based unit tests with a robust integration test suite that validates the entire import pipeline against the real file system.
 - Confirmed all core import logic (renaming, organization, deduplication, deletion) is working correctly and covered by automated tests.
+
+### 2025-06-28 – Read-Only Volume & Collision Fixes
+- Implemented read-only volume support; originals remain and user is notified via banner.
+- Resolved collision/pre-existing detection bugs; corresponding user stories marked Finished.
 
 ---
 **Legend**:  
