@@ -197,3 +197,8 @@ graph TD;
 * Purged all Automation/LaunchAgent code (Epic-7 reset).
 * Added LRU thumbnail cache (2 000 entries) into `FileProcessorService` actor.
 * Renamed `MediaScanner` to `FileProcessorService` for clarity.
+
+## 15. Recent Maintenance (2025-06-27)
+* Added four new pure-Swift **unit-test suites** covering `DestinationPathBuilder`, `FileProcessorService`, `ImportService`, and filename-collision edge cases. This reverses the accidental deletion of unit tests and restores a solid safety-net for future refactors.
+* Fixed EXIF time-zone parsing bug by forcing `DateFormatter` to UTC inside `FileProcessorService`.
+* Introduced `BUGS.md` to keep a living list of test-proven regressions. Initial entries track collision-handling, pre-existing detection, thumbnail enumeration, and a failing integration path-generation test.

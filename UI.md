@@ -81,3 +81,7 @@ This section details planned UI work required to meet all remaining requirements
 
 *   **[To-Do] Design Automation Settings:** Create mockups and implementation plan for the "Automation" tab in the Settings window, covering how users will manage per-volume import behaviors.
 *   **[To-Do] Design Richer Error States:** Design a more robust error reporting system. For example, an "Import Summary" sheet that appears after an import with partial failures, clearly listing which files succeeded and which failed, and why.
+
+## 5. Notes on 2025-06-27
+* No user-visible UI changes were made in this development cycle. All efforts focused on backend bug-fixing (EXIF time-zone) and expanding the automated test suite.
+* A developer-mode toggle now surfaces additional `print` statements to aid debugging. These remain behind `#if DEBUG` and do **not** affect production builds.

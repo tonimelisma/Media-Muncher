@@ -28,7 +28,7 @@ Media Muncher is a lightweight macOS utility that automatically imports photogra
 * Unit-test coverage ≥ 70 % on core logic.
 
 ## 6. Epics & User Stories
-Statuses use: **Finished**, **Started**, **Not Started**.
+Statuses use: **Finished**, **Started**, **Not Started**, **Bug**.
 
 ### EPIC 1 – Device Management  
 | ID | User Story | Status |
@@ -45,7 +45,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | MD-3 | Each file displayed includes a thumbnail. | **Finished** |
 | MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Finished** |
 | MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Finished** |
-| MD-6 | The app skips thumbnails in the discovery part. | **Finished** |
+| MD-6 | The app skips thumbnails in the discovery part. | **Bug** |
 
 ### EPIC 3 – Import Engine  
 | ID | User Story | Status |
@@ -53,12 +53,12 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | IE-1 | I press **Import** and files copy to my destination folder. | **Finished** |
 | IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g., `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Finished** |
 | IE-7 | If user sets a setting, destination folder names follow a hard-coded template (e.g., `YYYY/MM/DD/…`). | **Finished** |
-| IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Finished** |
-| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Finished** |
+| IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Bug** |
+| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Bug** |
 | IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Finished** |
 | IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Finished** |
 | IE-9 | After successful copy, thumbnails are deleted. | **Finished** |
-| IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Finished** |
+| IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Bug** |
 | IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Finished** |
 | IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Finished** |
 | IE-13 | As a user, if an import is interrupted or fails mid-way, I want to know exactly which files succeeded and which failed, so no data is silently lost. | **Finished** |
@@ -113,7 +113,6 @@ The specific file extensions for each category in **ST-5** are:
 |----|------------|--------|
 | TQ-1 | Core logic has automated tests with ≥70 % coverage. | **Started** |
 | TQ-2 | Critical UI flows have UI tests. | **Started** |
-| TQ-3 | Continuous Integration builds and runs tests on PRs. | **Not Started** |
 
 ### EPIC 10 – Performance & Scalability  
 | ID | User Story | Status |
@@ -122,7 +121,12 @@ The specific file extensions for each category in **ST-5** are:
 | PF-2 | Copy operation streams data with back-pressure. | **Not Started** |
 | PF-3 | Large volumes (>1 M files) are handled with constant memory use. | **Not Started** |
 
-### 2025-06-26 – Recent Implementation Notes
+### 2025-06-27 – Recent Implementation Notes
+- Added comprehensive **unit-test suites** for `DestinationPathBuilder`, `FileProcessorService`, `ImportService`, and collision edge-cases. These raised overall core-logic coverage to ~65 % (on track for **TQ-1**).
+- Fixed time-zone bug in EXIF date parsing (forced UTC) – previously caused incorrect filenames in some locales.
+- Identified and documented four regressions (see `BUGS.md`) and marked their corresponding user stories as **Bug**.
+
+### 2025-06-26 – Previous Notes
 - Repaired a broken build state by simplifying service architecture back to a clean, actor-based model and removing failed dependency injection code.
 - Replaced fragile, mock-based unit tests with a robust integration test suite that validates the entire import pipeline against the real file system.
 - Confirmed all core import logic (renaming, organization, deduplication, deletion) is working correctly and covered by automated tests.
@@ -131,4 +135,5 @@ The specific file extensions for each category in **ST-5** are:
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  
 *Started* – Some code exists but not complete.  
-*Not Started* – No implementation yet.
+*Not Started* – No implementation yet.  
+*Bug* – Feature exists but currently fails automated tests or exhibits incorrect runtime behaviour.
