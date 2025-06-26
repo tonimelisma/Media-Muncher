@@ -19,10 +19,10 @@
                                              │ (Orchestrator)│
                                              └───────┬───────┘
                                                      │
-               ┌────────────────┐ scan(volume)       │
-               │ MediaScanner   ├────────────────────┘
-               │ (Service Actor)│◀───────────────────┐
-               └────────────────┘ files, progress    │
+               ┌────────────────────┐ scan(volume)   │
+               │ FileProcessorService├────────────────┘
+               │ (Service Actor)    │◀───────────────────┐
+               └────────────────────┘ files, progress    │
                                              ┌───────────────┐
                                              │ ImportService │
                                              │  (Service Actor)    │
@@ -30,8 +30,8 @@
 ```
 
 * The **SwiftUI layer** presents a sidebar of volumes, a grid of media files, and a settings panel. It binds to data published by the `AppState` and individual services.
-* **Services** (`VolumeManager`, `MediaScanner`, `SettingsStore`, `ImportService`) are focused classes/actors responsible for a single domain. They own their data and expose it via Combine publishers or async streams.
-* **`AppState`** is a singleton `ObservableObject` that acts as an **Orchestrator** or **Facade**. It wires together the services and the UI, but contains very little logic itself.
+* **Services** (`VolumeManager`, `FileProcessorService`, `SettingsStore`, `ImportService`) are focused classes/actors responsible for a single domain. They own their data and expose it via Combine publishers or async streams.
+* **`AppState`** is a singleton `ObservableObject` that acts as an **Orchestrator** or **Facade**. It wires together the services and the UI, acting as a state machine manager for the UI. It contains very little business logic itself.
 * **Models** (`Volume`, `File`, `AppError`) are simple value types passed between layers.
 * All file-system work is done asynchronously so the UI never blocks.
 
@@ -41,33 +41,37 @@
 | File | Responsibility | Key Types / Functions |
 |------|----------------|------------------------|
 | **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
-| **AppState.swift** | Orchestrates services and exposes unified state to the UI. | `AppState` |
+| **AppState.swift** | Orchestrates services and exposes unified state to the UI. Manages the UI state machine. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
-| **Services/MediaScanner.swift** | Scans a volume for media files on a background thread, maintains an in-actor **LRU thumbnail cache (2 000 entries)**, and detects pre-existing files in the destination (now considers relative `YYYY/MM` sub-folders + rename-template). | `MediaScanner` |
+| **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread, maintains an in-actor **LRU thumbnail cache (2 000 entries)**, and detects pre-existing files in the destination. | `FileProcessorService` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. Delegates all path calculation to `DestinationPathBuilder`. | `ImportService` |
-| **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **MediaScanner** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
+| **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
 | **Models/FileModel.swift** | Immutable record for a media file & helpers | `File`, `MediaType`, `FileStatus`, `MediaType.from(filePath:)` |
 | **Models/AppError.swift**| Domain-specific error types. | `AppError` |
+| **ContentView.swift** | Arranges split-view, toolbar, Import button. | `ContentView` |
 | **VolumeView.swift** | Sidebar showing all volumes, eject button. Binds to `VolumeManager`. | `VolumeView` |
 | **MediaView.swift** | Decides what to show in detail pane. Binds to `AppState`. | `MediaView` |
 | **MediaFilesGridView.swift** | Adaptive grid of media icons/filenames. Binds to `AppState`. | `MediaFilesGridView` |
+| **MediaFileCellView.swift** | A small view that represents a single cell in the `MediaFilesGridView`, displaying the thumbnail and status overlays. | `MediaFileCellView` |
+| **BottomBarView.swift** | The view at the bottom of the window that shows scan progress, import progress, and action buttons. | `BottomBarView` |
 | **SettingsView.swift** | Toggles & folder picker. Binds to `SettingsStore`. | `SettingsView`, `FolderPickerView` |
 | **ErrorView.swift** | Inline error banner. Binds to `AppState`. | `ErrorView` |
-| **ContentView.swift** | Arranges split-view, toolbar, Import button. | `ContentView` |
-| Tests folders | Unit tests for services and helpers. | `MediaScannerTests`, `ImportServiceTests`, etc. |
+| **Tests/ImportServiceIntegrationTests.swift** | End-to-end tests for the entire import pipeline, operating on real files in a temporary directory. | `ImportServiceIntegrationTests` |
+| **Tests/Z_ProjectFileFixer.swift** | A utility file containing a build script phase to ensure the `Fixtures` directory is copied into the test bundle. | `Z_ProjectFileFixer` |
+| **Tests/Fixtures/** | A directory of sample media files (images, videos, duplicates) used by the integration tests. | - |
 
 > **Observation** – The previous monolithic `AppState` has been refactored into focused services, improving separation of concerns.
 
 ---
 ## 3. Runtime Flow (today)
-1. `Media_MuncherApp` instantiates `VolumeManager`, `MediaScanner`, `SettingsStore`, `ImportService` and `AppState`. It injects them as `@EnvironmentObject`s.
+1. `Media_MuncherApp` instantiates `VolumeManager`, `FileProcessorService`, `SettingsStore`, `ImportService` and `AppState`. It injects them as `@EnvironmentObject`s.
 2. `VolumeManager` uses `NSWorkspace` to discover and publish an array of `Volume`s.
 3. `AppState` subscribes to `VolumeManager`'s volumes and automatically selects the first one.
 4. The volume selection change is published by `AppState`.
-5. On observing the change, `AppState` asks the `MediaScanner` actor to begin scanning the selected volume.
-6. `MediaScanner` traverses the volume on a background task, batching results and progress into `AsyncStream`s.
+5. On observing the change, `AppState` asks the `FileProcessorService` actor to begin scanning the selected volume.
+6. `FileProcessorService` traverses the volume on a background task, batching results and progress into `AsyncStream`s.
 7. `AppState` collects these stream results and updates its `@Published` `files` and `filesScanned` properties on the **MainActor**.
 8. `MediaFilesGridView` and `ContentView` observe `AppState` and display the new files and progress as they arrive.
 9. When **Import** is clicked, `AppState` calls the `ImportService` to copy the scanned files to the destination set in `SettingsStore`.
@@ -80,7 +84,7 @@
 | Module | Responsibility | Notes |
 |--------|----------------|-------|
 | `VolumeManager` | Discover, eject & monitor volumes, expose `Publisher<[Volume]>` | Wrap `NSWorkspace` & external devices (future PTP/MTP). |
-| `MediaScanner` | **Phase 1:** fast filesystem walk that emits basic `File` structs (path, name, size) immediately; **Phase 2:** schedules asynchronous enrichment tasks that add heavy metadata (EXIF, thumbnails) without blocking the UI | Move initial `enumerateFiles()` here and spin-off a `MetadataEnricher` actor (or background `Task`) for phase 2. |
+| `FileProcessorService` | **Phase 1:** fast filesystem walk that emits basic `File` structs (path, name, size) immediately; **Phase 2:** schedules asynchronous enrichment tasks that add heavy metadata (EXIF, thumbnails) without blocking the UI | Move initial `enumerateFiles()` here and spin-off a `MetadataEnricher` actor (or background `Task`) for phase 2. |
 | `ImportService` | Copy files, handle duplicates, **remove thumbnail side-cars (".THM"/".thm") after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
 | `SettingsStore` | Type-safe wrapper around `UserDefaults` & security bookmarks | Provides Combine `@Published` properties. |
 | `Logger` | Structured logging (os
@@ -93,7 +97,7 @@ No service depends back on SwiftUI, keeping layers clean.
 
 ---
 ## 5. Concurrency Model
-* **Actors** – `MediaScanner` & `ImportService`
+* **Actors** – `FileProcessorService` & `ImportService`
 * **MainActor** – Only UI changes run here; services stay off the main thread.
 * **Task Cancellation** – Long-running scans / imports call `Task.checkCancellation()` each iteration.
 
@@ -105,7 +109,7 @@ No service depends back on SwiftUI, keeping layers clean.
 
 ---
 ## 7. Persistence & Idempotency
-* Destination file uniqueness is guaranteed by capture-date + file-size; no hashes / no DB.
+* Destination file uniqueness is guaranteed by a combination of capture-date and file-size. This logic is centralized in `DestinationPathBuilder` to ensure consistency.
 * The **filesystem is the single source of truth**. Import operations always recompute the expected destination path; if a file already exists it is skipped.
 * User settings are stored in `UserDefaults` (some as security-scoped bookmarks).
 
@@ -117,9 +121,11 @@ No service depends back on SwiftUI, keeping layers clean.
 
 ---
 ## 9. Testing Strategy
-* **Unit Tests** for helpers & services (mocking `FileManager`, `NSWorkspace`).
-* **Integration Tests** mount a DMG volume fixture with synthetic media.
-* UI tests & CI have been removed temporarily and will return when the UI stabilises.
+Our testing strategy prioritizes high-fidelity integration tests over mock-based unit tests for code that interacts with the file system. This gives us greater confidence that the application works correctly in real-world scenarios.
+
+*   **Integration Tests (Primary)**: The core of our test suite is `ImportServiceIntegrationTests.swift`. These tests create temporary directories on disk, populate them with fixture files, and run the entire import pipeline (`FileProcessorService` and `ImportService`) from start to finish. This validates file discovery, metadata parsing, path generation, collision handling, and file copying/deletion in a realistic environment.
+*   **Unit Tests (For Pure Logic)**: Unit tests are reserved for pure, isolated business logic that has no dependencies on the file system or other services. A key example is `DestinationPathBuilderTests.swift`, which can verify path-generation logic without needing to touch the disk.
+*   **Test Fixtures**: A dedicated `Media MuncherTests/Fixtures/` directory contains a curated set of media files to cover various test cases (e.g., images with and without EXIF data, duplicates, videos with sidecars). A utility, `Z_ProjectFileFixer.swift`, contains a build-phase script to ensure these fixtures are correctly copied into the test bundle and are available to the integration tests at runtime.
 
 ---
 ## 10. Code Style & Contribution Guidelines
@@ -154,9 +160,10 @@ open "Media Muncher.xcodeproj"
 graph TD;
   subgraph Services
     VM(VolumeManager)
-    MS(MediaScanner)
+    FPS(FileProcessorService)
     SS(SettingsStore)
     IS(ImportService)
+    DPB(DestinationPathBuilder)
   end
 
   subgraph UI
@@ -168,9 +175,9 @@ graph TD;
   end
   
   App(Media_MuncherApp) -- instantiates --> AS(AppState)
-  App --> VM & MS & SS & IS
+  App --> VM & FPS & SS & IS
 
-  AS --> VM & MS & SS & IS
+  AS --> VM & FPS & SS & IS
   
   CV --> AS
   VV --> VM & AS
@@ -179,96 +186,14 @@ graph TD;
   EV --> AS
 
   VM -- publishes volumes --> AS
-  MS -- streams files --> AS
+  FPS -- streams files --> AS
+  FPS --> DPB
+  IS --> DPB
 ```
 
 ---
-## 14. Recent Maintenance (2025-06-24)
-* **ALT-1** – Introduced `DestinationPathBuilder` helper; `ImportService` & `MediaScanner` now delegate path logic → single source of truth.
+## 14. Recent Maintenance (2025-06-25)
+* **ALT-1** – Introduced `DestinationPathBuilder` helper; `ImportService` & `FileProcessorService` now delegate path logic → single source of truth.
 * Purged all Automation/LaunchAgent code (Epic-7 reset).
-* Added LRU thumbnail cache (2 000 entries) into `MediaScanner` actor.
-
-The application follows a modern MVVM-inspired architecture, tailored for SwiftUI. The core components are:
-
-- **Views**: Pure SwiftUI views responsible for rendering the UI.
-- **AppState**: The central nervous system of the app. It acts as a ViewModel for the entire application, holding all the state and orchestrating the services.
-- **Services**: Asynchronous actors or classes responsible for specific domains of business logic (e.g., managing volumes, processing files).
-- **Models**: Simple data-holding structures.
-
-```mermaid
-graph TD
-    subgraph "Services"
-        A[VolumeManager]
-        B[FileProcessorService]
-        C[ImportService]
-        D[SettingsStore]
-    end
-
-    subgraph "UI"
-        F[ContentView]
-        G[VolumeView]
-        H[MediaFilesGridView]
-        I[SettingsView]
-    end
-    
-    J((AppState))
-
-    A -- Publishes Volumes --> J
-    B -- Streams Files --> J
-    C -- Called by --> J
-    D -- Read by --> J
-    
-    J -- Drives --> F
-    F --> G
-    F --> H
-    F --> I
-
-    click B "#file-processor-service"
-```
-
-### Core Components
-
-#### AppState
-
-The `AppState` is a global `ObservableObject` that holds the application's state. It is the single source of truth for the UI. It owns and orchestrates all the services.
-
-#### File Processor Service
-
-The `FileProcessorService` is a stateless actor responsible for all logic related to analyzing files on the source media. It performs a two-phase process:
-
-1.  **Fast Enumeration**: A quick pass over the source directory to identify all valid media files and return a list of placeholder `File` objects. This allows the UI to populate instantly.
-2.  **File Processing**: A more intensive, asynchronous operation that takes a single `File` object and enriches it with:
-    *   Metadata (EXIF date, size)
-    *   A thumbnail image
-    *   Its final, collision-resolved destination path.
-    *   Its status (`pre_existing`, `duplicate_in_source`, etc.)
-
-This service contains the complex logic for both source-to-source duplicate detection and destination collision resolution. It is responsible for the two-phase scan: a fast enumeration of files, followed by a slower, asynchronous enrichment phase that gathers metadata and generates thumbnails. It contains an in-memory LRU cache for thumbnails to avoid regenerating them unnecessarily. It also handles the complex logic of resolving destination file names to avoid collisions, both with files already on disk and with other files in the current import session.
-
-- Added in-memory LRU thumbnail cache (2 000 entries) and isolated thumbnail generation via QuickLook. This improves scanning performance and removes thumbnail responsibilities from `AppState`.
-
-#### Import Service
-
-The `ImportService` is an actor that handles the actual file copy operations from the source to the destination. It has been refactored to be fully transactional and resilient.
-
-It exposes a single function, `importFiles(...)`, which takes the list of files to import and returns an `AsyncThrowingStream<File, Error>`. As the service processes each file, it `yield`s updated `File` objects back to the caller, allowing for real-time UI updates.
-
-The import process for each file is:
-1.  **Copy**: The file is copied to its final destination. The service yields a `File` with status `.copying`.
-2.  **Verify**: After a successful copy, the service verifies that the destination file's size matches the source file's size. The service yields a `File` with status `.verifying`.
-3.  **Finalize**: If verification passes, the service yields the final `File` with status `.imported`. If the user has enabled it, the source file is deleted.
-
-If any step fails, the service yields a `File` with status `.failed` and an `importError` message, then continues processing the next file in the queue. This ensures that a single failure does not halt the entire import batch.
-
-### Data Flow for a Scan
-
-1.  **User selects a volume.**
-2.  `AppState` initiates a scan by calling `FileProcessorService.fastEnumerate()`.
-3.  The service returns a complete list of placeholder `File` models, which `AppState` publishes. The UI immediately updates to show the grid of files (without thumbnails).
-4.  `AppState` starts a background task that iterates through the list of files. For each file, it calls `FileProcessorService.processFile()`.
-5.  As each file is processed, the service returns the fully enriched `File` model.
-6.  `AppState` finds the corresponding file in its main array and updates it.
-7.  Because the `files` array is `@Published` and `File` is a struct, the UI is notified of the change, and the specific icon for the processed file is updated with its thumbnail and status overlay.
-8.  This continues until all files have been processed.
-
-* **AppState** is injected as `@EnvironmentObject` **everywhere**. Views observe `@Published` properties for reactive updates. `AppState` now also tracks `importStartTime`, publishes `elapsedSeconds` and `remainingSeconds`, enabling ETA display in `BottomBarView`.
+* Added LRU thumbnail cache (2 000 entries) into `FileProcessorService` actor.
+* Renamed `MediaScanner` to `FileProcessorService` for clarity.

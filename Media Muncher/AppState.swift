@@ -125,38 +125,15 @@ class AppState: ObservableObject {
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
-            let initialFiles = await fileProcessorService.fastEnumerate(
-                at: url,
-                filterImages: settingsStore.filterImages,
-                filterVideos: settingsStore.filterVideos,
-                filterAudio: settingsStore.filterAudio
+            let processedFiles = await fileProcessorService.processFiles(
+                from: url,
+                destinationURL: settingsStore.destinationURL,
+                settings: settingsStore
             )
 
             await MainActor.run {
-                self.files = initialFiles
-                self.filesScanned = initialFiles.count
-            }
-
-            // Now, process each file for enrichment and collision resolution
-            for i in 0..<initialFiles.count {
-                if Task.isCancelled { break }
-                
-                let processedFile = await fileProcessorService.processFile(
-                    initialFiles[i],
-                    allFiles: self.files,
-                    destinationURL: settingsStore.destinationURL,
-                    settings: settingsStore
-                )
-                
-                await MainActor.run {
-                    // It's crucial to update the single source of truth
-                    if let index = self.files.firstIndex(where: { $0.id == processedFile.id }) {
-                        self.files[index] = processedFile
-                    }
-                }
-            }
-            
-            await MainActor.run {
+                self.files = processedFiles
+                self.filesScanned = processedFiles.count
                 self.state = .idle
             }
         }

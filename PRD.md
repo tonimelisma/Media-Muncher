@@ -1,7 +1,7 @@
 # Media Muncher – Product Requirements Document (PRD)
 
 ## 1. Vision
-Media Muncher is a lightweight macOS utility that automatically imports photographs, videos and audio recordings from any removable storage (SD-cards, USB disks, connected cameras) into a user-defined library structure on the Mac. It should be as seamless as Apple Photos import, but work with any folder hierarchy, respect professional workflows, guarantee against data-loss, and remain scriptable/automatable for power users.
+Media Muncher is a lightweight macOS utility that automatically imports photographs, videos and audio recordings from any removable storage (SD-cards, USB disks, connected cameras) into a user-defined library structure on the Mac. It is a single-purpose tool that does one thing well. It should be as seamless as Apple Photos import, but work with any folder hierarchy, respect professional workflows, guarantee against data-loss, and remain scriptable/automatable for power users.
 
 ## 2. Goals
 1. Zero-click ingest of media as soon as a card is inserted while still allowing manual control.
@@ -44,7 +44,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | MD-2 | The scan shows live progress and can be cancelled. | **Finished** |
 | MD-3 | Each file displayed includes a thumbnail. | **Finished** |
 | MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Finished** |
-| MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Not Started** |
+| MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Finished** |
 | MD-6 | The app skips thumbnails in the discovery part. | **Finished** |
 
 ### EPIC 3 – Import Engine  
@@ -72,6 +72,14 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | ST-4 | I can whitelist volumes for auto-import. | **Not Started** |
 | ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions (e.g., "raw" includes .ARW, .NEF, .CR3, etc.) so I know exactly what will be imported. | **Finished** |
 
+The specific file extensions for each category in **ST-5** are:
+| Category | File Extensions |
+|---|---|
+| **Photo** | `.jpg`, `.jpeg`, `.heic`, `.heif`, `.png`, `.gif`, `.tiff`, `.tif`, `.bmp` |
+| **Video** | `.mov`, `.mp4`, `.m4v`, `.avi`, `.mts`, `.m2ts`, `.mpg`, `.mpeg` |
+| **Audio** | `.mp3`, `.m4a`, `.aac`, `.wav`, `.aiff`, `.aif` |
+| **RAW** | `.cr2`, `.cr3`, `.nef`, `.arw`, `.dng`, `.orf`, `.raf`, `.gpr`, `.rw2` |
+
 ### EPIC 5 – User Interface Polish  
 | ID | User Story | Status |
 |----|------------|--------|
@@ -79,7 +87,7 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | UI-2 | Each media type has a specific icon before thumbnail loads. | **Finished** |
 | UI-3 | Import progress bar and time estimate are shown. | **Finished** |
 | UI-4 | Errors appear inline with helpful messages. | **Finished** |
-| UI-5 | Full dark/light-mode compliance. | **Started** |
+| UI-5 | Full dark/light-mode compliance. | **Finished** |
 
 ### EPIC 6 – Security & Permissions  
 | ID | User Story | Status |
@@ -103,8 +111,8 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 ### EPIC 9 – Testing & Quality  
 | ID | User Story | Status |
 |----|------------|--------|
-| TQ-1 | Core logic has unit tests with ≥70 % coverage. | **Started** |
-| TQ-2 | Critical UI flows have UI tests. | **Not Started** |
+| TQ-1 | Core logic has automated tests with ≥70 % coverage. | **Started** |
+| TQ-2 | Critical UI flows have UI tests. | **Started** |
 | TQ-3 | Continuous Integration builds and runs tests on PRs. | **Not Started** |
 
 ### EPIC 10 – Performance & Scalability  
@@ -114,13 +122,13 @@ Statuses use: **Finished**, **Started**, **Not Started**.
 | PF-2 | Copy operation streams data with back-pressure. | **Not Started** |
 | PF-3 | Large volumes (>1 M files) are handled with constant memory use. | **Not Started** |
 
-### 2025-06-24 – Recent Implementation Notes
-- Added thumbnail caching (LRU, 2 000 entries) to `FileProcessorService` improving scan performance (addresses EP-4 performance requirement).
-- Introduced `MediaFileCellView` and `BottomBarView` to simplify and modularize UI (supports UI maintainability goals).
-- Re-enabled and fixed `FileProcessorServiceTests` by enhancing mocks.
+### 2025-06-26 – Recent Implementation Notes
+- Repaired a broken build state by simplifying service architecture back to a clean, actor-based model and removing failed dependency injection code.
+- Replaced fragile, mock-based unit tests with a robust integration test suite that validates the entire import pipeline against the real file system.
+- Confirmed all core import logic (renaming, organization, deduplication, deletion) is working correctly and covered by automated tests.
 
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  
 *Started* – Some code exists but not complete.  
-*Not Started* – No implementation yet. 
+*Not Started* – No implementation yet.

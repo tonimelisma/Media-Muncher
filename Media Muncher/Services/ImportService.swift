@@ -7,17 +7,6 @@
 
 import Foundation
 
-// By defining the protocol here, it's available for both the app and tests.
-protocol FileManagerProtocol {
-    func copyItem(at srcURL: URL, to dstURL: URL) throws
-    func fileExists(atPath path: String) -> Bool
-    func createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]?) throws
-    func removeItem(at URL: URL) throws
-    func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any]
-}
-
-extension FileManager: FileManagerProtocol {}
-
 protocol SecurityScopedURLAccessWrapperProtocol {
     func startAccessingSecurityScopedResource(for url: URL) -> Bool
     func stopAccessingSecurityScopedResource(for url: URL)
@@ -56,15 +45,13 @@ actor ImportService {
         }
     }
 
-    private let fileManager: FileManagerProtocol
+    private let fileManager = FileManager.default
     private let urlAccessWrapper: SecurityScopedURLAccessWrapperProtocol
     var nowProvider: () -> Date = { Date() }
 
     init(
-        fileManager: FileManagerProtocol = FileManager.default,
         urlAccessWrapper: SecurityScopedURLAccessWrapperProtocol = SecurityScopedURLAccessWrapper()
     ) {
-        self.fileManager = fileManager
         self.urlAccessWrapper = urlAccessWrapper
     }
     
@@ -106,10 +93,10 @@ actor ImportService {
                         continuation.yield(file)
                         
                         let destDir = finalDestinationURL.deletingLastPathComponent()
-                        if !self.fileManager.fileExists(atPath: destDir.path) {
-                            try self.fileManager.createDirectory(at: destDir, withIntermediateDirectories: true, attributes: nil)
+                        if !fileManager.fileExists(atPath: destDir.path) {
+                            try fileManager.createDirectory(at: destDir, withIntermediateDirectories: true, attributes: nil)
                         }
-                        try self.fileManager.copyItem(at: sourceURL, to: finalDestinationURL)
+                        try fileManager.copyItem(at: sourceURL, to: finalDestinationURL)
                     } catch {
                         file.status = .failed
                         file.importError = "Copy failed: \(error.localizedDescription)"
@@ -141,11 +128,10 @@ actor ImportService {
                     // 3. Deletion
                     if settings.settingDeleteOriginals {
                         do {
-                            try self.deleteSourceFiles(for: sourceURL)
+                            try deleteSourceFiles(for: sourceURL)
                         } catch {
-                            // This is a non-critical error. We can report it but still mark the import as successful.
-                            // A future improvement could be a "warnings" array on the File model.
-                            print("Non-critical error: Failed to delete source file or its sidecars for \(sourceURL.path): \(error.localizedDescription)")
+                            continuation.finish(throwing: ImportError.deleteFailed(source: sourceURL, error: error))
+                            return
                         }
                     }
 
@@ -161,39 +147,15 @@ actor ImportService {
 
     // MARK: - Private helpers
 
-    /// Removes the source file and any common QuickTime/GoPro style thumbnail side-car files (e.g. .THM) that share the same stem.
-    /// This function is designed to not throw, as deletion is a non-critical part of the import. It will log errors to the console.
     private func deleteSourceFiles(for sourceURL: URL) throws {
         let stem = sourceURL.deletingPathExtension()
-        // Include the original file in the list of files to delete.
         let variants = [sourceURL, stem.appendingPathExtension("THM"), stem.appendingPathExtension("thm")]
         
-        #if DEBUG
-        print("[DEBUG] Starting source file and sidecar cleanup; variants: \(variants.map { $0.path }))")
-        #endif
-
         for url in variants {
             guard fileManager.fileExists(atPath: url.path) else {
-                continue // Skip if file doesn't exist
+                continue
             }
-            
-            #if DEBUG
-            print("[DEBUG] Attempting to remove: \(url.path)")
-            #endif
-            
-            do {
-                try fileManager.removeItem(at: url)
-                #if DEBUG
-                print("[DEBUG] Removed: \(url.path)")
-                #endif
-            } catch {
-                // Log the error but do not rethrow, as we want to continue trying to delete other files.
-                print("Failed to delete file at \(url.path): \(error.localizedDescription)")
-            }
+            try fileManager.removeItem(at: url)
         }
-        
-        #if DEBUG
-        print("[DEBUG] Source file and sidecar cleanup finished.")
-        #endif
     }
-} 
+}

@@ -9,15 +9,43 @@ actor FileProcessorService {
     private var thumbnailCache: [String: Image] = [:] // key = file path
     private var thumbnailOrder: [String] = []
     private let thumbnailCacheLimit = 2000
+    
+    private let fileManager = FileManager.default
 
-    func fastEnumerate(
+    init() {}
+
+    func processFiles(
+        from sourceURL: URL,
+        destinationURL: URL?,
+        settings: SettingsStore
+    ) async -> [File] {
+        let discoveredFiles = fastEnumerate(
+            at: sourceURL,
+            filterImages: settings.filterImages,
+            filterVideos: settings.filterVideos,
+            filterAudio: settings.filterAudio
+        )
+
+        var processedFiles: [File] = []
+        for file in discoveredFiles {
+            let processedFile = await processFile(
+                file,
+                allFiles: processedFiles,
+                destinationURL: destinationURL,
+                settings: settings
+            )
+            processedFiles.append(processedFile)
+        }
+        return processedFiles
+    }
+
+    private func fastEnumerate(
         at rootURL: URL,
         filterImages: Bool,
         filterVideos: Bool,
         filterAudio: Bool
     ) -> [File] {
         var files: [File] = []
-        let fileManager = FileManager.default
         let resourceKeys: Set<URLResourceKey> = [.isDirectoryKey]
 
         guard let enumerator = fileManager.enumerator(
@@ -58,12 +86,11 @@ actor FileProcessorService {
         return files
     }
 
-    func processFile(
+    private func processFile(
         _ file: File,
         allFiles: [File],
         destinationURL: URL?,
-        settings: SettingsStore,
-        fileManager: FileManagerProtocol = FileManager.default
+        settings: SettingsStore
     ) async -> File {
         var newFile = file
 
@@ -111,7 +138,7 @@ actor FileProcessorService {
             // Check if a DIFFERENT file exists at the destination
             var onDiskCollision = false
             if fileManager.fileExists(atPath: candidatePath.path) {
-                if await !isSameFile(sourceFile: newFile, destinationURL: candidatePath, fileManager: fileManager) {
+                if await !isSameFile(sourceFile: newFile, destinationURL: candidatePath) {
                     onDiskCollision = true
                 } else {
                     // It's the same file, mark as pre-existing
@@ -133,7 +160,7 @@ actor FileProcessorService {
         return newFile
     }
 
-    private func isSameFile(sourceFile: File, destinationURL: URL, fileManager: FileManagerProtocol) async -> Bool {
+    private func isSameFile(sourceFile: File, destinationURL: URL) async -> Bool {
         guard let sourceSize = sourceFile.size, let sourceDate = sourceFile.date else { return false }
 
         do {

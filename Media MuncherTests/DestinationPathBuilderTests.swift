@@ -1,0 +1,71 @@
+import XCTest
+@testable import Media_Muncher
+
+// MARK: - DestinationPathBuilder Tests
+
+final class DestinationPathBuilderTests: XCTestCase {
+
+    // Fixed date for deterministic results –  2025-01-01 12:00:00 UTC
+    private let referenceDate = Date(timeIntervalSince1970: 1735732800) // 2025-01-01 12:00:00
+    private let rootURL = URL(fileURLWithPath: "/Library/Destination")
+
+    private func makeFile(name: String, mediaType: MediaType = .image) -> File {
+        File(
+            sourcePath: "/Volumes/SD/" + name,
+            mediaType: mediaType,
+            date: referenceDate,
+            size: 1_024,
+            destPath: nil,
+            status: .waiting,
+            thumbnail: nil,
+            importError: nil
+        )
+    }
+
+    func testRelativePath_NoOrganize_NoRename() {
+        // Given
+        let file = makeFile(name: "IMG_0001.JPG")
+
+        // When
+        let rel = DestinationPathBuilder.relativePath(for: file, organizeByDate: false, renameByDate: false)
+
+        // Then – keeps original base name but normalises extension case
+        XCTAssertEqual(rel, "IMG_0001.jpg")
+    }
+
+    func testRelativePath_RenameByDate_PreservesDirectory() {
+        // Given
+        let file = makeFile(name: "some_random_name.heic")
+
+        // When (rename only)
+        let rel = DestinationPathBuilder.relativePath(for: file, organizeByDate: false, renameByDate: true)
+
+        // Then – IMG_YYYYMMDD_HHMMSS.heif (preferred ext)
+        XCTAssertEqual(rel, "IMG_20250101_120000.heif")
+    }
+
+    func testRelativePath_OrganizeAndRename() {
+        // Given
+        let file = makeFile(name: "CLIP.mov", mediaType: .video)
+
+        // When (organize + rename)
+        let rel = DestinationPathBuilder.relativePath(for: file, organizeByDate: true, renameByDate: true)
+
+        // Then – directory + renamed base with VID prefix
+        XCTAssertEqual(rel, "2025/01/VID_20250101_120000.mov")
+    }
+
+    func testBuildFinalDestinationUrl_AppendsSuffix() {
+        // Given
+        var settings = SettingsStore()
+        settings.organizeByDate = true
+        settings.renameByDate = true
+        let file = makeFile(name: "music.aac", mediaType: .audio)
+
+        // When – ask builder to append suffix 2
+        let url = DestinationPathBuilder.buildFinalDestinationUrl(for: file, in: rootURL, settings: settings, suffix: 2)
+
+        // Then
+        XCTAssertEqual(url.path, "/Library/Destination/2025/01/AUD_20250101_120000_2.aac")
+    }
+}
