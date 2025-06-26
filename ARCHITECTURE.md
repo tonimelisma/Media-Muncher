@@ -207,3 +207,7 @@ graph TD;
 * Enabled read-only volume support: `ImportService` continues imports when originals cannot be deleted. The failure is surfaced via `.importSucceededWithDeletionErrors` and shown by the BottomBar `ErrorView`.
 * Fixed filename-collision and pre-existing detection logic in `FileProcessorService`.
 * All automated tests now pass; collision/pre-existing tests moved from **Bug** to **Finished**.
+
+## 17. Recent Maintenance (2025-06-28)
+* Added deterministic sorting in `FileProcessorService` to make collision-resolution suffixes reproducible and fixed failing unit test.
+* Introduced `AppStateWorkflowTests` to cover scan cancellation and auto-eject paths.

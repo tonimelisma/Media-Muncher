@@ -135,6 +135,10 @@ The specific file extensions for each category in **ST-5** are:
 - Implemented read-only volume support; originals remain and user is notified via banner.
 - Resolved collision/pre-existing detection bugs; corresponding user stories marked Finished.
 
+### 2025-06-28 – Coverage Bump
+- Added AppState workflow tests (scan cancel, auto-eject) bringing line-coverage to >85 %.
+- Deterministic file enumeration ensures filename-collision behaviour predictable.
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  

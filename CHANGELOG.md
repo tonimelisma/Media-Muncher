@@ -7,6 +7,7 @@ All notable changes to Media Muncher will be documented in this file.
 ### Added
 - Support for importing from read-only volumes: originals are left intact and a non-fatal banner notifies the user once the import completes.
 - New unit-test `ImportServiceIntegrationTests.testImport_readOnlySource_deletionFailsButImportSucceeds`.
+- New **state-machine** unit tests covering scan cancellation and auto-eject logic (`AppStateWorkflowTests`).
 
 ### Fixed
 - Filename-collision handling now appends numeric suffixes ("_1", "_2", …) when a different file already exists at the destination.

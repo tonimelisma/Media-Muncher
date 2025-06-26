@@ -19,12 +19,15 @@ actor FileProcessorService {
         destinationURL: URL?,
         settings: SettingsStore
     ) async -> [File] {
-        let discoveredFiles = fastEnumerate(
+        let discoveredFilesUnsorted = fastEnumerate(
             at: sourceURL,
             filterImages: settings.filterImages,
             filterVideos: settings.filterVideos,
             filterAudio: settings.filterAudio
         )
+
+        // Ensure deterministic processing order so collision suffixes are repeatable across runs/tests
+        let discoveredFiles = discoveredFilesUnsorted.sorted { $0.sourcePath < $1.sourcePath }
 
         var processedFiles: [File] = []
         for file in discoveredFiles {

@@ -88,3 +88,4 @@ This section details planned UI work required to meet all remaining requirements
 
 ### 2025-06-28
 * **Bottom Bar** now reflects read-only import results: after an import that succeeded but could not delete originals, an inline red banner shows "Import successful, but failed to delete some original files…". This is surfaced by a new `AppError.importSucceededWithDeletionErrors` case.
+* No visual changes – logic-only test coverage increase. Collision handling behaviour remains unchanged in UI.
