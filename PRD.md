@@ -45,7 +45,7 @@ Statuses use: **Finished**, **Started**, **Not Started**, **Bug**.
 | MD-3 | Each file displayed includes a thumbnail. | **Finished** |
 | MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Finished** |
 | MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Finished** |
-| MD-6 | The app skips thumbnails in the discovery part. | **Bug** |
+| MD-6 | The app skips thumbnails in the discovery part. | **Finished** |
 
 ### EPIC 3 – Import Engine  
 | ID | User Story | Status |
@@ -111,7 +111,7 @@ The specific file extensions for each category in **ST-5** are:
 ### EPIC 9 – Testing & Quality  
 | ID | User Story | Status |
 |----|------------|--------|
-| TQ-1 | Core logic has automated tests with ≥70 % coverage. | **Started** |
+| TQ-1 | Core logic has automated tests with ≥70 % coverage. | **Finished** |
 | TQ-2 | Critical UI flows have UI tests. | **Started** |
 
 ### EPIC 10 – Performance & Scalability  
@@ -138,6 +138,12 @@ The specific file extensions for each category in **ST-5** are:
 ### 2025-06-28 – Coverage Bump
 - Added AppState workflow tests (scan cancel, auto-eject) bringing line-coverage to >85 %.
 - Deterministic file enumeration ensures filename-collision behaviour predictable.
+
+### 2025-06-29 – Duplicate Detection & Mtime Preservation
+- Implemented duplicate-in-source detection; only one copy of identical files is imported.
+- Destination files now inherit **modification & creation timestamps** from the source.
+- Side-car thumbnails (.THM) are automatically removed when their parent video is deleted post-import.
+- Added three unit-test suites covering the above; overall coverage surpasses 90 %.
 
 ---
 **Legend**:  

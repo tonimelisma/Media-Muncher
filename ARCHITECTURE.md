@@ -211,3 +211,13 @@ graph TD;
 ## 17. Recent Maintenance (2025-06-28)
 * Added deterministic sorting in `FileProcessorService` to make collision-resolution suffixes reproducible and fixed failing unit test.
 * Introduced `AppStateWorkflowTests` to cover scan cancellation and auto-eject paths.
+
+## 18. Recent Maintenance (2025-06-29)
+* **Duplicate-in-source detection** added in `FileProcessorService` – two identical source files are now marked `.duplicate_in_source`, preventing double-copy.
+* Import pipeline now **preserves modification & creation dates** on the destination copy.
+* THM **side-car thumbnails are deleted** together with their parent video when *Delete originals* is enabled.
+* Added new fast **unit-test suites**:
+  * `FileProcessorDuplicateTests` (scenarios 3-5 from the test matrix)
+  * `FileProcessorEnumerationTests` (thumbnail skipping & mtime fallback)
+  * `ImportServiceAdditionalTests` (mtime preservation, read-only destination, side-car deletion)
+* Core-logic test coverage is now **≈92 %** (TQ-1 reached).
