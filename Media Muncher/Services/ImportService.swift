@@ -104,6 +104,15 @@ actor ImportService {
                             try fileManager.createDirectory(at: destDir, withIntermediateDirectories: true, attributes: nil)
                         }
                         try fileManager.copyItem(at: sourceURL, to: finalDestinationURL)
+
+                        // Preserve modification & creation timestamps
+                        if let attrs = try? fileManager.attributesOfItem(atPath: sourceURL.path),
+                           let modDate = attrs[.modificationDate] as? Date,
+                           let createDate = attrs[.creationDate] as? Date? {
+                            var setAttrs: [FileAttributeKey: Any] = [.modificationDate: modDate]
+                            if let create = createDate { setAttrs[.creationDate] = create }
+                            try? fileManager.setAttributes(setAttrs, ofItemAtPath: finalDestinationURL.path)
+                        }
                     } catch {
                         file.status = .failed
                         file.importError = "Copy failed: \(error.localizedDescription)"

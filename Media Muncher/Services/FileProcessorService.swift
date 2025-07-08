@@ -104,15 +104,11 @@ actor FileProcessorService {
         newFile.size = size
         newFile.thumbnail = await generateThumbnail(for: url)
 
-        // 2. Source-to-source deduplication
-        if let myIndex = allFiles.firstIndex(where: { $0.id == newFile.id }) {
-            for i in 0..<myIndex {
-                let otherFile = allFiles[i]
-                if otherFile.status == .duplicate_in_source { continue }
-                if otherFile.date == newFile.date && otherFile.size == newFile.size {
-                    newFile.status = .duplicate_in_source
-                    return newFile
-                }
+        // 2. Source-to-source deduplication (same timestamp && size)
+        for otherFile in allFiles where otherFile.status != .duplicate_in_source {
+            if otherFile.date == newFile.date && otherFile.size == newFile.size {
+                newFile.status = .duplicate_in_source
+                return newFile
             }
         }
         

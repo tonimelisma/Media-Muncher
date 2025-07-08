@@ -118,8 +118,6 @@ The specific file extensions for each category in **ST-5** are:
 | ID | User Story | Status |
 |----|------------|--------|
 | PF-1 | Enumeration runs on background threads and never blocks UI. | **Finished** |
-| PF-2 | Copy operation streams data with back-pressure. | **Not Started** |
-| PF-3 | Large volumes (>1 M files) are handled with constant memory use. | **Not Started** |
 
 ### 2025-06-27 – Recent Implementation Notes
 - Added comprehensive **unit-test suites** for `DestinationPathBuilder`, `FileProcessorService`, `ImportService`, and collision edge-cases. These raised overall core-logic coverage to ~65 % (on track for **TQ-1**).
