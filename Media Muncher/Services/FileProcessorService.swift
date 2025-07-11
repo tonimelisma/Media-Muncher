@@ -112,9 +112,13 @@ actor FileProcessorService {
                 // Find and attach sidecars
                 let baseName = url.deletingPathExtension()
                 for sidecarExt in sidecarExtensions {
-                    let sidecarURL = baseName.appendingPathExtension(sidecarExt)
-                    if allURLSet.contains(sidecarURL) {
-                        file.sidecarPaths.append(sidecarURL.path)
+                    // Perform case-insensitive lookup for sidecar files to support filesystems where
+                    // the actual on-disk extension casing may vary (e.g. ".THM", ".XMP").
+                    if let matchedURL = allFileURLs.first(where: {
+                        $0.deletingPathExtension() == baseName &&
+                        $0.pathExtension.lowercased() == sidecarExt
+                    }) {
+                        file.sidecarPaths.append(matchedURL.path)
                     }
                 }
                 mainFiles.append(file)
