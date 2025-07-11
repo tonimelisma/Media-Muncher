@@ -101,15 +101,19 @@ class AppState: ObservableObject {
     
     func ensureVolumeSelection() {
         print("[AppState] DEBUG: ensureVolumeSelection called")
-        if selectedVolume == nil {
-            // Standard behavior: select the first volume if none is selected
+        let currentSelectionIsValid = volumes.contains { $0.devicePath == selectedVolume }
+        
+        if !currentSelectionIsValid {
             if let firstVolume = self.volumes.first {
                 print("[AppState] DEBUG: Selecting first volume: \(firstVolume.name) at \(firstVolume.devicePath)")
                 self.selectedVolume = firstVolume.devicePath
             } else {
-                print("[AppState] DEBUG: No volumes available to select")
+                print("[AppState] DEBUG: No volumes available to select, clearing selection.")
                 self.selectedVolume = nil
             }
+        } else if selectedVolume == nil, let firstVolume = volumes.first {
+            // This handles the initial launch case where selection is nil but volumes are present.
+            self.selectedVolume = firstVolume.devicePath
         }
     }
 

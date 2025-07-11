@@ -13,3 +13,5 @@ Thumbs.db
 UserInterfaceState.xcuserstate
 project.xcworkspace/xcuserdata/
 *.xcuserdata 
+
+build/
