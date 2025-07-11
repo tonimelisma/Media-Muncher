@@ -151,6 +151,29 @@ final class ImportServiceIntegrationTests: XCTestCase {
         XCTAssertTrue(fileManager.fileExists(atPath: originalSourcePath), "Original should remain on read-only volume")
         XCTAssertNotNil(results.first?.importError)
     }
+
+    func testImport_withDeleteOriginals_removesPreExistingSourceFile() async throws {
+        // Arrange
+        settings.renameByDate = false
+        settings.organizeByDate = false
+        settings.settingDeleteOriginals = true
+
+        let sourceURL = try createTestVolume(withFiles: ["duplicate_a.jpg"])
+        let originalSourcePath = sourceURL.appendingPathComponent("duplicate_a.jpg").path
+
+        // Manually place a copy in the destination to simulate a pre-existing file
+        try fileManager.copyItem(at: URL(fileURLWithPath: originalSourcePath), to: destinationURL.appendingPathComponent("duplicate_a.jpg"))
+
+        let processedFiles = await processFiles(from: sourceURL)
+
+        // Act
+        let stream = await importService.importFiles(files: processedFiles, to: destinationURL, settings: settings)
+        let results = try await collectStreamResults(for: stream)
+
+        // Assert
+        XCTAssertEqual(results.first?.status, .deleted_as_duplicate, "File should be marked as deleted duplicate")
+        XCTAssertFalse(fileManager.fileExists(atPath: originalSourcePath), "Source file of pre-existing duplicate should have been deleted")
+    }
 }
 
 enum TestError: Error, LocalizedError {

@@ -27,6 +27,13 @@ struct MediaFileCellView: View {
                         .font(.largeTitle)
                 }
                 
+                if file.status == .deleted_as_duplicate {
+                    Color.black.opacity(0.4)
+                    Image(systemName: "trash.circle.fill")
+                        .foregroundColor(.white)
+                        .font(.largeTitle)
+                }
+                
                 if file.status == .duplicate_in_source {
                     Color.black.opacity(0.4)
                     Image(systemName: "doc.on.doc.fill")

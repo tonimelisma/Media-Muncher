@@ -79,10 +79,30 @@ actor ImportService {
                     }
                 }
 
-                let filesToImport = files.filter { $0.status == .waiting }
+                var successfullyImportedIds = Set<String>()
 
-                for var file in filesToImport {
+                for var file in files {
                     try Task.checkCancellation()
+
+                    // Handle pre-existing files that should be deleted from source
+                    if file.status == .pre_existing && settings.settingDeleteOriginals {
+                        do {
+                            try deleteSourceFiles(for: file)
+                            file.status = .deleted_as_duplicate
+                            continuation.yield(file)
+                            successfullyImportedIds.insert(file.id)
+                        } catch {
+                            file.status = .failed
+                            file.importError = "Failed to delete original of pre-existing file: \(error.localizedDescription)"
+                            continuation.yield(file)
+                        }
+                        continue // Move to the next file
+                    }
+
+                    // Skip files not in .waiting status
+                    guard file.status == .waiting else {
+                        continue
+                    }
                     
                     let sourceURL = URL(fileURLWithPath: file.sourcePath)
                     guard let destinationPath = file.destPath else {
@@ -145,7 +165,7 @@ actor ImportService {
                     var deletionFailed = false
                     if settings.settingDeleteOriginals {
                         do {
-                            try deleteSourceFiles(for: sourceURL)
+                            try deleteSourceFiles(for: file)
                         } catch {
                             // Non-fatal: mark importError and continue so remaining files are processed.
                             deletionFailed = true
@@ -157,8 +177,27 @@ actor ImportService {
                     // 4. Success (even if deletionFailed)
                     file.status = .imported
                     continuation.yield(file)
+                    successfullyImportedIds.insert(file.id)
 
                     // No global flag returned; caller can inspect file.importError fields later.
+                }
+
+                // Final pass to delete source duplicates of successfully imported files
+                if settings.settingDeleteOriginals {
+                    let duplicateFiles = files.filter { $0.status == .duplicate_in_source }
+                    for var duplicate in duplicateFiles {
+                        if let masterId = duplicate.duplicateOf, successfullyImportedIds.contains(masterId) {
+                            do {
+                                try deleteSourceFiles(for: duplicate)
+                                duplicate.status = .deleted_as_duplicate
+                                continuation.yield(duplicate)
+                            } catch {
+                                duplicate.status = .failed
+                                duplicate.importError = "Failed to delete source duplicate: \(error.localizedDescription)"
+                                continuation.yield(duplicate)
+                            }
+                        }
+                    }
                 }
                 
                 continuation.finish()
@@ -168,11 +207,11 @@ actor ImportService {
 
     // MARK: - Private helpers
 
-    private func deleteSourceFiles(for sourceURL: URL) throws {
-        let stem = sourceURL.deletingPathExtension()
-        let variants = [sourceURL, stem.appendingPathExtension("THM"), stem.appendingPathExtension("thm")]
+    private func deleteSourceFiles(for file: File) throws {
+        let allPathsToDelete = [file.sourcePath] + file.sidecarPaths
         
-        for url in variants {
+        for path in allPathsToDelete {
+            let url = URL(fileURLWithPath: path)
             guard fileManager.fileExists(atPath: url.path) else {
                 continue
             }

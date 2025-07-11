@@ -53,7 +53,7 @@ enum MediaType: String {
 }
 
 enum FileStatus: String {
-    case waiting, pre_existing, copying, verifying, imported, failed, duplicate_in_source
+    case waiting, pre_existing, copying, verifying, imported, failed, duplicate_in_source, deleted_as_duplicate
 }
 
 struct File: Identifiable, Sendable {
@@ -77,6 +77,8 @@ struct File: Identifiable, Sendable {
     var status: FileStatus
     nonisolated(unsafe) var thumbnail: Image?
     var importError: String?
+    var duplicateOf: String? // ID of the file this one is a duplicate of
+    var sidecarPaths: [String] = []
 }
 
 extension MediaType {

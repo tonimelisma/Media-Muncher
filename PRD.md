@@ -45,20 +45,20 @@ Statuses use: **Finished**, **Started**, **Not Started**, **Bug**.
 | MD-3 | Each file displayed includes a thumbnail. | **Finished** |
 | MD-4 | Media that pre-exists in the destination folder are visually marked (defined by file metadata). | **Finished** |
 | MD-5 | While the scan is in progress, the thumbnail list updates in real time (although not with jank). | **Finished** |
-| MD-6 | The app skips thumbnails in the discovery part. | **Finished** |
+| MD-6 | The scan intelligently hides sidecar files (e.g., `.THM`, `.XMP`) from the main view, but tracks them internally so they can be managed with their parent media file. | **Finished** |
 
 ### EPIC 3 – Import Engine  
 | ID | User Story | Status |
 |----|------------|--------|
 | IE-1 | I press **Import** and files copy to my destination folder. | **Finished** |
-| IE-2 | If user sets a setting, destination filenames will be renamed follow a hard-coded template (e.g., `YYYY-MM-DD.jpg`). Extensions will also follow a template, e.g. JPEG, JPG and jpeg will all be mapped to .jpg. | **Finished** |
-| IE-7 | If user sets a setting, destination folder names follow a hard-coded template (e.g., `YYYY/MM/DD/…`). | **Finished** |
-| IE-3 | If a dest-file with same metadata exists, skip copy and mark as existing. | **Finished** |
-| IE-4 | If a destination file with the same name but different metadata exists, the newly imported file will be renamed by appending a numerical suffix (e.g., IMG_0001_1.JPG) to prevent overwriting data. | **Finished** |
-| IE-5 | After successful copy, originals are deleted (setting choosable by user). | **Finished** |
+| IE-2 | As a user, I can enable a setting to rename destination filenames based on their capture date (e.g., `20250101_120000.jpg`). | **Finished** |
+| IE-7 | As a user, I can enable a setting to organize destination files into date-based subfolders (e.g., `2025/01/`). | **Finished** |
+| IE-3 | If a file with the same content (based on metadata) already exists at the destination, the app will skip copying it and mark it as pre-existing. | **Finished** |
+| IE-4 | If a destination file with the same name but different content exists, the newly imported file will be renamed by appending a numerical suffix (e.g., `IMG_0001_1.JPG`) to prevent overwriting data. | **Finished** |
+| IE-5 | As a user, I can enable a setting to delete original files from the source media after they are successfully copied. This also applies to source duplicates of files that already exist in the destination. | **Finished** |
 | IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Finished** |
-| IE-9 | After successful copy, thumbnails are deleted. | **Finished** |
-| IE-10 | If destination file paths for two source files overlap, ensure unique filenames. | **Finished** |
+| IE-9 | After successful copy, associated sidecar files (e.g., `.THM` thumbnails for videos) are also deleted from the source. | **Finished** |
+| IE-10 | If destination file paths for two source files overlap, the app ensures unique filenames by appending numerical suffixes. | **Finished** |
 | IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Finished** |
 | IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Finished** |
 | IE-13 | As a user, if an import is interrupted or fails mid-way, I want to know exactly which files succeeded and which failed, so no data is silently lost. | **Finished** |
@@ -67,18 +67,18 @@ Statuses use: **Finished**, **Started**, **Not Started**, **Bug**.
 | ID | User Story | Status |
 |----|------------|--------|
 | ST-1 | I can choose a destination folder from presets or custom path. | **Finished** |
-| ST-2 | I can toggle "Delete originals after import". It will delete both files imported now or earlier, as deemed based on metadata.| **Finished** |
+| ST-2 | I can toggle "Delete originals after import". If enabled, this will delete source files that were successfully copied *and* source files that were skipped because they already exist at the destination. | **Finished** |
 | ST-3 | I can enable or disable file/directory renaming based on pre-defined templates. | **Finished** |
 | ST-4 | I can whitelist volumes for auto-import. | **Not Started** |
-| ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions (e.g., "raw" includes .ARW, .NEF, .CR3, etc.) so I know exactly what will be imported. | **Finished** |
+| ST-5 | I can choose which media types to import (photo/video/audio/raw). These categories will be backed by a documented list of file extensions so I know exactly what will be imported. | **Finished** |
 
 The specific file extensions for each category in **ST-5** are:
 | Category | File Extensions |
 |---|---|
-| **Photo** | `.jpg`, `.jpeg`, `.heic`, `.heif`, `.png`, `.gif`, `.tiff`, `.tif`, `.bmp` |
-| **Video** | `.mov`, `.mp4`, `.m4v`, `.avi`, `.mts`, `.m2ts`, `.mpg`, `.mpeg` |
-| **Audio** | `.mp3`, `.m4a`, `.aac`, `.wav`, `.aiff`, `.aif` |
-| **RAW** | `.cr2`, `.cr3`, `.nef`, `.arw`, `.dng`, `.orf`, `.raf`, `.gpr`, `.rw2` |
+| **Photo** | `.jpg`, `.jpeg`, `.jpe`, `.jif`, `.jfif`, `.jfi`, `.jp2`, `.j2k`, `.jpf`, `.jpm`, `.jpg2`, `.j2c`, `.jpc`, `.jpx`, `.mj2`, `.jxl`, `.png`, `.gif`, `.bmp`, `.tiff`, `.tif`, `.psd`, `.eps`, `.svg`, `.ico`, `.webp`, `.heif`, `.heifs`, `heic`, `.heics`, `.avci`, `.avcs`, `.hif` |
+| **Video** | `.mp4`, `.avi`, `.mov`, `.wmv`, `.flv`, `.mkv`, `.webm`, `.ogv`, `.m4v`, `.3gp`, `.3g2`, `.asf`, `.vob`, `.mts`, `.m2ts`, `.braw`, `.r3d`, `.ari` |
+| **Audio** | `.mp3`, `.wav`, `.aac` |
+| **RAW** | `.arw`, `.cr2`, `.cr3`, `.crw`, `.dng`, `.erf`, `.kdc`, `.mrw`, `.nef`, `.orf`, `.pef`, `.raf`, `.raw`, `.rw2`, `.sr2`, `.srf`, `.x3f` |
 
 ### EPIC 5 – User Interface Polish  
 | ID | User Story | Status |

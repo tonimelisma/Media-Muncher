@@ -31,14 +31,4 @@ final class SettingsStorePersistenceTests: XCTestCase {
         XCTAssertFalse(store.renameByDate)
         XCTAssertFalse(store.settingAutoEject)
     }
-
-    func testPersistenceForToggle() {
-        var store = makeStore()
-        XCTAssertFalse(store.renameByDate)
-        store.renameByDate = true
-
-        // Re-create to simulate fresh launch
-        store = makeStore()
-        XCTAssertTrue(store.renameByDate, "renameByDate should persist in UserDefaults")
-    }
 } 

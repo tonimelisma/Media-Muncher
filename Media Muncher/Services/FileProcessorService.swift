@@ -62,94 +62,66 @@ actor FileProcessorService {
         filterVideos: Bool,
         filterAudio: Bool
     ) -> [File] {
-        print("[FileProcessorService] DEBUG: fastEnumerate called for: \(rootURL.path)")
-        print("[FileProcessorService] DEBUG: Directory exists: \(fileManager.fileExists(atPath: rootURL.path))")
-        
-        // Check if directory is readable
-        let isReadable = fileManager.isReadableFile(atPath: rootURL.path)
-        print("[FileProcessorService] DEBUG: Directory readable: \(isReadable)")
-        
-        // Try to get contents with a simple call first
-        do {
-            let contents = try fileManager.contentsOfDirectory(atPath: rootURL.path)
-            print("[FileProcessorService] DEBUG: Directory contents count: \(contents.count)")
-            if contents.count > 0 {
-                print("[FileProcessorService] DEBUG: First few items: \(Array(contents.prefix(5)))")
-            }
-        } catch {
-            print("[FileProcessorService] ERROR: Failed to get directory contents: \(error)")
-        }
-        
-        var files: [File] = []
-        let resourceKeys: Set<URLResourceKey> = [.isDirectoryKey]
+        let sidecarExtensions: Set<String> = ["thm", "xmp", "lrc"]
+        var allFileURLs: [URL] = []
 
         guard let enumerator = fileManager.enumerator(
             at: rootURL,
-            includingPropertiesForKeys: Array(resourceKeys),
+            includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else {
-            print("[FileProcessorService] ERROR: Failed to create file enumerator for: \(rootURL.path)")
-            return files
+            return []
         }
 
-        var fileCount = 0
+        // First, collect all file URLs.
         for case let fileURL as URL in enumerator {
-            fileCount += 1
-            print("[FileProcessorService] DEBUG: Examining file \(fileCount): \(fileURL.path)")
-            
-            do {
-                let resourceValues = try fileURL.resourceValues(forKeys: resourceKeys)
-                let isDirectory = resourceValues.isDirectory ?? false
-                print("[FileProcessorService] DEBUG: File \(fileCount): isDirectory=\(isDirectory)")
-                
-                if isDirectory {
-                    print("[FileProcessorService] DEBUG: Skipping directory: \(fileURL.path)")
-                    
-                    // Skip certain thumbnail directories
-                    let thumbnailFolderNames: Set<String> = ["thmbnl", ".thumbnails", "misc"]
-                    if thumbnailFolderNames.contains(fileURL.lastPathComponent.lowercased()) {
-                        print("[FileProcessorService] DEBUG: Skipping thumbnail folder: \(fileURL.path)")
-                        enumerator.skipDescendants()
-                    }
-                    continue
+            let resourceValues = try? fileURL.resourceValues(forKeys: [.isDirectoryKey])
+            if resourceValues?.isDirectory == true {
+                let thumbnailFolderNames: Set<String> = ["thmbnl", ".thumbnails", "misc"]
+                if thumbnailFolderNames.contains(fileURL.lastPathComponent.lowercased()) {
+                    enumerator.skipDescendants()
                 }
-            } catch {
-                print("[FileProcessorService] ERROR: Failed to get resource values for \(fileURL.path): \(error)")
                 continue
             }
+            allFileURLs.append(fileURL)
+        }
 
-            let mediaType = MediaType.from(filePath: fileURL.path)
-            print("[FileProcessorService] DEBUG: File: \(fileURL.lastPathComponent) -> MediaType: \(mediaType)")
-            
-            if mediaType == .unknown { 
-                print("[FileProcessorService] DEBUG: Skipping unknown media type: \(fileURL.path)")
-                continue 
+        var mainFiles: [File] = []
+        let allURLSet = Set(allFileURLs)
+
+        for url in allFileURLs {
+            let ext = url.pathExtension.lowercased()
+            if sidecarExtensions.contains(ext) {
+                continue // Skip sidecar files in the main loop
             }
 
-            // Apply filters
+            let mediaType = MediaType.from(filePath: url.path)
+            if mediaType == .unknown { continue }
+
             var shouldInclude = true
             switch mediaType {
-            case .image where !filterImages: 
-                shouldInclude = false
-                print("[FileProcessorService] DEBUG: Skipping image due to filter: \(fileURL.path)")
-            case .video where !filterVideos: 
-                shouldInclude = false
-                print("[FileProcessorService] DEBUG: Skipping video due to filter: \(fileURL.path)")
-            case .audio where !filterAudio: 
-                shouldInclude = false
-                print("[FileProcessorService] DEBUG: Skipping audio due to filter: \(fileURL.path)")
-            default: 
-                break
+            case .image where !filterImages: shouldInclude = false
+            case .video where !filterVideos: shouldInclude = false
+            case .audio where !filterAudio: shouldInclude = false
+            default: break
             }
-            
+
             if shouldInclude {
-                print("[FileProcessorService] DEBUG: Including file: \(fileURL.path)")
-                files.append(File(sourcePath: fileURL.path, mediaType: mediaType, status: .waiting))
+                var file = File(sourcePath: url.path, mediaType: mediaType, status: .waiting)
+                
+                // Find and attach sidecars
+                let baseName = url.deletingPathExtension()
+                for sidecarExt in sidecarExtensions {
+                    let sidecarURL = baseName.appendingPathExtension(sidecarExt)
+                    if allURLSet.contains(sidecarURL) {
+                        file.sidecarPaths.append(sidecarURL.path)
+                    }
+                }
+                mainFiles.append(file)
             }
         }
         
-        print("[FileProcessorService] DEBUG: fastEnumerate completed - examined \(fileCount) items, found \(files.count) media files")
-        return files
+        return mainFiles
     }
 
     private func processFile(
@@ -171,6 +143,7 @@ actor FileProcessorService {
         for otherFile in allFiles where otherFile.status != .duplicate_in_source {
             if otherFile.date == newFile.date && otherFile.size == newFile.size {
                 newFile.status = .duplicate_in_source
+                newFile.duplicateOf = otherFile.id // Link to the master file
                 return newFile
             }
         }

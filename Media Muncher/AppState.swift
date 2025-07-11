@@ -168,15 +168,14 @@ class AppState: ObservableObject {
     
     func importFiles() {
         self.error = nil
-        
-        let filesToImport = self.files.filter { $0.status != .pre_existing }
-        
+
+        let filesToImport = self.files.filter { $0.status == .waiting }
         guard !filesToImport.isEmpty else { return }
-        
-        // Reset progress and set totals
+
+        // Progress should only be calculated based on files that will actually be copied.
+        self.totalBytesToImport = filesToImport.reduce(0) { $0 + ($1.size ?? 0) }
         self.importedFileCount = 0
         self.importedBytes = 0
-        self.totalBytesToImport = filesToImport.reduce(0) { $0 + ($1.size ?? 0) }
 
         self.importStartTime = Date()
 
@@ -188,21 +187,22 @@ class AppState: ObservableObject {
                     self.state = .idle
                 }
             }
-            
+
             guard let destinationURL = settingsStore.destinationURL else {
                 await MainActor.run {
                     self.error = .destinationNotSet
                 }
                 return
             }
-            
+
             do {
-                let stream = await importService.importFiles(files: filesToImport, to: destinationURL, settings: self.settingsStore)
+                let stream = await importService.importFiles(files: self.files, to: destinationURL, settings: self.settingsStore)
                 for try await updatedFile in stream {
                     await MainActor.run {
                         if let index = self.files.firstIndex(where: { $0.id == updatedFile.id }) {
                             self.files[index] = updatedFile
-                            
+
+                            // Only increment progress for files that were actually copied.
                             if updatedFile.status == .imported {
                                 self.importedFileCount += 1
                                 self.importedBytes += updatedFile.size ?? 0
@@ -210,7 +210,7 @@ class AppState: ObservableObject {
                         }
                     }
                 }
-                
+
                 // After the import process is finished...
                 if settingsStore.settingAutoEject,
                    let selectedVolumePath = selectedVolume,

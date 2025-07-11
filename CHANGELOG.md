@@ -14,5 +14,6 @@ All notable changes to Media Muncher will be documented in this file.
 - Pre-existing file detection improved: identical files are recognised even if modification timestamps differ slightly or filenames already match.
 
 ### Changed
+- **Enhanced "Delete originals"**: When enabled, this setting now also deletes source files that are identified as duplicates already present in the destination, helping to clean up source media more effectively.
 - `ImportService` treats failures to delete originals as warnings instead of errors, allowing the import process to continue.
 - Bottom bar error banner now surfaces "Import succeeded with deletion errors" when originals could not be removed. 

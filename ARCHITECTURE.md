@@ -10,7 +10,7 @@
 │ macOS System  │ ───────────────────────▶ │  VolumeManager     │
 └───────────────┘  NSWorkspace events      │ (Service)          │
                                            └────────┬───────────┘
-┌───────────────┐ scan files                        │ volumes
+┌───────────────┐ scan results                      │ volumes
 │  SwiftUI View │ ◀──────────────────────────────┐  │
 └───────────────┘                                 │  │
       ▲                                           ▼  │
@@ -19,14 +19,11 @@
                                              │ (Orchestrator)│
                                              └───────┬───────┘
                                                      │
-               ┌────────────────────┐ scan(volume)   │
-               │ FileProcessorService├────────────────┘
-               │ (Service Actor)    │◀───────────────────┐
-               └────────────────────┘ files, progress    │
-                                             ┌───────────────┐
-                                             │ ImportService │
-                                             │  (Service Actor)    │
-                                             └───────────────┘
+                                scan(volume)         │ import(files)
+                       ┌────────────────────┐        │        ┌────────────────────┐
+                       │ FileProcessorService├────────┘        └────────┤ ImportService │
+                       │ (Service Actor)    │                         │ (Service Actor)    │
+                       └────────────────────┘                         └────────────────────┘
 ```
 
 * The **SwiftUI layer** presents a sidebar of volumes, a grid of media files, and a settings panel. It binds to data published by the `AppState` and individual services.
@@ -43,7 +40,7 @@
 | **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. Manages the UI state machine. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
-| **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread, maintains an in-actor **LRU thumbnail cache (2 000 entries)**, and detects pre-existing files in the destination. | `FileProcessorService` |
+| **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread, maintains an **in-memory thumbnail cache (2,000 entry limit)**, and detects pre-existing files in the destination. | `FileProcessorService` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. Delegates all path calculation to `DestinationPathBuilder`. | `ImportService` |
 | **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
@@ -59,7 +56,6 @@
 | **SettingsView.swift** | Toggles & destination folder picker. Binds to `SettingsStore`. | `SettingsView`, `DestinationFolderPicker` (AppKit wrapper) |
 | **ErrorView.swift** | Inline error banner. Binds to `AppState`. | `ErrorView` |
 | **Tests/ImportServiceIntegrationTests.swift** | End-to-end tests for the entire import pipeline, operating on real files in a temporary directory. | `ImportServiceIntegrationTests` |
-| **Tests/Z_ProjectFileFixer.swift** | A utility file containing a build script phase to ensure the `Fixtures` directory is copied into the test bundle. | `Z_ProjectFileFixer` |
 | **Tests/Fixtures/** | A directory of sample media files (images, videos, duplicates) used by the integration tests. | - |
 
 > **Observation** – The previous monolithic `AppState` has been refactored into focused services, improving separation of concerns.
@@ -77,9 +73,7 @@
 9. When **Import** is clicked, `AppState` calls the `ImportService` to copy the scanned files to the destination set in `SettingsStore`.
 
 ---
-## 4. Planned Modularisation (to-be)
-
-> This plan has now been implemented. The sections above reflect the new service-based architecture.
+## 4. Architectural Principles
 
 | Module | Responsibility | Notes |
 |--------|----------------|-------|
@@ -91,7 +85,7 @@
 data, rotating file handler) | Respect user privacy; in dev builds default to `stdout`. |
 | `AppState` | Pure composition root that orchestrates above services | Slimmed down, no heavy logic. |
 
-### Dependency Flow (to-be)
+### Dependency Flow
 `SwiftUI View → AppState (Facade) → Services (actors) → Foundation / OS`  
 No service depends back on SwiftUI, keeping layers clean.
 
