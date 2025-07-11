@@ -28,7 +28,7 @@ final class AppStateWorkflowTests: XCTestCase {
         try fm.createDirectory(at: tempDst, withIntermediateDirectories: true)
 
         let settings = SettingsStore()
-        settings.setDestination(url: tempDst)
+        settings.setDestination(tempDst)
         settings.settingDeleteOriginals = false
         settings.settingAutoEject = true
         settings.renameByDate = false

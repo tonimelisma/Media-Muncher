@@ -22,7 +22,7 @@ struct BottomBarView: View {
                         .progressViewStyle(LinearProgressViewStyle())
                     
                     HStack {
-                        Text("\(appState.importedFileCount) / \(appState.totalFilesToImport) files")
+                        Text("\(appState.importedFileCount) / \(appState.files.filter { $0.status != .pre_existing }.count) files")
                         Spacer()
                         Text(byteCountFormatter.string(fromByteCount: appState.importedBytes) + " / " + byteCountFormatter.string(fromByteCount: appState.totalBytesToImport))
                     }

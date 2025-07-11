@@ -22,7 +22,7 @@ final class ImportServiceAdditionalTests: XCTestCase {
 
         // Settings
         let settings = SettingsStore()
-        settings.setDestination(url: dstDir)
+        settings.setDestination(dstDir)
         settings.renameByDate = false
         settings.organizeByDate = false
         settings.settingDeleteOriginals = false
@@ -56,7 +56,7 @@ final class ImportServiceAdditionalTests: XCTestCase {
         chmod(dstDir.path, 0o555)
 
         let settings = SettingsStore()
-        settings.setDestination(url: dstDir)
+        settings.setDestination(dstDir)
         settings.settingDeleteOriginals = false
 
         let fps = FileProcessorService()
@@ -91,7 +91,7 @@ final class ImportServiceAdditionalTests: XCTestCase {
         makeFile(thm, size: 3, timestamp: Date())
 
         let settings = SettingsStore()
-        settings.setDestination(url: dstDir)
+        settings.setDestination(dstDir)
         settings.settingDeleteOriginals = true
 
         let fps = FileProcessorService()

@@ -12,25 +12,37 @@ actor FileProcessorService {
     
     private let fileManager = FileManager.default
 
-    init() {}
+    init() {
+        print("[FileProcessorService] DEBUG: Initialized")
+    }
 
     func processFiles(
         from sourceURL: URL,
         destinationURL: URL?,
         settings: SettingsStore
     ) async -> [File] {
+        print("[FileProcessorService] DEBUG: processFiles called")
+        print("[FileProcessorService] DEBUG: sourceURL: \(sourceURL.path)")
+        print("[FileProcessorService] DEBUG: destinationURL: \(destinationURL?.path ?? "nil")")
+        print("[FileProcessorService] DEBUG: filterImages: \(settings.filterImages)")
+        print("[FileProcessorService] DEBUG: filterVideos: \(settings.filterVideos)")
+        print("[FileProcessorService] DEBUG: filterAudio: \(settings.filterAudio)")
+        
         let discoveredFilesUnsorted = fastEnumerate(
             at: sourceURL,
             filterImages: settings.filterImages,
             filterVideos: settings.filterVideos,
             filterAudio: settings.filterAudio
         )
+        
+        print("[FileProcessorService] DEBUG: fastEnumerate found \(discoveredFilesUnsorted.count) files")
 
         // Ensure deterministic processing order so collision suffixes are repeatable across runs/tests
         let discoveredFiles = discoveredFilesUnsorted.sorted { $0.sourcePath < $1.sourcePath }
 
         var processedFiles: [File] = []
         for file in discoveredFiles {
+            print("[FileProcessorService] DEBUG: Processing file: \(file.sourcePath)")
             let processedFile = await processFile(
                 file,
                 allFiles: processedFiles,
@@ -39,6 +51,8 @@ actor FileProcessorService {
             )
             processedFiles.append(processedFile)
         }
+        
+        print("[FileProcessorService] DEBUG: processFiles completed with \(processedFiles.count) files")
         return processedFiles
     }
 
@@ -48,6 +62,24 @@ actor FileProcessorService {
         filterVideos: Bool,
         filterAudio: Bool
     ) -> [File] {
+        print("[FileProcessorService] DEBUG: fastEnumerate called for: \(rootURL.path)")
+        print("[FileProcessorService] DEBUG: Directory exists: \(fileManager.fileExists(atPath: rootURL.path))")
+        
+        // Check if directory is readable
+        let isReadable = fileManager.isReadableFile(atPath: rootURL.path)
+        print("[FileProcessorService] DEBUG: Directory readable: \(isReadable)")
+        
+        // Try to get contents with a simple call first
+        do {
+            let contents = try fileManager.contentsOfDirectory(atPath: rootURL.path)
+            print("[FileProcessorService] DEBUG: Directory contents count: \(contents.count)")
+            if contents.count > 0 {
+                print("[FileProcessorService] DEBUG: First few items: \(Array(contents.prefix(5)))")
+            }
+        } catch {
+            print("[FileProcessorService] ERROR: Failed to get directory contents: \(error)")
+        }
+        
         var files: [File] = []
         let resourceKeys: Set<URLResourceKey> = [.isDirectoryKey]
 
@@ -56,36 +88,67 @@ actor FileProcessorService {
             includingPropertiesForKeys: Array(resourceKeys),
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else {
+            print("[FileProcessorService] ERROR: Failed to create file enumerator for: \(rootURL.path)")
             return files
         }
 
+        var fileCount = 0
         for case let fileURL as URL in enumerator {
-            guard let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeys),
-                  !(resourceValues.isDirectory ?? true) else {
-                continue
-            }
+            fileCount += 1
+            print("[FileProcessorService] DEBUG: Examining file \(fileCount): \(fileURL.path)")
             
-            if fileURL.hasDirectoryPath {
-                let thumbnailFolderNames: Set<String> = ["thmbnl", ".thumbnails", "misc"]
-                if thumbnailFolderNames.contains(fileURL.lastPathComponent.lowercased()) {
-                    enumerator.skipDescendants()
+            do {
+                let resourceValues = try fileURL.resourceValues(forKeys: resourceKeys)
+                let isDirectory = resourceValues.isDirectory ?? false
+                print("[FileProcessorService] DEBUG: File \(fileCount): isDirectory=\(isDirectory)")
+                
+                if isDirectory {
+                    print("[FileProcessorService] DEBUG: Skipping directory: \(fileURL.path)")
+                    
+                    // Skip certain thumbnail directories
+                    let thumbnailFolderNames: Set<String> = ["thmbnl", ".thumbnails", "misc"]
+                    if thumbnailFolderNames.contains(fileURL.lastPathComponent.lowercased()) {
+                        print("[FileProcessorService] DEBUG: Skipping thumbnail folder: \(fileURL.path)")
+                        enumerator.skipDescendants()
+                    }
+                    continue
                 }
+            } catch {
+                print("[FileProcessorService] ERROR: Failed to get resource values for \(fileURL.path): \(error)")
                 continue
             }
 
             let mediaType = MediaType.from(filePath: fileURL.path)
-            if mediaType == .unknown { continue }
+            print("[FileProcessorService] DEBUG: File: \(fileURL.lastPathComponent) -> MediaType: \(mediaType)")
+            
+            if mediaType == .unknown { 
+                print("[FileProcessorService] DEBUG: Skipping unknown media type: \(fileURL.path)")
+                continue 
+            }
 
             // Apply filters
+            var shouldInclude = true
             switch mediaType {
-            case .image where !filterImages: continue
-            case .video where !filterVideos: continue
-            case .audio where !filterAudio: continue
-            default: break
+            case .image where !filterImages: 
+                shouldInclude = false
+                print("[FileProcessorService] DEBUG: Skipping image due to filter: \(fileURL.path)")
+            case .video where !filterVideos: 
+                shouldInclude = false
+                print("[FileProcessorService] DEBUG: Skipping video due to filter: \(fileURL.path)")
+            case .audio where !filterAudio: 
+                shouldInclude = false
+                print("[FileProcessorService] DEBUG: Skipping audio due to filter: \(fileURL.path)")
+            default: 
+                break
             }
             
-            files.append(File(sourcePath: fileURL.path, mediaType: mediaType, status: .waiting))
+            if shouldInclude {
+                print("[FileProcessorService] DEBUG: Including file: \(fileURL.path)")
+                files.append(File(sourcePath: fileURL.path, mediaType: mediaType, status: .waiting))
+            }
         }
+        
+        print("[FileProcessorService] DEBUG: fastEnumerate completed - examined \(fileCount) items, found \(files.count) media files")
         return files
     }
 

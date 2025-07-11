@@ -1,4 +1,4 @@
-import AVFoundation
+import Foundation
 import SwiftUI
 import Combine
 import QuickLookThumbnailing
@@ -22,29 +22,18 @@ enum ProgramState {
 /// the selected volume changes.
 private typealias ScanTask = Task<Void, Never>
 
+@MainActor
 class AppState: ObservableObject {
-    // Services
-    private let volumeManager: VolumeManager
-    private let fileProcessorService: FileProcessorService
-    private let settingsStore: SettingsStore
-    private let importService: ImportService
-    
-    // Published UI State
-    @Published private(set) var volumes: [Volume] = []
-    @Published var selectedVolume: String? = nil
-    @Published private(set) var files: [File] = []
-    @Published private(set) var filesScanned: Int = 0
-    @Published private(set) var state: ProgramState = .idle
-    @Published private(set) var error: AppError? = nil
-    
-    // Import Progress
-    @Published var totalFilesToImport: Int = 0
-    @Published var importedFileCount: Int = 0
+    @Published var selectedVolume: String?
+    @Published var volumes: [Volume] = []
+    @Published var files: [File] = []
+    @Published var state: ProgramState = .idle
+    @Published var error: AppError? = nil
+    @Published var filesScanned: Int = 0
     @Published var totalBytesToImport: Int64 = 0
     @Published var importedBytes: Int64 = 0
-    
-    // Timing
-    @Published private(set) var importStartTime: Date? = nil
+    @Published var importedFileCount: Int = 0
+    @Published var importStartTime: Date? = nil
     
     /// Returns seconds elapsed since the current import started. Nil when no import is running.
     var elapsedSeconds: TimeInterval? {
@@ -65,12 +54,19 @@ class AppState: ObservableObject {
     private var scanTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
 
+    private let volumeManager: VolumeManager
+    private let fileProcessorService: FileProcessorService
+    private let settingsStore: SettingsStore
+    private let importService: ImportService
+
     init(
         volumeManager: VolumeManager,
         mediaScanner: FileProcessorService,
         settingsStore: SettingsStore,
         importService: ImportService
     ) {
+        print("[AppState] DEBUG: Initializing AppState")
+        
         self.volumeManager = volumeManager
         self.fileProcessorService = mediaScanner
         self.settingsStore = settingsStore
@@ -80,6 +76,7 @@ class AppState: ObservableObject {
         volumeManager.$volumes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newVolumes in
+                print("[AppState] DEBUG: Volume changes received: \(newVolumes.map { $0.name })")
                 self?.volumes = newVolumes
                 if self?.selectedVolume == nil || !newVolumes.contains(where: { $0.devicePath == self?.selectedVolume }) {
                     self?.ensureVolumeSelection()
@@ -91,27 +88,34 @@ class AppState: ObservableObject {
         self.$selectedVolume
             .receive(on: DispatchQueue.main)
             .sink { [weak self] devicePath in
+                print("[AppState] DEBUG: selectedVolume changed to: \(devicePath ?? "nil")")
                 self?.startScan(for: devicePath)
             }
             .store(in: &cancellables)
 
         // Initial state
         self.volumes = volumeManager.volumes
+        print("[AppState] DEBUG: Initial volumes: \(volumes.map { $0.name })")
         ensureVolumeSelection()
     }
     
     func ensureVolumeSelection() {
+        print("[AppState] DEBUG: ensureVolumeSelection called")
         if selectedVolume == nil {
             // Standard behavior: select the first volume if none is selected
             if let firstVolume = self.volumes.first {
+                print("[AppState] DEBUG: Selecting first volume: \(firstVolume.name) at \(firstVolume.devicePath)")
                 self.selectedVolume = firstVolume.devicePath
             } else {
+                print("[AppState] DEBUG: No volumes available to select")
                 self.selectedVolume = nil
             }
         }
     }
 
     private func startScan(for devicePath: String?) {
+        print("[AppState] DEBUG: startScan called for: \(devicePath ?? "nil")")
+        
         scanTask?.cancel()
         
         self.files = []
@@ -119,32 +123,42 @@ class AppState: ObservableObject {
         self.state = .idle
         self.error = nil
 
-        guard let devicePath = devicePath else { return }
+        guard let devicePath = devicePath else { 
+            print("[AppState] DEBUG: No device path provided, skipping scan")
+            return 
+        }
+        
         let url = URL(fileURLWithPath: devicePath, isDirectory: true)
+        print("[AppState] DEBUG: Starting scan for URL: \(url.path)")
         
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
+            print("[AppState] DEBUG: Scan task started")
             let processedFiles = await fileProcessorService.processFiles(
                 from: url,
                 destinationURL: settingsStore.destinationURL,
                 settings: settingsStore
             )
+            print("[AppState] DEBUG: Scan task completed with \(processedFiles.count) files")
 
             await MainActor.run {
                 self.files = processedFiles
                 self.filesScanned = processedFiles.count
                 self.state = .idle
+                print("[AppState] DEBUG: Updated UI with \(processedFiles.count) files")
             }
         }
     }
     
     func cancelScan() {
+        print("[AppState] DEBUG: cancelScan called")
         scanTask?.cancel()
         self.state = .idle
     }
     
     func cancelImport() {
+        print("[AppState] DEBUG: cancelImport called")
         importTask?.cancel()
     }
     
@@ -158,7 +172,6 @@ class AppState: ObservableObject {
         // Reset progress and set totals
         self.importedFileCount = 0
         self.importedBytes = 0
-        self.totalFilesToImport = filesToImport.count
         self.totalBytesToImport = filesToImport.reduce(0) { $0 + ($1.size ?? 0) }
 
         self.importStartTime = Date()
