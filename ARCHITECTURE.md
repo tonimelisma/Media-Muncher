@@ -56,7 +56,7 @@
 | **MediaFilesGridView.swift** | Adaptive grid of media icons/filenames. Binds to `AppState`. | `MediaFilesGridView` |
 | **MediaFileCellView.swift** | A small view that represents a single cell in the `MediaFilesGridView`, displaying the thumbnail and status overlays. | `MediaFileCellView` |
 | **BottomBarView.swift** | The view at the bottom of the window that shows scan progress, import progress, and action buttons. | `BottomBarView` |
-| **SettingsView.swift** | Toggles & folder picker. Binds to `SettingsStore`. | `SettingsView`, `FolderPickerView` |
+| **SettingsView.swift** | Toggles & destination folder picker. Binds to `SettingsStore`. | `SettingsView`, `DestinationFolderPicker` (AppKit wrapper) |
 | **ErrorView.swift** | Inline error banner. Binds to `AppState`. | `ErrorView` |
 | **Tests/ImportServiceIntegrationTests.swift** | End-to-end tests for the entire import pipeline, operating on real files in a temporary directory. | `ImportServiceIntegrationTests` |
 | **Tests/Z_ProjectFileFixer.swift** | A utility file containing a build script phase to ensure the `Fixtures` directory is copied into the test bundle. | `Z_ProjectFileFixer` |
