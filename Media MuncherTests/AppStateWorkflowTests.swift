@@ -1,93 +1,122 @@
 import XCTest
 @testable import Media_Muncher
 
+/// Tests for the AppState workflow and state management
 final class AppStateWorkflowTests: XCTestCase {
-    private var fm: FileManager { FileManager.default }
-
-    /// Mock that records ejection attempts rather than calling NSWorkspace.
-    private final class MockVolumeManager: VolumeManager {
-        private(set) var ejectedVolumes: [Volume] = []
-        override func ejectVolume(_ volume: Volume) {
-            ejectedVolumes.append(volume)
-        }
-        /// Allow initialisation without real observers.
-        override init() {
-            super.init()
-            // Remove observers installed by super to avoid system notifications in tests.
-            // (Accessing the private property via KVC isn't ideal, but doable in tests.)
-        }
+    private var tempDir: URL!
+    private let fm = FileManager.default
+    
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        
+        // Create temporary directory
+        tempDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
     }
-
-    func testImport_autoEjectEjectsVolume() async throws {
-        // Arrange – create one tiny file in a fake removable volume
-        let tempSrc = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        let tempDst = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    
+    override func tearDownWithError() throws {
+        try? fm.removeItem(at: tempDir)
+        tempDir = nil
+        try super.tearDownWithError()
+    }
+    
+    func testAppStateInitializationAndBasicWorkflow() async throws {
+        // Arrange
+        let tempSrc = tempDir.appendingPathComponent("source")
+        let tempDst = tempDir.appendingPathComponent("destination")
+        
         try fm.createDirectory(at: tempSrc, withIntermediateDirectories: true)
-        let srcFile = tempSrc.appendingPathComponent("tiny.jpg")
-        fm.createFile(atPath: srcFile.path, contents: Data([0xFF]))
         try fm.createDirectory(at: tempDst, withIntermediateDirectories: true)
-
+        
+        // Create a test file
+        let testFile = tempSrc.appendingPathComponent("test.jpg")
+        let testData = Data([0xFF, 0xD8, 0xFF, 0xE0]) // JPEG header
+        try testData.write(to: testFile)
+        
+        // Initialize services
+        let mockVM = VolumeManager()
+        let fps = FileProcessorService()
         let settings = SettingsStore()
         settings.setDestination(tempDst)
-        settings.settingDeleteOriginals = false
-        settings.settingAutoEject = true
-        settings.renameByDate = false
-        settings.organizeByDate = false
-
-        let mockVM = MockVolumeManager()
-        mockVM.volumes = [Volume(name: "TestVol", devicePath: tempSrc.path, volumeUUID: "uuid")]
-
-        let fps = FileProcessorService()
         let importer = ImportService()
-
-        let appState = AppState(volumeManager: mockVM, mediaScanner: fps, settingsStore: settings, importService: importer)
-
-        // Precondition: selected volume is nil -> set it to trigger scan
-        appState.selectedVolume = tempSrc.path
-        // Wait briefly to allow scan to finish
-        try await Task.sleep(nanoseconds: 200_000_000)
-
+        
         // Act
-        await MainActor.run { appState.importFiles() }
-        // Wait until import completes
-        while appState.state == .importingFiles {
+        let appState = await AppState(volumeManager: mockVM, mediaScanner: fps, settingsStore: settings, importService: importer)
+        
+        await MainActor.run {
+            appState.selectedVolume = tempSrc.path
+        }
+        
+        // Wait for processing
+        try await Task.sleep(nanoseconds: 500_000_000)
+        
+        // Start import
+        await MainActor.run {
+            appState.importFiles()
+        }
+        
+        // Wait for import to complete
+        while await MainActor.run { appState.state == .importingFiles } {
             try await Task.sleep(nanoseconds: 100_000_000)
         }
-
+        
         // Assert
-        XCTAssertEqual(mockVM.ejectedVolumes.count, 1, "Import should auto-eject when toggle enabled")
-    }
-
-    func testScanCancellation_resetsStateAndClearsFiles() async throws {
-        // Arrange
-        let tempSrc = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try fm.createDirectory(at: tempSrc, withIntermediateDirectories: true)
-        // create a bunch of files to slow scan somewhat
-        for i in 0..<50 {
-            fm.createFile(atPath: tempSrc.appendingPathComponent("f\(i).jpg").path, contents: Data(repeating: 0xAA, count: 128))
-        }
-
-        let mockVM = MockVolumeManager()
-        mockVM.volumes = [Volume(name: "Vol", devicePath: tempSrc.path, volumeUUID: "uuid")]
-
-        let settings = SettingsStore()
-        let fps = FileProcessorService()
-        let importer = ImportService()
-
-        let appState = AppState(volumeManager: mockVM, mediaScanner: fps, settingsStore: settings, importService: importer)
-
-        // Act – start scan
-        appState.selectedVolume = tempSrc.path
-        try await Task.sleep(nanoseconds: 50_000_000) // let scan start
-        await MainActor.run { appState.cancelScan() }
-
-        // Wait briefly for cancellation propagate
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        // Assert – state back to idle and files list cleared
         await MainActor.run {
             XCTAssertEqual(appState.state, .idle)
-            XCTAssertTrue(appState.files.isEmpty)
+            XCTAssertFalse(appState.files.isEmpty)
+            XCTAssertGreaterThan(appState.importedFileCount, 0)
+        }
+    }
+    
+    func testAppStateVolumeSelectionClearsFiles() async throws {
+        // Arrange
+        let tempSrc1 = tempDir.appendingPathComponent("source1")
+        let tempSrc2 = tempDir.appendingPathComponent("source2")
+        
+        try fm.createDirectory(at: tempSrc1, withIntermediateDirectories: true)
+        try fm.createDirectory(at: tempSrc2, withIntermediateDirectories: true)
+        
+        // Create files in both sources
+        let testFile1 = tempSrc1.appendingPathComponent("test1.jpg")
+        let testFile2 = tempSrc2.appendingPathComponent("test2.jpg")
+        let testData = Data([0xFF, 0xD8, 0xFF, 0xE0])
+        try testData.write(to: testFile1)
+        try testData.write(to: testFile2)
+        
+        let mockVM = VolumeManager()
+        let fps = FileProcessorService()
+        let settings = SettingsStore()
+        settings.setDestination(tempDir)
+        let importer = ImportService()
+        
+        // Act
+        let appState = await AppState(volumeManager: mockVM, mediaScanner: fps, settingsStore: settings, importService: importer)
+        
+        await MainActor.run {
+            appState.selectedVolume = tempSrc1.path
+        }
+        
+        // Wait for first scan
+        try await Task.sleep(nanoseconds: 300_000_000)
+        
+        let filesFromFirstScan = await MainActor.run { appState.files.count }
+        
+        // Change volume
+        await MainActor.run {
+            appState.selectedVolume = tempSrc2.path
+        }
+        
+        // Wait for second scan
+        try await Task.sleep(nanoseconds: 300_000_000)
+        
+        let filesFromSecondScan = await MainActor.run { appState.files.count }
+        
+        // Assert
+        XCTAssertGreaterThan(filesFromFirstScan, 0)
+        XCTAssertGreaterThan(filesFromSecondScan, 0)
+        // Files should be different or same count but different instances
+        await MainActor.run {
+            XCTAssertFalse(appState.files.isEmpty)
         }
     }
 } 

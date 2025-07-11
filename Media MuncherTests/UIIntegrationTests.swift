@@ -22,16 +22,6 @@ final class UIIntegrationTests: XCTestCase {
         volumeManager = VolumeManager()
         settingsStore = SettingsStore()
         settingsStore.setDestination(tempDir)
-        
-        let fileProcessor = FileProcessorService()
-        let importService = ImportService()
-        
-        appState = AppState(
-            volumeManager: volumeManager,
-            mediaScanner: fileProcessor,
-            settingsStore: settingsStore,
-            importService: importService
-        )
     }
     
     override func tearDownWithError() throws {
@@ -43,6 +33,18 @@ final class UIIntegrationTests: XCTestCase {
         try super.tearDownWithError()
     }
     
+    private func createAppState() async {
+        let fileProcessor = FileProcessorService()
+        let importService = ImportService()
+        
+        appState = await AppState(
+            volumeManager: volumeManager,
+            mediaScanner: fileProcessor,
+            settingsStore: settingsStore,
+            importService: importService
+        )
+    }
+    
     /// Test that volume selection triggers file scanning
     func testVolumeSelectionTriggersScanning() async throws {
         // Arrange - create a test volume with files
@@ -52,6 +54,8 @@ final class UIIntegrationTests: XCTestCase {
         // Create test files
         let testFile = testVolume.appendingPathComponent("test.jpg")
         fm.createFile(atPath: testFile.path, contents: Data([0xFF, 0xD8, 0xFF])) // JPEG header
+        
+        await createAppState()
         
         // Act - simulate volume selection
         await MainActor.run {
@@ -72,6 +76,8 @@ final class UIIntegrationTests: XCTestCase {
     func testScanErrorHandling() async throws {
         // Arrange - try to scan a non-existent path
         let nonExistentPath = "/nonexistent/path/that/does/not/exist"
+        
+        await createAppState()
         
         // Act
         await MainActor.run {
@@ -99,6 +105,8 @@ final class UIIntegrationTests: XCTestCase {
         let movFile = testVolume.appendingPathComponent("test.mov")
         fm.createFile(atPath: jpegFile.path, contents: Data([0xFF, 0xD8, 0xFF]))
         fm.createFile(atPath: movFile.path, contents: Data([0x00, 0x00, 0x00, 0x18]))
+        
+        await createAppState()
         
         // Act 1 - scan with images disabled
         await MainActor.run {
@@ -136,6 +144,8 @@ final class UIIntegrationTests: XCTestCase {
         let testData = Data(repeating: 0xFF, count: 1024) // 1KB file
         fm.createFile(atPath: testFile.path, contents: testData)
         
+        await createAppState()
+        
         await MainActor.run {
             appState.selectedVolume = testVolume.path
         }
@@ -157,7 +167,9 @@ final class UIIntegrationTests: XCTestCase {
         await MainActor.run {
             XCTAssertEqual(appState.state, .idle)
             XCTAssertEqual(appState.importedFileCount, 1)
-            XCTAssertEqual(appState.totalFilesToImport, 1)
+            // Check the count of files eligible for import (not pre-existing)
+            let filesToImport = appState.files.filter { $0.status != .pre_existing }
+            XCTAssertEqual(filesToImport.count, 1)
         }
     }
     
@@ -172,6 +184,8 @@ final class UIIntegrationTests: XCTestCase {
             let file = testVolume.appendingPathComponent("file\(i).jpg")
             fm.createFile(atPath: file.path, contents: Data([0xFF, 0xD8, 0xFF]))
         }
+        
+        await createAppState()
         
         // Act - start scan then quickly cancel
         await MainActor.run {
