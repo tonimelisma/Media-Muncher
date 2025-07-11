@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import AVFoundation
 import QuickLookThumbnailing
+import CryptoKit // For SHA-256 checksum fallback when date/name heuristics fail
 
 actor FileProcessorService {
 
@@ -207,23 +208,75 @@ actor FileProcessorService {
         return newFile
     }
 
+    /// Returns `true` when the destination file is considered *the same* as the given `sourceFile`.
+    ///
+    /// The heuristic works in the following order (the first definitive check decides the outcome):
+    /// 1. **Size check** – Early-out if the byte sizes differ.
+    /// 2. **Filename match** – If the *filenames* (not full paths) are identical, we treat them as the same file even if timestamps differ (typical “overwrite” case).
+    /// 3. **Timestamp proximity** – If filenames differ, fall back to a 60-second timestamp window to account for FAT-type filesystems that round seconds.
+    /// 4. **SHA-256 checksum** – As a last-resort, calculate a digest of both files and compare. This is expensive but only reached when the previous
+    ///    heuristics are inconclusive, and it greatly improves duplicate detection when files are renamed by the importer (e.g. date-based names).
     private func isSameFile(sourceFile: File, destinationURL: URL) async -> Bool {
-        guard let sourceSize = sourceFile.size, let sourceDate = sourceFile.date else { return false }
+        guard let sourceSize = sourceFile.size, let sourceDate = sourceFile.date else {
+            #if DEBUG
+            print("[FileProcessorService] DEBUG: isSameFile – Missing source metadata for \(sourceFile.sourcePath)")
+            #endif
+            return false
+        }
+
+        let debugPrefix = "[FileProcessorService] DEBUG: isSameFile \(sourceFile.sourcePath) ↔︎ \(destinationURL.path)"
 
         do {
             let destAttr = try fileManager.attributesOfItem(atPath: destinationURL.path)
             let destSize = destAttr[.size] as? Int64 ?? 0
             let destDate = destAttr[.modificationDate] as? Date ?? .distantPast
-            
+
+            // 1. Size check
+            guard sourceSize == destSize else {
+                #if DEBUG
+                print("\(debugPrefix) – Sizes differ (src: \(sourceSize), dest: \(destSize)) → different file")
+                #endif
+                return false
+            }
+
             let namesMatch = destinationURL.lastPathComponent == URL(fileURLWithPath: sourceFile.sourcePath).lastPathComponent
-            if sourceSize != destSize { return false }
+            if namesMatch {
+                #if DEBUG
+                print("\(debugPrefix) – Filenames match and sizes match → same file")
+                #endif
+                return true
+            }
 
-            // If filenames match, treat as same regardless of date difference. Otherwise fallback to date proximity (60s).
-            if namesMatch { return true }
-
+            // 3. Timestamp proximity (within 60 seconds)
             let datesClose = abs(sourceDate.timeIntervalSince(destDate)) < 60
-            return datesClose
+            if datesClose {
+                #if DEBUG
+                print("\(debugPrefix) – Dates within ±60 s (src: \(sourceDate), dest: \(destDate)) → same file")
+                #endif
+                return true
+            }
+
+            // 4. SHA-256 checksum fallback
+            guard let srcData = try? Data(contentsOf: URL(fileURLWithPath: sourceFile.sourcePath)),
+                  let destData = try? Data(contentsOf: destinationURL) else {
+                #if DEBUG
+                print("\(debugPrefix) – Failed to read file data for checksum → assuming different file")
+                #endif
+                return false
+            }
+
+            let srcDigest = SHA256.hash(data: srcData)
+            let destDigest = SHA256.hash(data: destData)
+
+            let isSame = srcDigest == destDigest
+#if DEBUG
+            print("\(debugPrefix) – Checksum compare → \(isSame ? "same" : "different") file")
+#endif
+            return isSame
         } catch {
+#if DEBUG
+            print("\(debugPrefix) – File attribute lookup failed (\(error.localizedDescription)) → assuming different file")
+#endif
             return false
         }
     }
