@@ -15,3 +15,7 @@ project.xcworkspace/xcuserdata/
 *.xcuserdata 
 
 build/
+# Debug and temporary files
+*.log
+xcresult_snippet.txt
+test_debug.log
