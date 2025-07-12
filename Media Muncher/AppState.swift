@@ -258,10 +258,7 @@ class AppState: ObservableObject {
         
         recalculationTask = Task {
             do {
-                // Check cancellation before expensive work
-                try Task.checkCancellation()
-                
-                let recalculatedFiles = try await fileProcessorService.recalculateFileStatuses(
+                let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
                     for: files,
                     destinationURL: newDestination,
                     settings: settingsStore
