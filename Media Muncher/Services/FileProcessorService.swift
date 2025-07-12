@@ -318,12 +318,18 @@ func recalculateFileStatuses(
     for files: [File], 
     destinationURL: URL?, 
     settings: SettingsStore
-) async -> [File] {
+) async throws -> [File] {
+    // Check cancellation before starting
+    try Task.checkCancellation()
+    
     // Step 1: Sync path calculation (no file I/O)
     let filesWithPaths = recalculatePathsOnly(for: files, destinationURL: destinationURL, settings: settings)
     
+    // Check cancellation before expensive file I/O
+    try Task.checkCancellation()
+    
     // Step 2: Async file existence checks
-    return await checkPreExistingStatus(for: filesWithPaths)
+    return try await checkPreExistingStatus(for: filesWithPaths)
 }
 
 /// Synchronous path recalculation without any file I/O.
@@ -411,10 +417,13 @@ private func calculateDestinationPath(
 }
 
 /// Async file existence checks - only does file I/O.
-private func checkPreExistingStatus(for files: [File]) async -> [File] {
+private func checkPreExistingStatus(for files: [File]) async throws -> [File] {
     var result: [File] = []
     
     for file in files {
+        // Check cancellation for each file to allow fine-grained interruption
+        try Task.checkCancellation()
+        
         var updatedFile = file
         
         // Only check files that have destination paths and aren't duplicates

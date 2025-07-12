@@ -37,7 +37,7 @@ final class RecalculationIsolationTest: XCTestCase {
         XCTAssertEqual(initialFiles.first?.sourceName, "test.jpg")
         
         // Recalculate for different destination
-        let recalculatedFiles = await processor.recalculateFileStatuses(
+        let recalculatedFiles = try await processor.recalculateFileStatuses(
             for: initialFiles,
             destinationURL: destB,
             settings: settings

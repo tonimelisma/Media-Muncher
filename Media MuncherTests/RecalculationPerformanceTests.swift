@@ -29,7 +29,7 @@ final class RecalculationPerformanceTests: XCTestCase {
         // Act & Measure
         measure {
             Task {
-                let _ = await processor.recalculateFileStatuses(
+                let _ = try await processor.recalculateFileStatuses(
                     for: largeFileSet,
                     destinationURL: destinationURL,
                     settings: settings
@@ -61,7 +61,7 @@ final class RecalculationPerformanceTests: XCTestCase {
         
         // Act & Measure
         let startTime = Date()
-        let recalculatedFiles = await processor.recalculateFileStatuses(
+        let recalculatedFiles = try await processor.recalculateFileStatuses(
             for: filesWithSidecars,
             destinationURL: destinationURL,
             settings: settings
@@ -101,7 +101,7 @@ final class RecalculationPerformanceTests: XCTestCase {
         
         // Act - multiple rapid recalculations to test memory pressure
         for _ in 0..<10 {
-            let _ = await processor.recalculateFileStatuses(
+            let _ = try await processor.recalculateFileStatuses(
                 for: memoryIntensiveFiles,
                 destinationURL: destinationURL,
                 settings: settings

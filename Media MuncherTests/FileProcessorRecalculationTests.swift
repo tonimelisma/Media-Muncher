@@ -53,7 +53,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         let originalSidecarPaths = fileWithSidecar.sidecarPaths
         
         // Act - recalculate for new destination
-        let recalculatedFiles = await processor.recalculateFileStatuses(
+        let recalculatedFiles = try await processor.recalculateFileStatuses(
             for: initialFiles,
             destinationURL: destinationB,
             settings: settings
@@ -87,7 +87,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         XCTAssertEqual(preExistingFile.status, .pre_existing)
         
         // Act - recalculate for destination B (where file doesn't exist)
-        let recalculatedFiles = await processor.recalculateFileStatuses(
+        let recalculatedFiles = try await processor.recalculateFileStatuses(
             for: initialFiles,
             destinationURL: destinationB,
             settings: settings
@@ -108,7 +108,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         let initialFiles = [file1, file2]
         
         // Act - recalculate for new destination
-        let recalculatedFiles = await processor.recalculateFileStatuses(
+        let recalculatedFiles = try await processor.recalculateFileStatuses(
             for: initialFiles,
             destinationURL: destinationB,
             settings: settings
@@ -136,7 +136,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         }
         
         // Act - recalculate shouldn't crash with multiple files
-        let recalculatedFiles = await processor.recalculateFileStatuses(
+        let recalculatedFiles = try await processor.recalculateFileStatuses(
             for: multipleFiles,
             destinationURL: destinationB,
             settings: settings
@@ -151,7 +151,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
 
     func testRecalculateFileStatuses_emptyInputReturnsEmpty() async throws {
         // Act
-        let result = await processor.recalculateFileStatuses(
+        let result = try await processor.recalculateFileStatuses(
             for: [],
             destinationURL: destinationA,
             settings: settings
@@ -169,7 +169,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         let initialFiles = await processor.processFiles(from: sourceDir, destinationURL: destinationA, settings: settings)
         
         // Act
-        let recalculatedFiles = await processor.recalculateFileStatuses(
+        let recalculatedFiles = try await processor.recalculateFileStatuses(
             for: initialFiles,
             destinationURL: nil,
             settings: settings

@@ -100,7 +100,7 @@ final class AppStateRecalculationTests: XCTestCase {
         settingsStore.setDestination(destA_URL)
         settingsStore.setDestination(destB_URL) // Final destination for recalculation
 
-        let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
+        let recalculatedFiles = try await fileProcessorService.recalculateFileStatuses(
             for: appState.files,
             destinationURL: settingsStore.destinationURL,
             settings: settingsStore
@@ -145,7 +145,7 @@ final class AppStateRecalculationTests: XCTestCase {
 
         // Act: Change destination and trigger recalculation manually
         settingsStore.setDestination(destB_URL)
-        let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
+        let recalculatedFiles = try await fileProcessorService.recalculateFileStatuses(
             for: appState.files,
             destinationURL: settingsStore.destinationURL,
             settings: settingsStore
@@ -182,7 +182,7 @@ final class AppStateRecalculationTests: XCTestCase {
 
         // Act: Change destination and manually trigger recalculation
         settingsStore.setDestination(destB_URL)
-        let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
+        let recalculatedFiles = try await fileProcessorService.recalculateFileStatuses(
             for: appState.files,
             destinationURL: settingsStore.destinationURL,
             settings: settingsStore
