@@ -66,7 +66,6 @@ class AppState: ObservableObject {
         settingsStore: SettingsStore,
         importService: ImportService
     ) {
-        print("[AppState] DEBUG: Initializing AppState")
         
         self.volumeManager = volumeManager
         self.fileProcessorService = mediaScanner
@@ -97,6 +96,8 @@ class AppState: ObservableObject {
         // Subscribe to destination changes
         settingsStore.$destinationURL
             .dropFirst() // Skip initial value
+            .removeDuplicates() // Prevent duplicate processing when URL doesn't actually change
+            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main) // Debounce rapid changes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newDestination in
                 self?.handleDestinationChange(newDestination)

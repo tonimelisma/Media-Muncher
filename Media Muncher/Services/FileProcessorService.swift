@@ -14,7 +14,6 @@ actor FileProcessorService {
     private let fileManager = FileManager.default
 
     init() {
-        print("[FileProcessorService] DEBUG: Initialized")
     }
 
     func processFiles(
