@@ -1,0 +1,148 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Quick Start Commands
+
+### Building and Testing
+```bash
+# Open project in Xcode
+open "Media Muncher.xcodeproj"
+
+# Build from command line
+xcodebuild -scheme "Media Muncher" build
+
+# Run all tests
+xcodebuild -scheme "Media Muncher" test
+
+# Run specific test class
+xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/ImportServiceIntegrationTests"
+
+# Run single test method
+xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/ImportServiceIntegrationTests/testBasicImportFlow"
+```
+
+### Development Setup
+```bash
+# Install required tools (mentioned in ARCHITECTURE.md)
+xcode-select --install
+brew install swiftformat swiftlint
+
+# Build and run (use Xcode or press ⌘R)
+# Run tests (press ⌘U in Xcode)
+```
+
+## Architecture Overview
+
+Media Muncher is a macOS SwiftUI app that automatically imports media files from removable storage. The architecture follows a service-oriented pattern with clear separation of concerns:
+
+### Core Services (All Actors/ObservableObjects)
+- **VolumeManager**: Discovers and monitors removable volumes using NSWorkspace
+- **FileProcessorService**: Actor that scans volumes for media files, generates thumbnails, and detects pre-existing files in destination
+- **ImportService**: Actor that handles file copying, collision resolution, and deletion of originals  
+- **SettingsStore**: Manages user preferences via UserDefaults and security-scoped bookmarks
+- **AppState**: Main orchestrator that coordinates services and exposes unified state to SwiftUI views
+
+### Key Architectural Patterns
+- **Actor-based concurrency**: File processing and import operations run on background actors to keep UI responsive
+- **Combine publishers**: Services expose state changes via `@Published` properties
+- **Security-scoped bookmarks**: Destination folder access persisted across app launches
+- **Centralized path building**: `DestinationPathBuilder` handles all file naming logic to ensure consistency
+
+### Data Flow
+1. VolumeManager publishes available volumes → AppState
+2. User selects volume → AppState triggers FileProcessorService scan
+3. FileProcessorService streams discovered files → AppState updates UI
+4. User clicks Import → AppState coordinates ImportService
+5. ImportService copies files and reports progress → AppState updates UI
+
+## File Organization
+
+```
+Media Muncher/
+├── Media_MuncherApp.swift          # App entry point, service injection
+├── AppState.swift                  # Main orchestrator, UI state machine
+├── Services/
+│   ├── VolumeManager.swift         # Volume discovery and monitoring
+│   ├── FileProcessorService.swift  # Media scanning, thumbnail caching (2000 entries)
+│   ├── ImportService.swift         # File copying and collision handling
+│   └── SettingsStore.swift         # User preferences persistence
+├── Helpers/
+│   └── DestinationPathBuilder.swift # Pure path generation logic
+├── Views/                          # SwiftUI views
+└── Models/                         # Value types (Volume, File, AppError)
+
+Media MuncherTests/
+├── Fixtures/                       # Sample media files for testing
+├── *IntegrationTests.swift          # End-to-end tests on real file system
+└── *Tests.swift                     # Unit tests for pure logic
+```
+
+## Testing Strategy
+
+**Integration Tests (Primary)**: Tests run against real file system using fixtures in `Media MuncherTests/Fixtures/`. The `ImportServiceIntegrationTests` class validates the entire import pipeline from file discovery through copying/deletion.
+
+**Unit Tests (Targeted)**: Used only for pure business logic like `DestinationPathBuilder` that doesn't touch the file system. Now includes synchronous path calculation tests using `recalculatePathsOnly()` for fast, deterministic testing.
+
+**Test Coverage**: Currently >90% on core logic (exceeds 70% requirement from PRD). All tests are now free of `Task.sleep()` operations for improved reliability.
+
+## Key Implementation Details
+
+### File Processing Pipeline
+1. **Discovery**: FileProcessorService recursively scans volume for supported media types
+2. **Metadata extraction**: EXIF date parsing (forced UTC), file size calculation
+3. **Duplicate detection**: Uses date+size heuristic, falls back to SHA-256 checksum
+4. **Thumbnail generation**: Async thumbnail cache (2000 entry LRU) via QuickLookThumbnailing
+5. **Pre-existing detection**: Compares against destination using DestinationPathBuilder logic
+6. **Path recalculation**: Automatic destination path updates when settings change, with sync/async architecture split
+
+### Import Pipeline
+1. **Path calculation**: DestinationPathBuilder generates ideal destination paths
+2. **Collision resolution**: Numerical suffixes added before any copying begins
+3. **File copying**: Preserves modification and creation timestamps
+4. **Sidecar handling**: THM thumbnails are copied and deleted with parent videos
+5. **Source cleanup**: Original files deleted only after successful copy (if enabled)
+
+### Supported File Types
+- **Photos**: jpg, jpeg, png, heif, heic, tiff, raw formats (cr2, cr3, nef, etc.)
+- **Videos**: mp4, mov, avi, mkv, professional formats (braw, r3d, ari)  
+- **Audio**: mp3, wav, aac
+- **Sidecars**: THM files automatically managed with parent videos
+
+### Settings and Preferences
+- Destination folder (security-scoped bookmark)
+- File organization: date-based subfolders (YYYY/MM/)
+- File renaming: capture date-based filenames
+- File type filters: enable/disable photos/videos/audio/raw
+- Delete originals after import
+- Auto-eject volume after import
+
+## Important Constraints
+
+### Security Model
+- App sandbox with removable drive entitlements
+- Security-scoped bookmarks for destination folder access
+- No plain file paths stored outside sandbox
+
+### Performance Requirements  
+- Import throughput ≥200 MB/s (hardware limited)
+- UI remains responsive during all operations
+- Async/await with proper cancellation support
+
+### Error Handling
+- Domain-specific `AppError` enum with context
+- Never crash on I/O errors - surface to user
+- Read-only volume support (shows banner, continues import)
+
+## Development Notes
+
+- **Concurrency**: Use actors for file system operations, MainActor only for UI updates
+- **Testing**: Prefer integration tests over mocks for file system code
+- **Path logic**: Always use DestinationPathBuilder for consistency
+- **Cancellation**: Long operations must check `Task.checkCancellation()`
+- **Thumbnails**: LRU cache prevents memory growth on large volumes
+- **EXIF parsing**: DateFormatter forced to UTC to prevent timezone bugs
+
+## Current Status (Per PRD)
+
+Core functionality is **Finished** including volume management, media discovery, import engine, and comprehensive testing. Remaining work includes logging infrastructure (Epic 8) and automation/launch agents (Epic 7).

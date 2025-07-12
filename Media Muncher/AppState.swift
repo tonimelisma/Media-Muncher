@@ -34,6 +34,7 @@ class AppState: ObservableObject {
     @Published var importedBytes: Int64 = 0
     @Published var importedFileCount: Int = 0
     @Published var importStartTime: Date? = nil
+    @Published var isRecalculating: Bool = false
     
     /// Returns seconds elapsed since the current import started. Nil when no import is running.
     var elapsedSeconds: TimeInterval? {
@@ -90,6 +91,15 @@ class AppState: ObservableObject {
             .sink { [weak self] devicePath in
                 print("[AppState] DEBUG: selectedVolume changed to: \(devicePath ?? "nil")")
                 self?.startScan(for: devicePath)
+            }
+            .store(in: &cancellables)
+
+        // Subscribe to destination changes
+        settingsStore.$destinationURL
+            .dropFirst() // Skip initial value
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newDestination in
+                self?.handleDestinationChange(newDestination)
             }
             .store(in: &cancellables)
 
@@ -234,6 +244,25 @@ class AppState: ObservableObject {
                 await MainActor.run {
                     self.error = .importFailed(reason: error.localizedDescription)
                 }
+            }
+        }
+    }
+
+    private func handleDestinationChange(_ newDestination: URL?) {
+        guard !files.isEmpty else { return }
+        
+        isRecalculating = true
+        
+        Task {
+            let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
+                for: files,
+                destinationURL: newDestination,
+                settings: settingsStore
+            )
+            
+            await MainActor.run {
+                self.files = recalculatedFiles
+                self.isRecalculating = false
             }
         }
     }
