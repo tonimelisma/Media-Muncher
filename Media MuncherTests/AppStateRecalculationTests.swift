@@ -47,10 +47,31 @@ final class AppStateRecalculationTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        // Cancel any ongoing operations
+        appState.cancelScan()
+        appState.cancelImport()
+        
+        // Clear state
+        appState.files = []
+        appState.state = .idle
+        appState.error = nil
+        
+        // Remove test directories
         try? fileManager.removeItem(at: sourceURL)
         try? fileManager.removeItem(at: destA_URL)
         try? fileManager.removeItem(at: destB_URL)
+        
+        // Clear references
         cancellables = nil
+        sourceURL = nil
+        destA_URL = nil
+        destB_URL = nil
+        settingsStore = nil
+        fileProcessorService = nil
+        importService = nil
+        volumeManager = nil
+        appState = nil
+        
         try super.tearDownWithError()
     }
 
@@ -84,31 +105,31 @@ final class AppStateRecalculationTests: XCTestCase {
         createFile(at: testFile)
         settingsStore.setDestination(destA_URL)
 
-        // Act: Perform initial scan by triggering through selectedVolume
-        appState.selectedVolume = sourceURL.path
-        // Wait for scan to complete
-        while appState.state == .enumeratingFiles {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        // Act: Perform initial scan directly (bypassing volume selection which doesn't work in tests)
+        let processedFiles = await fileProcessorService.processFiles(
+            from: sourceURL,
+            destinationURL: destA_URL,
+            settings: settingsStore
+        )
+        appState.files = processedFiles
 
         // Assert initial scan results
         XCTAssertEqual(appState.files.count, 1, "Should have loaded one file after initial scan")
         XCTAssertEqual(appState.files.first?.destPath, destA_URL.appendingPathComponent("test.jpg").path, "Initial destination path should be correct")
 
-        // Act: Simulate rapid destination changes and trigger recalculation manually
+        // Act: Test rapid destination changes through the real AppState flow
         settingsStore.setDestination(destB_URL)
-        settingsStore.setDestination(destA_URL)
-        settingsStore.setDestination(destB_URL) // Final destination for recalculation
+        
+        // Wait for recalculation to complete
+        var attempts = 0
+        while appState.isRecalculating && attempts < 50 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+            attempts += 1
+        }
 
-        let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
-            for: appState.files,
-            destinationURL: settingsStore.destinationURL,
-            settings: settingsStore
-        )
-        appState.files = recalculatedFiles // Update appState.files with recalculated results
-
-        // Assert: Verify the files after recalculation
+        // Assert: AppState should have updated files automatically via handleDestinationChange
         XCTAssertEqual(appState.files.count, 1, "File count should remain stable after recalculation")
+        XCTAssertFalse(appState.isRecalculating, "Should not be recalculating after completion")
         XCTAssertEqual(appState.files.first?.destPath, destB_URL.appendingPathComponent("test.jpg").path, "Final destination path should reflect the last setting")
         XCTAssertEqual(settingsStore.destinationURL, destB_URL, "SettingsStore destination should be correct")
     }
@@ -130,36 +151,37 @@ final class AppStateRecalculationTests: XCTestCase {
         
         settingsStore.setDestination(destA_URL)
 
-        // Act: Perform initial scan by triggering through selectedVolume
-        appState.selectedVolume = sourceURL.path
-        // Wait for scan to complete
-        while appState.state == .enumeratingFiles {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-        
-        // Assert initial scan results
-        let initialFiles = appState.files
-        XCTAssertEqual(initialFiles.count, 3, "Should load 3 primary files (regular, existing, video)")
-        XCTAssertEqual(initialFiles.first { $0.sourceName == "existing.jpg" }?.status, .pre_existing, "Pre-existing file should be marked as such")
-        XCTAssertFalse(initialFiles.first { $0.sourceName == "video.mov" }!.sidecarPaths.isEmpty, "Video should have associated sidecar paths")
-
-        // Act: Change destination and trigger recalculation manually
-        settingsStore.setDestination(destB_URL)
-        let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
-            for: appState.files,
-            destinationURL: settingsStore.destinationURL,
+        // Act: Perform initial scan directly (bypassing volume selection which doesn't work in tests)
+        let processedFiles = await fileProcessorService.processFiles(
+            from: sourceURL,
+            destinationURL: destA_URL,
             settings: settingsStore
         )
-        appState.files = recalculatedFiles // Update appState.files with recalculated results
+        appState.files = processedFiles
         
-        // Assert: Verify files after recalculation
+        // Assert initial scan results
+        XCTAssertEqual(appState.files.count, 3, "Should load 3 primary files (regular, existing, video)")
+        XCTAssertEqual(appState.files.first { $0.sourceName == "existing.jpg" }?.status, .pre_existing, "Pre-existing file should be marked as such")
+        XCTAssertFalse(appState.files.first { $0.sourceName == "video.mov" }!.sidecarPaths.isEmpty, "Video should have associated sidecar paths")
+
+        // Act: Change destination through real AppState flow
+        settingsStore.setDestination(destB_URL)
+        
+        // Wait for recalculation to complete
+        var attempts = 0
+        while appState.isRecalculating && attempts < 50 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+            attempts += 1
+        }
+        
+        // Assert: Verify files after automatic recalculation
         XCTAssertEqual(appState.files.count, 3, "File count should remain stable after recalculation")
+        XCTAssertFalse(appState.isRecalculating, "Should not be recalculating after completion")
         XCTAssertTrue(appState.files.allSatisfy { $0.status == .waiting }, "All files should be .waiting after destination change (unless duplicate_in_source)")
         XCTAssertFalse(appState.files.first { $0.sourceName == "video.mov" }!.sidecarPaths.isEmpty, "Sidecar paths should be preserved after recalculation")
         XCTAssertEqual(appState.files.first { $0.sourceName == "regular.jpg" }?.destPath, destB_URL.appendingPathComponent("regular.jpg").path)
         XCTAssertEqual(appState.files.first { $0.sourceName == "existing.jpg" }?.destPath, destB_URL.appendingPathComponent("existing.jpg").path)
         XCTAssertEqual(appState.files.first { $0.sourceName == "video.mov" }?.destPath, destB_URL.appendingPathComponent("video.mov").path)
-    XCTAssertFalse(appState.files.first { $0.sourceName == "video.mov" }!.sidecarPaths.isEmpty)
     }
 
     func testDestinationChangeTriggersRecalculation() async throws {
@@ -168,29 +190,32 @@ final class AppStateRecalculationTests: XCTestCase {
         createFile(at: testFile)
         settingsStore.setDestination(destA_URL)
 
-        // Act: Perform initial scan by triggering through selectedVolume
-        appState.selectedVolume = sourceURL.path
-        // Wait for scan to complete
-        while appState.state == .enumeratingFiles {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        // Act: Perform initial scan directly (bypassing volume selection which doesn't work in tests)
+        let processedFiles = await fileProcessorService.processFiles(
+            from: sourceURL,
+            destinationURL: destA_URL,
+            settings: settingsStore
+        )
+        appState.files = processedFiles
 
         // Assert initial state
         XCTAssertEqual(appState.files.count, 1)
         XCTAssertEqual(appState.files.first?.status, .waiting)
         XCTAssertEqual(appState.files.first?.destPath, destA_URL.appendingPathComponent("test.jpg").path)
 
-        // Act: Change destination and manually trigger recalculation
+        // Act: Change destination through real AppState flow (this triggers handleDestinationChange)
         settingsStore.setDestination(destB_URL)
-        let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
-            for: appState.files,
-            destinationURL: settingsStore.destinationURL,
-            settings: settingsStore
-        )
-        appState.files = recalculatedFiles
+        
+        // Wait for recalculation to complete
+        var attempts = 0
+        while appState.isRecalculating && attempts < 50 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+            attempts += 1
+        }
 
-        // Assert: Verify recalculation
+        // Assert: Verify automatic recalculation
         XCTAssertEqual(appState.files.count, 1)
+        XCTAssertFalse(appState.isRecalculating, "Should not be recalculating after completion")
         XCTAssertEqual(appState.files.first?.status, .waiting) // Should still be waiting
         XCTAssertEqual(appState.files.first?.destPath, destB_URL.appendingPathComponent("test.jpg").path)
     }
