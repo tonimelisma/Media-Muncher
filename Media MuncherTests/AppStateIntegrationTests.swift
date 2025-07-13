@@ -71,65 +71,78 @@ final class AppStateIntegrationTests: XCTestCase {
     }
 
     func testDestinationChangeRecalculatesFileStatuses() async throws {
-        // 1. SETUP
-        // Create source files
+        // 1. SETUP - Create source files
         let file1_sourceURL = try setupSourceFile(named: "exif_image.jpg")
         _ = try setupSourceFile(named: "no_exif_image.heic")
 
         // Create a pre-existing file in Destination A
         try fileManager.copyItem(at: file1_sourceURL, to: destinationA_URL.appendingPathComponent("exif_image.jpg"))
 
-        // 2. INITIAL SCAN (Destination A)
-        // Set initial destination
+        // 2. INITIAL SCAN - Set destination and scan source
         settingsStore.setDestination(destinationA_URL)
 
-        // Create an expectation for the initial scan to complete
+        // Wait for initial scan to complete
         let initialScanExpectation = XCTestExpectation(description: "Initial scan completes")
-
         appState.$files
             .dropFirst()
-            .sink { files in
-                if !files.isEmpty {
-                    initialScanExpectation.fulfill()
-                }
+            .filter { $0.count == 2 } // Wait for both files
+            .first()
+            .sink { _ in
+                initialScanExpectation.fulfill()
             }
             .store(in: &cancellables)
 
-        // Trigger the scan by setting the selected volume
+        // Trigger scan
         appState.selectedVolume = sourceURL.path
-
         await fulfillment(of: [initialScanExpectation], timeout: 5.0)
 
-        // 3. ASSERT INITIAL STATE
-        // Find the file that should be pre-existing
-        guard let preExistingFile = appState.files.first(where: { $0.sourcePath == file1_sourceURL.path }) else {
-            XCTFail("Could not find the specified file in appState.files")
-            return
-        }
-        XCTAssertEqual(preExistingFile.status, .pre_existing, "File should initially be marked as pre-existing in Destination A")
-        XCTAssertEqual(appState.files.filter({ $0.status == .waiting }).count, 1, "One file should be in waiting state")
+        // 3. VALIDATE INITIAL STATE
+        XCTAssertEqual(appState.files.count, 2, "Should have 2 files after initial scan")
+        
+        let preExistingFile = appState.files.first { $0.sourceName == "exif_image.jpg" }
+        let waitingFile = appState.files.first { $0.sourceName == "no_exif_image.heic" }
+        
+        XCTAssertNotNil(preExistingFile, "Should find exif_image.jpg")
+        XCTAssertNotNil(waitingFile, "Should find no_exif_image.heic")
+        XCTAssertEqual(preExistingFile?.status, .pre_existing, "exif_image.jpg should be pre-existing")
+        XCTAssertEqual(waitingFile?.status, .waiting, "no_exif_image.heic should be waiting")
 
-        // 4. CHANGE DESTINATION & RECALCULATE
-        // Create an expectation for the file statuses to be recalculated
-        let recalculationExpectation = XCTestExpectation(description: "File statuses are recalculated after destination change")
-
-        appState.$files
-            .dropFirst()
-            .sink { files in
-                // The recalculation is complete when all files are back to .waiting status
-                if files.allSatisfy({ $0.status == .waiting }) {
+        // 4. DESTINATION CHANGE & RECALCULATION
+        // Monitor recalculation completion
+        let recalculationExpectation = XCTestExpectation(description: "Recalculation completed")
+        
+        // Track state changes more simply
+        appState.$isRecalculating
+            .dropFirst() // Skip initial value
+            .filter { !$0 } // Wait for recalculation to finish (isRecalculating = false)
+            .first()
+            .sink { _ in
+                // Validate all files are now .waiting (no pre-existing in empty destination B)
+                if self.appState.files.allSatisfy({ $0.status == .waiting }) &&
+                   self.appState.files.allSatisfy({ 
+                       guard let destPath = $0.destPath else { return false }
+                       return destPath.hasPrefix(self.destinationB_URL.path)
+                   }) {
                     recalculationExpectation.fulfill()
                 }
             }
             .store(in: &cancellables)
 
-        // Change the destination, which should trigger the recalculation
+        // Trigger destination change
         settingsStore.setDestination(destinationB_URL)
 
-        // 5. ASSERT FINAL STATE
+        // 5. VALIDATE RECALCULATION COMPLETED
         await fulfillment(of: [recalculationExpectation], timeout: 5.0)
 
-        XCTAssertEqual(appState.files.count, 2, "There should still be two files")
-        XCTAssertTrue(appState.files.allSatisfy { $0.status == .waiting }, "All files should be marked as .waiting in Destination B")
+        // 6. FINAL ASSERTIONS
+        XCTAssertEqual(appState.files.count, 2, "Should still have 2 files")
+        XCTAssertFalse(appState.isRecalculating, "Should not be recalculating")
+        XCTAssertTrue(appState.files.allSatisfy { $0.status == .waiting }, 
+                     "All files should be .waiting in empty destination B")
+        
+        // Previously pre-existing file should now be waiting
+        let updatedPreExistingFile = appState.files.first { $0.sourceName == "exif_image.jpg" }
+        XCTAssertEqual(updatedPreExistingFile?.status, .waiting, 
+                      "Previously pre-existing file should now be waiting")
     }
 }
