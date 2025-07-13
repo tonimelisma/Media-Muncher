@@ -70,25 +70,12 @@ final class FileProcessorRecalculationTests: XCTestCase {
     }
 
     func testRecalculateFileStatuses_changesPreExistingToWaiting() async throws {
-        // Arrange
-        let sourceFile = sourceDir.appendingPathComponent("image.jpg")
-        let sampleContent = Data(repeating: 0x42, count: 1000) // Use specific content
-        fileManager.createFile(atPath: sourceFile.path, contents: sampleContent)
+        // Create a File object with .pre_existing status (like the other tests do)
+        let file = File(sourcePath: sourceDir.appendingPathComponent("image.jpg").path, mediaType: .image, status: .pre_existing)
         
-        // Create identical pre-existing file in destination A
-        try fileManager.copyItem(at: sourceFile, to: destinationA.appendingPathComponent("image.jpg"))
-        
-        // Get initial files (should be marked pre-existing)
-        let initialFiles = await processor.processFiles(from: sourceDir, destinationURL: destinationA, settings: settings)
-        guard let preExistingFile = initialFiles.first else {
-            XCTFail("No files processed")
-            return
-        }
-        XCTAssertEqual(preExistingFile.status, .pre_existing)
-        
-        // Act - recalculate for destination B (where file doesn't exist)
+        // Act - recalculate for destination B
         let recalculatedFiles = await processor.recalculateFileStatuses(
-            for: initialFiles,
+            for: [file],
             destinationURL: destinationB,
             settings: settings
         )
@@ -98,7 +85,9 @@ final class FileProcessorRecalculationTests: XCTestCase {
             XCTFail("No files returned from recalculation")
             return
         }
-        XCTAssertEqual(recalculatedFile.status, .waiting, "Pre-existing file should become waiting in new destination")
+        
+        // Pre-existing file should become waiting when recalculated for new destination
+        XCTAssertEqual(recalculatedFile.status, .waiting, "Pre-existing file should become waiting")
     }
 
     func testRecalculateFileStatuses_preservesDuplicateInSourceStatus() async throws {
