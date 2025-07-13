@@ -423,9 +423,13 @@ private func checkPreExistingStatus(for files: [File]) async -> [File] {
                 let candidateURL = URL(fileURLWithPath: destPath)
                 if await isSameFile(sourceFile: file, destinationURL: candidateURL) {
                     updatedFile.status = .pre_existing
+                } else {
+                    // Different file exists at destination, keep original status
+                    // In production this would trigger collision resolution
                 }
-                // If different file exists, we'd need collision resolution
-                // But that should be handled in production by more sophisticated logic
+            } else {
+                // File doesn't exist at destination, should be .waiting
+                updatedFile.status = .waiting
             }
         }
         
