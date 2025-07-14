@@ -143,6 +143,13 @@ The specific file extensions for each category in **ST-5** are:
 - Side-car thumbnails (.THM) are automatically removed when their parent video is deleted post-import.
 - Added three unit-test suites covering the above; overall coverage surpasses 90 %.
 
+### 2025-07-14 – Recalculation Flow Re-architecture
+- **Internal reliability improvement**: Re-architected destination change recalculation system using Command Pattern with explicit state machine
+- Fixed unpredictable behavior when users rapidly changed destination folders in Settings
+- Removed security-scoped bookmark complexity (app no longer sandboxed)
+- Enhanced test reliability by replacing polling patterns with deterministic expectations
+- All user-facing functionality remains unchanged; improvements are internal architecture and reliability
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  

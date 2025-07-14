@@ -35,12 +35,19 @@ final class AppStateIntegrationTests: XCTestCase {
         importService = ImportService()
         volumeManager = VolumeManager()
 
+        // Initialize RecalculationManager first
+        let recalculationManager = RecalculationManager(
+            fileProcessorService: fileProcessorService,
+            settingsStore: settingsStore
+        )
+
         // Initialize AppState
         appState = AppState(
             volumeManager: volumeManager,
             mediaScanner: fileProcessorService,
             settingsStore: settingsStore,
-            importService: importService
+            importService: importService,
+            recalculationManager: recalculationManager
         )
     }
 

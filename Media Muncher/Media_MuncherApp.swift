@@ -16,13 +16,21 @@ struct Media_MuncherApp: App {
     private let mediaScanner = FileProcessorService()
     private let settingsStore = SettingsStore()
     private let importService = ImportService()
+    private let recalculationManager: RecalculationManager
 
     init() {
+        // Initialize RecalculationManager with its dependencies
+        recalculationManager = RecalculationManager(
+            fileProcessorService: mediaScanner,
+            settingsStore: settingsStore
+        )
+        
         let state = AppState(
             volumeManager: volumeManager,
             mediaScanner: mediaScanner,
             settingsStore: settingsStore,
-            importService: importService
+            importService: importService,
+            recalculationManager: recalculationManager
         )
         _appState = StateObject(wrappedValue: state)
     }

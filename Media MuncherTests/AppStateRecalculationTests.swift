@@ -38,11 +38,18 @@ final class AppStateRecalculationTests: XCTestCase {
         importService = ImportService()
         volumeManager = VolumeManager()
 
+        // Instantiate RecalculationManager first
+        let recalculationManager = RecalculationManager(
+            fileProcessorService: fileProcessorService,
+            settingsStore: settingsStore
+        )
+
         appState = AppState(
             volumeManager: volumeManager,
             mediaScanner: fileProcessorService,
             settingsStore: settingsStore,
-            importService: importService
+            importService: importService,
+            recalculationManager: recalculationManager
         )
     }
 
@@ -120,12 +127,22 @@ final class AppStateRecalculationTests: XCTestCase {
         // Act: Test rapid destination changes through the real AppState flow
         settingsStore.setDestination(destB_URL)
         
-        // Wait for recalculation to complete
-        var attempts = 0
-        while appState.isRecalculating && attempts < 50 {
-            try await Task.sleep(nanoseconds: 10_000_000)
-            attempts += 1
-        }
+        // --- REPLACE POLLING WITH EXPECTATION ---
+        // Create an expectation that fulfills when appState.isRecalculating becomes false
+        let expectation = XCTestExpectation(description: "Recalculation completes")
+        var cancellable: AnyCancellable? = nil // Keep a strong reference to the cancellable
+
+        cancellable = appState.$isRecalculating
+            .dropFirst() // Drop the initial false, wait for it to become true then false
+            .filter { !$0 } // Wait for it to become false
+            .sink { _ in
+                expectation.fulfill()
+                cancellable?.cancel() // Cancel the subscription once fulfilled
+            }
+
+        // Wait for the expectation to be fulfilled (with a reasonable timeout)
+        await fulfillment(of: [expectation], timeout: 5.0) // Adjust timeout as needed
+        // --- END REPLACEMENT ---
 
         // Assert: AppState should have updated files automatically via handleDestinationChange
         XCTAssertEqual(appState.files.count, 1, "File count should remain stable after recalculation")
@@ -167,12 +184,19 @@ final class AppStateRecalculationTests: XCTestCase {
         // Act: Change destination through real AppState flow
         settingsStore.setDestination(destB_URL)
         
-        // Wait for recalculation to complete
-        var attempts = 0
-        while appState.isRecalculating && attempts < 50 {
-            try await Task.sleep(nanoseconds: 10_000_000)
-            attempts += 1
-        }
+        // Wait for recalculation to complete using expectation
+        let expectation = XCTestExpectation(description: "Recalculation completes")
+        var cancellable: AnyCancellable? = nil
+
+        cancellable = appState.$isRecalculating
+            .dropFirst()
+            .filter { !$0 }
+            .sink { _ in
+                expectation.fulfill()
+                cancellable?.cancel()
+            }
+
+        await fulfillment(of: [expectation], timeout: 5.0)
         
         // Assert: Verify files after automatic recalculation
         XCTAssertEqual(appState.files.count, 3, "File count should remain stable after recalculation")
@@ -203,15 +227,22 @@ final class AppStateRecalculationTests: XCTestCase {
         XCTAssertEqual(appState.files.first?.status, .waiting)
         XCTAssertEqual(appState.files.first?.destPath, destA_URL.appendingPathComponent("test.jpg").path)
 
-        // Act: Change destination through real AppState flow (this triggers handleDestinationChange)
+        // Act: Change destination through real AppState flow (this triggers RecalculationManager)
         settingsStore.setDestination(destB_URL)
         
-        // Wait for recalculation to complete
-        var attempts = 0
-        while appState.isRecalculating && attempts < 50 {
-            try await Task.sleep(nanoseconds: 10_000_000)
-            attempts += 1
-        }
+        // Wait for recalculation to complete using expectation
+        let expectation = XCTestExpectation(description: "Recalculation completes")
+        var cancellable: AnyCancellable? = nil
+
+        cancellable = appState.$isRecalculating
+            .dropFirst()
+            .filter { !$0 }
+            .sink { _ in
+                expectation.fulfill()
+                cancellable?.cancel()
+            }
+
+        await fulfillment(of: [expectation], timeout: 5.0)
 
         // Assert: Verify automatic recalculation
         XCTAssertEqual(appState.files.count, 1)

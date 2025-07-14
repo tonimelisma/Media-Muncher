@@ -41,8 +41,9 @@
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. Manages the UI state machine. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
 | **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread, maintains an **in-memory thumbnail cache (2,000 entry limit)**, and detects pre-existing files in the destination. | `FileProcessorService` |
-| **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. | `SettingsStore` |
-| **Services/ImportService.swift**| Copies files to the destination using security-scoped bookmarks. Delegates all path calculation to `DestinationPathBuilder`. | `ImportService` |
+| **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. Provides direct file system access without security-scoped bookmarks. | `SettingsStore` |
+| **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
+| **Services/ImportService.swift**| Copies files to the destination with direct file system access. Delegates all path calculation to `DestinationPathBuilder`. | `ImportService` |
 | **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
 | **Models/FileModel.swift** | Immutable record for a media file & helpers | `File`, `MediaType`, `FileStatus`, `MediaType.from(filePath:)` |
@@ -62,7 +63,7 @@
 
 ---
 ## 3. Runtime Flow (today)
-1. `Media_MuncherApp` instantiates `VolumeManager`, `FileProcessorService`, `SettingsStore`, `ImportService` and `AppState`. It injects them as `@EnvironmentObject`s.
+1. `Media_MuncherApp` instantiates `VolumeManager`, `FileProcessorService`, `SettingsStore`, `ImportService`, `RecalculationManager` and `AppState`. It injects them as `@EnvironmentObject`s.
 2. `VolumeManager` uses `NSWorkspace` to discover and publish an array of `Volume`s.
 3. `AppState` subscribes to `VolumeManager`'s volumes and automatically selects the first one.
 4. The volume selection change is published by `AppState`.
@@ -71,6 +72,7 @@
 7. `AppState` collects these stream results and updates its `@Published` `files` and `filesScanned` properties on the **MainActor**.
 8. `MediaFilesGridView` and `ContentView` observe `AppState` and display the new files and progress as they arrive.
 9. When **Import** is clicked, `AppState` calls the `ImportService` to copy the scanned files to the destination set in `SettingsStore`.
+10. When the destination changes in `SettingsStore`, `AppState` delegates to `RecalculationManager` to recalculate file paths and statuses.
 
 ---
 ## 4. Architectural Principles
@@ -80,7 +82,8 @@
 | `VolumeManager` | Discover, eject & monitor volumes, expose `Publisher<[Volume]>` | Wrap `NSWorkspace` & external devices (future PTP/MTP). |
 | `FileProcessorService` | **Phase 1:** fast filesystem walk that emits basic `File` structs (path, name, size) immediately; **Phase 2:** schedules asynchronous enrichment tasks that add heavy metadata (EXIF, thumbnails) without blocking the UI | Move initial `enumerateFiles()` here and spin-off a `MetadataEnricher` actor (or background `Task`) for phase 2. |
 | `ImportService` | Copy files, handle duplicates, **remove thumbnail side-cars (".THM"/".thm") after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
-| `SettingsStore` | Type-safe wrapper around `UserDefaults` & security bookmarks | Provides Combine `@Published` properties. |
+| `SettingsStore` | Type-safe wrapper around `UserDefaults` with direct file system access | Provides Combine `@Published` properties. No longer uses security bookmarks. |
+| `RecalculationManager` | Dedicated state machine for destination change recalculations | Handles file path updates when destination changes, with proper error handling and task cancellation. |
 | `Logger` | Structured logging (os
 data, rotating file handler) | Respect user privacy; in dev builds default to `stdout`. |
 | `AppState` | Pure composition root that orchestrates above services | Slimmed down, no heavy logic. |
@@ -215,3 +218,16 @@ graph TD;
   * `FileProcessorEnumerationTests` (thumbnail skipping & mtime fallback)
   * `ImportServiceAdditionalTests` (mtime preservation, read-only destination, side-car deletion)
 * Core-logic test coverage is now **≈92 %** (TQ-1 reached).
+
+## 19. Recent Maintenance (2025-07-14)
+* **Recalculation flow re-architecture** - Implemented Command Pattern with explicit state machine to fix reliability issues:
+  * Removed all security-scoped bookmark logic from `SettingsStore` (app no longer sandboxed)
+  * Fixed "double assignment" bug causing unpredictable Combine publisher behavior in `destinationURL`
+  * Created dedicated `RecalculationManager` service as state machine for destination change handling
+  * Refactored `AppState` to delegate recalculation logic to `RecalculationManager`, improving separation of concerns
+  * Replaced brittle `.dropFirst()` workaround with robust publisher chain
+  * Updated all tests to use deterministic `XCTestExpectation` patterns instead of polling with `Task.sleep()`
+  * Added `recalculationFailed` error type with helper properties for better error identification
+* **DestinationFolderPicker** simplified by removing `lastCustomURL` functionality
+* All test constructors updated to include new `RecalculationManager` dependency
+* Project builds successfully with improved reliability and maintainability

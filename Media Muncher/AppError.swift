@@ -16,6 +16,7 @@ enum AppError: Error, Identifiable, LocalizedError {
     case importSucceededWithDeletionErrors(reason: String)
     case copyFailed(source: String, reason: String)
     case directoryCreationFailed(path: String, reason: String)
+    case recalculationFailed(reason: String)
     
     var errorDescription: String? {
         switch self {
@@ -31,6 +32,18 @@ enum AppError: Error, Identifiable, LocalizedError {
             return "Failed to copy file: \(reason)"
         case .directoryCreationFailed(_, let reason):
             return "Failed to create destination directory: \(reason)"
+        case .recalculationFailed(let reason):
+            return "Failed to recalculate file destinations: \(reason)"
+        }
+    }
+    
+    /// Helper property to identify recalculation-related errors
+    var isRecalculationError: Bool {
+        switch self {
+        case .recalculationFailed:
+            return true
+        default:
+            return false
         }
     }
 } 

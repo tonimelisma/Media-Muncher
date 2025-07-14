@@ -35,11 +35,17 @@ final class AppStateRecalculationIsolationTest: XCTestCase {
         let importService = ImportService()
         let volumeManager = VolumeManager()
         
+        let recalculationManager = RecalculationManager(
+            fileProcessorService: fileProcessorService,
+            settingsStore: settingsStore
+        )
+        
         let appState = AppState(
             volumeManager: volumeManager,
             mediaScanner: fileProcessorService,
             settingsStore: settingsStore,
-            importService: importService
+            importService: importService,
+            recalculationManager: recalculationManager
         )
         
         settingsStore.setDestination(destA)

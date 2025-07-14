@@ -54,24 +54,26 @@ class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var scanTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
-    private var recalculationTask: Task<Void, Error>?
 
     private let volumeManager: VolumeManager
     private let fileProcessorService: FileProcessorService
     private let settingsStore: SettingsStore
     private let importService: ImportService
+    private let recalculationManager: RecalculationManager
 
     init(
         volumeManager: VolumeManager,
         mediaScanner: FileProcessorService,
         settingsStore: SettingsStore,
-        importService: ImportService
+        importService: ImportService,
+        recalculationManager: RecalculationManager
     ) {
         
         self.volumeManager = volumeManager
         self.fileProcessorService = mediaScanner
         self.settingsStore = settingsStore
         self.importService = importService
+        self.recalculationManager = recalculationManager
         
         // Subscribe to volume changes
         volumeManager.$volumes
@@ -96,10 +98,42 @@ class AppState: ObservableObject {
 
         // Subscribe to destination changes
         settingsStore.$destinationURL
-            .dropFirst() // Skip initial value
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newDestination in
-                self?.handleDestinationChange(newDestination)
+                guard let self = self else { return }
+                // Now, we tell the RecalculationManager to start the process.
+                self.recalculationManager.startRecalculation(
+                    for: self.files, // Pass AppState's current files
+                    newDestinationURL: newDestination,
+                    settings: self.settingsStore // Pass settings
+                )
+            }
+            .store(in: &cancellables)
+
+        // Subscribe to RecalculationManager's files updates
+        recalculationManager.$files
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] updatedFiles in
+                self?.files = updatedFiles // AppState's files reflect RecalculationManager's files
+            }
+            .store(in: &cancellables)
+
+        // Subscribe to RecalculationManager's recalculating status
+        recalculationManager.$isRecalculating
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isRecalculating, on: self)
+            .store(in: &cancellables)
+
+        // Subscribe to RecalculationManager's errors
+        recalculationManager.$error
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] recalculationError in
+                // Map the recalculation error to AppState's general error if needed
+                if let error = recalculationError {
+                    self?.error = error
+                } else if self?.error?.isRecalculationError == true { // Clear if it was a recalculation error
+                    self?.error = nil
+                }
             }
             .store(in: &cancellables)
 
@@ -161,6 +195,9 @@ class AppState: ObservableObject {
                 self.filesScanned = processedFiles.count
                 self.state = .idle
                 print("[AppState] DEBUG: Updated UI with \(processedFiles.count) files")
+
+                // Inform the RecalculationManager about the newly scanned files
+                self.recalculationManager.updateFiles(processedFiles)
             }
         }
     }
@@ -248,41 +285,4 @@ class AppState: ObservableObject {
         }
     }
 
-    private func handleDestinationChange(_ newDestination: URL?) {
-        // Cancel any ongoing recalculation
-        recalculationTask?.cancel()
-        
-        guard !files.isEmpty else { return }
-        
-        isRecalculating = true
-        
-        recalculationTask = Task {
-            do {
-                let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
-                    for: files,
-                    destinationURL: newDestination,
-                    settings: settingsStore
-                )
-                
-                // Check cancellation before UI update
-                try Task.checkCancellation()
-                
-                await MainActor.run {
-                    self.files = recalculatedFiles
-                    self.isRecalculating = false
-                }
-            } catch is CancellationError {
-                // Task was cancelled, reset state
-                await MainActor.run {
-                    self.isRecalculating = false
-                }
-            } catch {
-                // Handle other errors gracefully
-                await MainActor.run {
-                    self.isRecalculating = false
-                    // Could optionally set an error state here
-                }
-            }
-        }
-    }
 }

@@ -63,11 +63,6 @@ struct DestinationFolderPicker: NSViewRepresentable {
             // Separator after presets
             popupButton.menu?.addItem(NSMenuItem.separator())
 
-            // Optional custom folder section
-            if let customURL = store.lastCustomURL {
-                popupButton.menu?.addItem(self.menuItem(for: customURL, title: customURL.lastPathComponent))
-                popupButton.menu?.addItem(NSMenuItem.separator())
-            }
 
             // “Other…” item
             let otherItem = NSMenuItem(title: "Other…", action: #selector(showOpenPanel), keyEquivalent: "")
