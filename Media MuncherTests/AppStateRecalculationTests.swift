@@ -119,7 +119,7 @@ final class AppStateRecalculationTests: XCTestCase {
             status: .waiting
         )
         initialFile.destPath = destA_URL.appendingPathComponent("test.jpg").path
-        appState.setFilesForTesting([initialFile])
+        appState.files = [initialFile]
 
         // Assert initial state
         XCTAssertEqual(appState.files.count, 1, "Should have one test file")

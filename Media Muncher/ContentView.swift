@@ -38,14 +38,14 @@ struct ContentView: View {
 
 #Preview {
     let volumeManager = VolumeManager()
-    let mediaScanner = FileProcessorService()
+    let mediaScanner = FileProcessorService() // Keep this line to initialize AppState
     let settingsStore = SettingsStore()
-    let importService = ImportService()
-    let recalculationManager = RecalculationManager(
+    let importService = ImportService() // Keep this line to initialize AppState
+    let recalculationManager = RecalculationManager( // Keep this line to initialize AppState
         fileProcessorService: mediaScanner,
         settingsStore: settingsStore
     )
-    
+
     return ContentView()
         .environmentObject(AppState(
             volumeManager: volumeManager,
@@ -54,6 +54,6 @@ struct ContentView: View {
             importService: importService,
             recalculationManager: recalculationManager
         ))
-        .environmentObject(volumeManager)
-        .environmentObject(settingsStore)
+        .environmentObject(volumeManager) // Keep this line for VolumeView
+        .environmentObject(settingsStore) // Keep this line for SettingsView
 }

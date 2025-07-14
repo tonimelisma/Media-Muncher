@@ -128,9 +128,10 @@ class AppState: ObservableObject {
         recalculationManager.$error
             .receive(on: DispatchQueue.main)
             .sink { [weak self] recalculationError in
-                // Map the recalculation error to AppState's general error if needed
+                // Explicitly map the recalculation error to our domain-specific error type.
+                // This ensures consistency in how recalculation errors are presented to the UI.
                 if let error = recalculationError {
-                    self?.error = error
+                    self?.error = .recalculationFailed(reason: error.localizedDescription)
                 } else if self?.error?.isRecalculationError == true { // Clear if it was a recalculation error
                     self?.error = nil
                 }
@@ -195,9 +196,6 @@ class AppState: ObservableObject {
                 self.filesScanned = processedFiles.count
                 self.state = .idle
                 print("[AppState] DEBUG: Updated UI with \(processedFiles.count) files")
-
-                // Inform the RecalculationManager about the newly scanned files
-                self.recalculationManager.updateFiles(processedFiles)
             }
         }
     }
@@ -285,11 +283,5 @@ class AppState: ObservableObject {
         }
     }
     
-    // MARK: - Testing Support
-    
-    /// Set files directly for testing purposes only
-    func setFilesForTesting(_ files: [File]) {
-        self.files = files
-    }
 
 }

@@ -30,4 +30,8 @@ All notable changes to Media Muncher will be documented in this file.
 - Removed code duplication in collision detection logic by extracting shared destination resolution methods.
 - **Simplified SettingsStore**: Removed all security-scoped bookmark logic since the app is no longer sandboxed, making destination handling more direct and reliable.
 - **AppState refactoring**: Delegated recalculation logic to RecalculationManager, making AppState a pure orchestrator with cleaner separation of concerns.
-- **Production code cleanup**: Replaced complex `syncFilesForTesting()` method with minimal `setFilesForTesting()` to reduce test pollution in production code. 
+- **Production code cleanup**: Completely removed `setFilesForTesting()` method from AppState to eliminate test pollution in production code. Tests now use direct property assignment for setup.
+- **ContentView preview cleanup**: Removed unnecessary environment object injections from ContentView preview, maintaining only essential dependencies.
+- **Test file organization**: Renamed `AppStateRecalculationIsolationTest.swift` to `AppStateRecalculationIntegrationTests.swift` to accurately reflect its integration testing nature.
+- **Architectural refinement**: Removed direct `updateFiles()` call from AppState to RecalculationManager, enforcing AppState as the single source of truth for file arrays.
+- **Explicit error mapping**: Enhanced error handling to explicitly map recalculation errors to `.recalculationFailed` type for consistency. 
