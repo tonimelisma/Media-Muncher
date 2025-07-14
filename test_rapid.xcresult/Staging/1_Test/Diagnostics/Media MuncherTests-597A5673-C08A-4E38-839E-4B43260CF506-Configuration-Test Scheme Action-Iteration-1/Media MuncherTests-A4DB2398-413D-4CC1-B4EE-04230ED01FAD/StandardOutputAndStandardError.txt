@@ -1,0 +1,45 @@
+[VolumeManager] DEBUG: Initializing VolumeManager
+[VolumeManager] DEBUG: loadVolumes called
+[VolumeManager] DEBUG: Found 1 mounted volumes
+[VolumeManager] DEBUG: Examining volume at: /
+[VolumeManager] DEBUG: Resource values for /: URLResourceValues(_values: [__C.NSURLResourceKey(_rawValue: NSURLVolumeNameKey): Macintosh HD, __C.NSURLResourceKey(_rawValue: NSURLVolumeUUIDStringKey): 40FE690F-C1F5-4B6B-9C2C-AFA2734A34A1, __C.NSURLResourceKey(_rawValue: NSURLVolumeIsRemovableKey): 0], _keys: Set([__C.NSURLResourceKey(_rawValue: NSURLVolumeNameKey), __C.NSURLResourceKey(_rawValue: NSURLVolumeIsRemovableKey), __C.NSURLResourceKey(_rawValue: NSURLVolumeUUIDStringKey)]))
+[VolumeManager] DEBUG: Volume / is not removable, skipping
+[VolumeManager] DEBUG: loadVolumes returning 0 removable volumes
+[VolumeManager] DEBUG: Initial volumes loaded: 0
+[VolumeManager] DEBUG: Setting up volume observers
+[VolumeManager] DEBUG: Volume observers set up successfully
+[SettingsStore] DEBUG: Initializing SettingsStore
+[SettingsStore] DEBUG: destinationURL changed to: nil
+[SettingsStore] DEBUG: Initial destinationURL set to nil.
+[SettingsStore] DEBUG: Setting default values
+[SettingsStore] DEBUG: Default destination set to: /Users/tonimelisma/Pictures
+[SettingsStore] DEBUG: User Pictures folder exists, setting as destination
+[SettingsStore] DEBUG: trySetDestination called with: /Users/tonimelisma/Pictures
+[SettingsStore] DEBUG: destinationURL changed to: /Users/tonimelisma/Pictures
+[RecalculationManager] DEBUG: Initialized.
+[AppState] DEBUG: Initial volumes: []
+[AppState] DEBUG: ensureVolumeSelection called
+[AppState] DEBUG: No volumes available to select, clearing selection.
+2025-07-13 18:24:44.607957-0700 Media Muncher[21042:67896363] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/l2/wj7kybc14wxbb7bv5l86glkh0000gn/T/net.melisma.Media-Muncher.savedState
+[AppState] DEBUG: ensureVolumeSelection called
+[AppState] DEBUG: No volumes available to select, clearing selection.
+[MediaView] DEBUG: onAppear - selectedVolume: nil
+[MediaView] DEBUG: onAppear - files.count: 0
+[MediaView] DEBUG: onAppear - state: idle
+[AppState] DEBUG: Volume changes received: []
+[AppState] DEBUG: ensureVolumeSelection called
+[AppState] DEBUG: No volumes available to select, clearing selection.
+[AppState] DEBUG: selectedVolume changed to: nil
+[AppState] DEBUG: startScan called for: nil
+[AppState] DEBUG: No device path provided, skipping scan
+[RecalculationManager] DEBUG: startRecalculation called with new destination: /Users/tonimelisma/Pictures
+[RecalculationManager] DEBUG: No files to recalculate, resetting state.
+[AppState] DEBUG: selectedVolume changed to: nil
+[AppState] DEBUG: startScan called for: nil
+[AppState] DEBUG: No device path provided, skipping scan
+[AppState] DEBUG: selectedVolume changed to: nil
+[AppState] DEBUG: startScan called for: nil
+[AppState] DEBUG: No device path provided, skipping scan
+[AppState] DEBUG: selectedVolume changed to: nil
+[AppState] DEBUG: startScan called for: nil
+[AppState] DEBUG: No device path provided, skipping scan

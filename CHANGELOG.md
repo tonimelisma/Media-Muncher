@@ -20,6 +20,7 @@ All notable changes to Media Muncher will be documented in this file.
 - Test `testAppStateHandlesDestinationChangesGracefully` now properly creates required directories before testing destination changes.
 - **Double assignment bug in SettingsStore**: Fixed unpredictable Combine publisher behavior caused by destinationURL being set twice during bookmark resolution.
 - **Recalculation flow reliability**: Replaced brittle `.dropFirst()` workaround with robust RecalculationManager state machine.
+- **Test expectation patterns**: Replaced hanging expectation patterns in AppStateRecalculationTests with simpler timeout-based approaches to prevent test hangs.
 
 ### Changed
 - **Enhanced "Delete originals"**: When enabled, this setting now also deletes source files that are identified as duplicates already present in the destination, helping to clean up source media more effectively.
@@ -28,4 +29,5 @@ All notable changes to Media Muncher will be documented in this file.
 - **FileProcessorService Architecture**: Split file processing into sync path calculation and async file I/O operations for better testability and performance.
 - Removed code duplication in collision detection logic by extracting shared destination resolution methods.
 - **Simplified SettingsStore**: Removed all security-scoped bookmark logic since the app is no longer sandboxed, making destination handling more direct and reliable.
-- **AppState refactoring**: Delegated recalculation logic to RecalculationManager, making AppState a pure orchestrator with cleaner separation of concerns. 
+- **AppState refactoring**: Delegated recalculation logic to RecalculationManager, making AppState a pure orchestrator with cleaner separation of concerns.
+- **Test synchronization**: Added `syncFilesForTesting()` method to AppState to ensure proper coordination between AppState and RecalculationManager during unit tests. 
