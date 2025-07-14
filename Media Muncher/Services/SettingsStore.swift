@@ -1,52 +1,53 @@
 import Foundation
 import SwiftUI
+import os
 
 class SettingsStore: ObservableObject {
     @Published var settingDeleteOriginals: Bool {
         didSet {
-            print("[SettingsStore] DEBUG: settingDeleteOriginals changed to: \(settingDeleteOriginals)")
+            Logger.settings.debug("settingDeleteOriginals changed to: \(self.settingDeleteOriginals, privacy: .public)")
             UserDefaults.standard.set(settingDeleteOriginals, forKey: "settingDeleteOriginals")
         }
     }
 
     @Published var organizeByDate: Bool {
         didSet {
-            print("[SettingsStore] DEBUG: organizeByDate changed to: \(organizeByDate)")
+            Logger.settings.debug("organizeByDate changed to: \(self.organizeByDate, privacy: .public)")
             UserDefaults.standard.set(organizeByDate, forKey: "organizeByDate")
         }
     }
     
     @Published var renameByDate: Bool {
         didSet {
-            print("[SettingsStore] DEBUG: renameByDate changed to: \(renameByDate)")
+            Logger.settings.debug("renameByDate changed to: \(self.renameByDate, privacy: .public)")
             UserDefaults.standard.set(renameByDate, forKey: "renameByDate")
         }
     }
 
     @Published var filterImages: Bool {
         didSet {
-            print("[SettingsStore] DEBUG: filterImages changed to: \(filterImages)")
+            Logger.settings.debug("filterImages changed to: \(self.filterImages, privacy: .public)")
             UserDefaults.standard.set(filterImages, forKey: "filterImages")
         }
     }
 
     @Published var filterVideos: Bool {
         didSet {
-            print("[SettingsStore] DEBUG: filterVideos changed to: \(filterVideos)")
+            Logger.settings.debug("filterVideos changed to: \(self.filterVideos, privacy: .public)")
             UserDefaults.standard.set(filterVideos, forKey: "filterVideos")
         }
     }
 
     @Published var filterAudio: Bool {
         didSet {
-            print("[SettingsStore] DEBUG: filterAudio changed to: \(filterAudio)")
+            Logger.settings.debug("filterAudio changed to: \(self.filterAudio, privacy: .public)")
             UserDefaults.standard.set(filterAudio, forKey: "filterAudio")
         }
     }
 
     @Published var settingAutoEject: Bool {
         didSet {
-            print("[SettingsStore] DEBUG: settingAutoEject changed to: \(settingAutoEject)")
+            Logger.settings.debug("settingAutoEject changed to: \(self.settingAutoEject, privacy: .public)")
             UserDefaults.standard.set(settingAutoEject, forKey: "settingAutoEject")
         }
     }
@@ -54,13 +55,13 @@ class SettingsStore: ObservableObject {
     
     @Published private(set) var destinationURL: URL? {
         didSet {
-            print("[SettingsStore] DEBUG: destinationURL changed to: \(destinationURL?.path ?? "nil")")
+            Logger.settings.debug("destinationURL changed to: \(self.destinationURL?.path ?? "nil", privacy: .public)")
         }
     }
 
 
     init() {
-        print("[SettingsStore] DEBUG: Initializing SettingsStore")
+        Logger.settings.debug("Initializing SettingsStore")
         
         self.settingDeleteOriginals = UserDefaults.standard.bool(forKey: "settingDeleteOriginals")
         self.organizeByDate = UserDefaults.standard.bool(forKey: "organizeByDate")
@@ -81,7 +82,7 @@ class SettingsStore: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "lastCustomBookmarkData")
 
         self.destinationURL = nil
-        print("[SettingsStore] DEBUG: Initial destinationURL set to nil.")
+        Logger.settings.debug("Initial destinationURL set to nil.")
 
         // If no bookmark is stored, default to the Pictures directory.
         if destinationURL == nil {
@@ -90,22 +91,22 @@ class SettingsStore: ObservableObject {
     }
 
     private func setDefaults() {
-        print("[SettingsStore] DEBUG: Setting default values")
+        Logger.settings.debug("Setting default values")
         
         // Set default destination to user's Pictures folder (not sandboxed)
         let userPicturesURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Pictures")
-        print("[SettingsStore] DEBUG: Default destination set to: \(userPicturesURL.path)")
+        Logger.settings.debug("Default destination set to: \(userPicturesURL.path, privacy: .public)")
         
         if FileManager.default.fileExists(atPath: userPicturesURL.path) {
-            print("[SettingsStore] DEBUG: User Pictures folder exists, setting as destination")
+            Logger.settings.debug("User Pictures folder exists, setting as destination")
             setDestination(userPicturesURL)
         } else {
-            print("[SettingsStore] DEBUG: User Pictures folder doesn't exist, trying Documents")
+            Logger.settings.debug("User Pictures folder doesn't exist, trying Documents")
             let userDocumentsURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Documents")
             if FileManager.default.fileExists(atPath: userDocumentsURL.path) {
                 setDestination(userDocumentsURL)
             } else {
-                print("[SettingsStore] DEBUG: Neither Pictures nor Documents exist, leaving destination as nil")
+                Logger.settings.debug("Neither Pictures nor Documents exist, leaving destination as nil")
             }
         }
     }
@@ -126,13 +127,13 @@ class SettingsStore: ObservableObject {
     /// - Returns: `true` if the app has confirmed write access *and* (for custom folders) managed to create a bookmark; `false` otherwise.
     @discardableResult
     func trySetDestination(_ url: URL) -> Bool {
-        print("[SettingsStore] DEBUG: trySetDestination called with: \(url.path)")
+        Logger.settings.debug("trySetDestination called with: \(url.path, privacy: .public)")
 
         // Validate the URL exists & is a directory.
         let fm = FileManager.default
         var isDir: ObjCBool = false
         guard fm.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
-            print("[SettingsStore] ERROR: Invalid directory: \(url.path)")
+            Logger.settings.error("Invalid directory: \(url.path, privacy: .public)")
             return false
         }
 
@@ -142,7 +143,7 @@ class SettingsStore: ObservableObject {
             try Data().write(to: testFile)
             try fm.removeItem(at: testFile)
         } catch {
-            print("[SettingsStore] ERROR: Write-test failed: \(error)")
+            Logger.settings.error("Write-test failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
 

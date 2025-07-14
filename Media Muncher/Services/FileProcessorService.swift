@@ -3,6 +3,7 @@ import SwiftUI
 import AVFoundation
 import QuickLookThumbnailing
 import CryptoKit // For SHA-256 checksum fallback when date/name heuristics fail
+import os
 
 actor FileProcessorService {
 
@@ -21,12 +22,12 @@ actor FileProcessorService {
         destinationURL: URL?,
         settings: SettingsStore
     ) async -> [File] {
-        print("[FileProcessorService] DEBUG: processFiles called")
-        print("[FileProcessorService] DEBUG: sourceURL: \(sourceURL.path)")
-        print("[FileProcessorService] DEBUG: destinationURL: \(destinationURL?.path ?? "nil")")
-        print("[FileProcessorService] DEBUG: filterImages: \(settings.filterImages)")
-        print("[FileProcessorService] DEBUG: filterVideos: \(settings.filterVideos)")
-        print("[FileProcessorService] DEBUG: filterAudio: \(settings.filterAudio)")
+        Logger.fileProcessor.debug("processFiles called")
+        Logger.fileProcessor.debug("sourceURL: \(sourceURL.path, privacy: .public)")
+        Logger.fileProcessor.debug("destinationURL: \(destinationURL?.path ?? "nil", privacy: .public)")
+        Logger.fileProcessor.debug("filterImages: \(settings.filterImages, privacy: .public)")
+        Logger.fileProcessor.debug("filterVideos: \(settings.filterVideos, privacy: .public)")
+        Logger.fileProcessor.debug("filterAudio: \(settings.filterAudio, privacy: .public)")
         
         let discoveredFilesUnsorted = fastEnumerate(
             at: sourceURL,
@@ -35,14 +36,14 @@ actor FileProcessorService {
             filterAudio: settings.filterAudio
         )
         
-        print("[FileProcessorService] DEBUG: fastEnumerate found \(discoveredFilesUnsorted.count) files")
+        Logger.fileProcessor.debug("fastEnumerate found \(discoveredFilesUnsorted.count, privacy: .public) files")
 
         // Ensure deterministic processing order so collision suffixes are repeatable across runs/tests
         let discoveredFiles = discoveredFilesUnsorted.sorted { $0.sourcePath < $1.sourcePath }
 
         var processedFiles: [File] = []
         for file in discoveredFiles {
-            print("[FileProcessorService] DEBUG: Processing file: \(file.sourcePath)")
+            Logger.fileProcessor.debug("Processing file: \(file.sourcePath, privacy: .public)")
             let processedFile = await processFile(
                 file,
                 allFiles: processedFiles,
@@ -52,7 +53,7 @@ actor FileProcessorService {
             processedFiles.append(processedFile)
         }
         
-        print("[FileProcessorService] DEBUG: processFiles completed with \(processedFiles.count) files")
+        Logger.fileProcessor.debug("processFiles completed with \(processedFiles.count, privacy: .public) files")
         return processedFiles
     }
 
@@ -163,7 +164,7 @@ actor FileProcessorService {
         #if DEBUG
         if settings.renameByDate && settings.organizeByDate {
             if let p = newFile.destPath {
-                print("[FileProcessorService] DEBUG: final destPath = \(p)")
+                Logger.fileProcessor.debug("final destPath = \(p, privacy: .public)")
             }
         }
         #endif
@@ -182,7 +183,7 @@ actor FileProcessorService {
     private func isSameFile(sourceFile: File, destinationURL: URL) async -> Bool {
         guard let sourceSize = sourceFile.size, let sourceDate = sourceFile.date else {
             #if DEBUG
-            print("[FileProcessorService] DEBUG: isSameFile – Missing source metadata for \(sourceFile.sourcePath)")
+            Logger.fileProcessor.debug("isSameFile – Missing source metadata for \(sourceFile.sourcePath, privacy: .public)")
             #endif
             return false
         }
@@ -197,7 +198,7 @@ actor FileProcessorService {
             // 1. Size check
             guard sourceSize == destSize else {
                 #if DEBUG
-                print("\(debugPrefix) – Sizes differ (src: \(sourceSize), dest: \(destSize)) → different file")
+                Logger.fileProcessor.debug("\(debugPrefix, privacy: .public) – Sizes differ (src: \(sourceSize, privacy: .public), dest: \(destSize, privacy: .public)) → different file")
                 #endif
                 return false
             }
@@ -205,7 +206,7 @@ actor FileProcessorService {
             let namesMatch = destinationURL.lastPathComponent == URL(fileURLWithPath: sourceFile.sourcePath).lastPathComponent
             if namesMatch {
                 #if DEBUG
-                print("\(debugPrefix) – Filenames match and sizes match → same file")
+                Logger.fileProcessor.debug("\(debugPrefix, privacy: .public) – Filenames match and sizes match → same file")
                 #endif
                 return true
             }
@@ -214,7 +215,7 @@ actor FileProcessorService {
             let datesClose = abs(sourceDate.timeIntervalSince(destDate)) < 60
             if datesClose {
                 #if DEBUG
-                print("\(debugPrefix) – Dates within ±60 s (src: \(sourceDate), dest: \(destDate)) → same file")
+                Logger.fileProcessor.debug("\(debugPrefix, privacy: .public) – Dates within ±60 s (src: \(sourceDate, privacy: .public), dest: \(destDate, privacy: .public)) → same file")
                 #endif
                 return true
             }
@@ -223,7 +224,7 @@ actor FileProcessorService {
             guard let srcData = try? Data(contentsOf: URL(fileURLWithPath: sourceFile.sourcePath)),
                   let destData = try? Data(contentsOf: destinationURL) else {
                 #if DEBUG
-                print("\(debugPrefix) – Failed to read file data for checksum → assuming different file")
+                Logger.fileProcessor.debug("\(debugPrefix, privacy: .public) – Failed to read file data for checksum → assuming different file")
                 #endif
                 return false
             }
@@ -233,12 +234,12 @@ actor FileProcessorService {
 
             let isSame = srcDigest == destDigest
 #if DEBUG
-            print("\(debugPrefix) – Checksum compare → \(isSame ? "same" : "different") file")
+            Logger.fileProcessor.debug("\(debugPrefix, privacy: .public) – Checksum compare → \(isSame ? "same" : "different", privacy: .public) file")
 #endif
             return isSame
         } catch {
 #if DEBUG
-            print("\(debugPrefix) – File attribute lookup failed (\(error.localizedDescription)) → assuming different file")
+            Logger.fileProcessor.debug("\(debugPrefix, privacy: .public) – File attribute lookup failed (\(error.localizedDescription, privacy: .public)) → assuming different file")
 #endif
             return false
         }
@@ -265,7 +266,7 @@ actor FileProcessorService {
                     
                     if let dateTimeOriginal = exifMetadata?["DateTimeOriginal"] as? String ?? tiffMetadata?["DateTime"] as? String {
                         #if DEBUG
-                        print("[FileProcessorService] DEBUG: Exif dateString = \(dateTimeOriginal)")
+                        Logger.fileProcessor.debug("Exif dateString = \(dateTimeOriginal, privacy: .public)")
                         #endif
                         let dateFormatter = DateFormatter()
                         dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"

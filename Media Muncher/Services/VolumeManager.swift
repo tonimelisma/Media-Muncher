@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import os
 
 class VolumeManager: ObservableObject {
     @Published var volumes: [Volume] = []
@@ -8,27 +9,27 @@ class VolumeManager: ObservableObject {
     private var observers: [NSObjectProtocol] = []
 
     init() {
-        print("[VolumeManager] DEBUG: Initializing VolumeManager")
+        Logger.volumeManager.debug("Initializing VolumeManager")
         self.volumes = loadVolumes()
-        print("[VolumeManager] DEBUG: Initial volumes loaded: \(volumes.count)")
+        Logger.volumeManager.debug("Initial volumes loaded: \(self.volumes.count, privacy: .public)")
         setupVolumeObservers()
     }
 
     deinit {
-        print("[VolumeManager] DEBUG: Deinitializing VolumeManager")
+        Logger.volumeManager.debug("Deinitializing VolumeManager")
         removeVolumeObservers()
     }
     
     /// Sets up observers for volume mount and unmount events.
     private func setupVolumeObservers() {
-        print("[VolumeManager] DEBUG: Setting up volume observers")
+        Logger.volumeManager.debug("Setting up volume observers")
         
         let mountObserver = workspace.notificationCenter.addObserver(
             forName: NSWorkspace.didMountNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            print("[VolumeManager] DEBUG: Volume mounted notification received")
+            Logger.volumeManager.debug("Volume mounted notification received")
             print("[VolumeManager] DEBUG: Notification: \(notification)")
             
             guard let userInfo = notification.userInfo,
