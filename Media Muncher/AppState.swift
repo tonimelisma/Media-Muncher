@@ -287,10 +287,9 @@ class AppState: ObservableObject {
     
     // MARK: - Testing Support
     
-    /// Manually sync files with RecalculationManager for testing purposes
-    func syncFilesForTesting(_ files: [File]) {
+    /// Set files directly for testing purposes only
+    func setFilesForTesting(_ files: [File]) {
         self.files = files
-        self.recalculationManager.updateFiles(files)
     }
 
 }

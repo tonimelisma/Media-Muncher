@@ -112,27 +112,34 @@ final class AppStateRecalculationTests: XCTestCase {
         createFile(at: testFile)
         settingsStore.setDestination(destA_URL)
 
-        // Act: Perform initial scan and properly sync with both AppState and RecalculationManager
-        let processedFiles = await fileProcessorService.processFiles(
-            from: sourceURL,
-            destinationURL: destA_URL,
-            settings: settingsStore
+        // Create initial file state manually (simpler than full scan)
+        var initialFile = File(
+            sourcePath: testFile.path,
+            mediaType: .image,
+            status: .waiting
         )
-        
-        // Use the testing method to properly sync both AppState and RecalculationManager
-        appState.syncFilesForTesting(processedFiles)
+        initialFile.destPath = destA_URL.appendingPathComponent("test.jpg").path
+        appState.setFilesForTesting([initialFile])
 
-        // Assert initial scan results
-        XCTAssertEqual(appState.files.count, 1, "Should have loaded one file after initial scan")
+        // Assert initial state
+        XCTAssertEqual(appState.files.count, 1, "Should have one test file")
         XCTAssertEqual(appState.files.first?.destPath, destA_URL.appendingPathComponent("test.jpg").path, "Initial destination path should be correct")
 
-        // Act: Test rapid destination changes through the real AppState flow
-        settingsStore.setDestination(destB_URL)
+        // Act: Test destination change with proper expectation
+        let recalcExpectation = XCTestExpectation(description: "Recalculation completed")
+        appState.$isRecalculating
+            .dropFirst()
+            .sink { isRecalculating in
+                if !isRecalculating {
+                    recalcExpectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
         
-        // Give the system a moment to process the change
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        settingsStore.setDestination(destB_URL)
+        await fulfillment(of: [recalcExpectation], timeout: 5.0)
 
-        // Assert: AppState should have updated files automatically via handleDestinationChange
+        // Assert: AppState should have updated files automatically
         XCTAssertEqual(appState.files.count, 1, "File count should remain stable after recalculation")
         XCTAssertFalse(appState.isRecalculating, "Should not be recalculating after completion")
         XCTAssertEqual(appState.files.first?.destPath, destB_URL.appendingPathComponent("test.jpg").path, "Final destination path should reflect the last setting")
@@ -156,13 +163,19 @@ final class AppStateRecalculationTests: XCTestCase {
         
         settingsStore.setDestination(destA_URL)
 
-        // Act: Perform initial scan directly (bypassing volume selection which doesn't work in tests)
-        let processedFiles = await fileProcessorService.processFiles(
-            from: sourceURL,
-            destinationURL: destA_URL,
-            settings: settingsStore
-        )
-        appState.syncFilesForTesting(processedFiles)
+        // Act: Trigger initial scan using real AppState flow
+        let scanExpectation = XCTestExpectation(description: "Initial scan")
+        appState.$files
+            .dropFirst()
+            .sink { files in
+                if files.count >= 3 {
+                    scanExpectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        appState.selectedVolume = sourceURL.path
+        await fulfillment(of: [scanExpectation], timeout: 5.0)
         
         // Assert initial scan results
         XCTAssertEqual(appState.files.count, 3, "Should load 3 primary files (regular, existing, video)")
@@ -170,10 +183,16 @@ final class AppStateRecalculationTests: XCTestCase {
         XCTAssertFalse(appState.files.first { $0.sourceName == "video.mov" }!.sidecarPaths.isEmpty, "Video should have associated sidecar paths")
 
         // Act: Change destination through real AppState flow
-        settingsStore.setDestination(destB_URL)
+        let recalcExpectation = XCTestExpectation(description: "Recalculation")
+        appState.$files
+            .dropFirst()
+            .sink { files in
+                recalcExpectation.fulfill()
+            }
+            .store(in: &cancellables)
         
-        // Give the system a moment to process the change
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        settingsStore.setDestination(destB_URL)
+        await fulfillment(of: [recalcExpectation], timeout: 5.0)
         
         // Assert: Verify files after automatic recalculation
         XCTAssertEqual(appState.files.count, 3, "File count should remain stable after recalculation")
@@ -191,13 +210,19 @@ final class AppStateRecalculationTests: XCTestCase {
         createFile(at: testFile)
         settingsStore.setDestination(destA_URL)
 
-        // Act: Perform initial scan directly (bypassing volume selection which doesn't work in tests)
-        let processedFiles = await fileProcessorService.processFiles(
-            from: sourceURL,
-            destinationURL: destA_URL,
-            settings: settingsStore
-        )
-        appState.syncFilesForTesting(processedFiles)
+        // Act: Trigger initial scan using real AppState flow
+        let scanExpectation = XCTestExpectation(description: "Initial scan")
+        appState.$files
+            .dropFirst()
+            .sink { files in
+                if !files.isEmpty {
+                    scanExpectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        appState.selectedVolume = sourceURL.path
+        await fulfillment(of: [scanExpectation], timeout: 5.0)
 
         // Assert initial state
         XCTAssertEqual(appState.files.count, 1)
@@ -205,10 +230,16 @@ final class AppStateRecalculationTests: XCTestCase {
         XCTAssertEqual(appState.files.first?.destPath, destA_URL.appendingPathComponent("test.jpg").path)
 
         // Act: Change destination through real AppState flow (this triggers RecalculationManager)
-        settingsStore.setDestination(destB_URL)
+        let recalcExpectation = XCTestExpectation(description: "Recalculation")
+        appState.$files
+            .dropFirst()
+            .sink { files in
+                recalcExpectation.fulfill()
+            }
+            .store(in: &cancellables)
         
-        // Give the system a moment to process the change
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        settingsStore.setDestination(destB_URL)
+        await fulfillment(of: [recalcExpectation], timeout: 5.0)
 
         // Assert: Verify automatic recalculation
         XCTAssertEqual(appState.files.count, 1)

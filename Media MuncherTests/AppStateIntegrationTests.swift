@@ -126,12 +126,18 @@ final class AppStateIntegrationTests: XCTestCase {
         // Trigger destination change (this automatically triggers handleDestinationChange)
         settingsStore.setDestination(destinationB_URL)
 
-        // Wait for recalculation to complete (simpler approach)
-        var attempts = 0
-        while appState.isRecalculating && attempts < 100 {
-            try await Task.sleep(nanoseconds: 10_000_000)
-            attempts += 1
-        }
+        // Wait for recalculation to complete using proper expectation
+        let recalcExpectation = XCTestExpectation(description: "Recalculation complete")
+        appState.$isRecalculating
+            .dropFirst()
+            .sink { isRecalculating in
+                if !isRecalculating {
+                    recalcExpectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        await fulfillment(of: [recalcExpectation], timeout: 5.0)
 
         // 5. FINAL ASSERTIONS
         XCTAssertEqual(appState.files.count, 2, "Should still have 2 files")
