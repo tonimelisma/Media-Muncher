@@ -151,24 +151,6 @@ final class AppStateRecalculationTests: XCTestCase {
         XCTAssertEqual(settingsStore.destinationURL, destB_URL, "SettingsStore should reflect new destination")
     }
     
-    // Helper method for robust async waiting
-    private func waitForCondition(
-        timeout: TimeInterval,
-        description: String,
-        condition: @escaping () -> Bool
-    ) async throws {
-        let startTime = Date()
-        let pollInterval: UInt64 = 10_000_000 // 10ms in nanoseconds
-        
-        while !condition() && Date().timeIntervalSince(startTime) < timeout {
-            try await Task.sleep(nanoseconds: pollInterval)
-        }
-        
-        // Final check with detailed failure message
-        if !condition() {
-            XCTFail("\(description) timed out after \(timeout) seconds. Current state: files=\(self.appState.files.count), isRecalculating=\(self.appState.isRecalculating), state=\(self.appState.state)")
-        }
-    }
 
     func testRecalculationWithComplexFileStatuses() async throws {
         // Arrange: Create complex file scenario

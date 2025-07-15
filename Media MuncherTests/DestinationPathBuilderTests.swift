@@ -3,22 +3,19 @@ import XCTest
 
 // MARK: - DestinationPathBuilder Tests
 
-final class DestinationPathBuilderTests: XCTestCase {
+final class DestinationPathBuilderTests: MediaMuncherTestCase {
 
     // Fixed date for deterministic results –  2025-01-01 12:00:00 UTC
     private let referenceDate = Date(timeIntervalSince1970: 1735732800) // 2025-01-01 12:00:00
     private let rootURL = URL(fileURLWithPath: "/Library/Destination")
 
     private func makeFile(name: String, mediaType: MediaType = .image) -> File {
-        File(
-            sourcePath: "/Volumes/SD/" + name,
+        TestDataFactory.createTestFile(
+            name: name,
             mediaType: mediaType,
             date: referenceDate,
             size: 1_024,
-            destPath: nil,
-            status: .waiting,
-            thumbnail: nil,
-            importError: nil
+            sourcePath: "/Volumes/SD/" + name
         )
     }
 
