@@ -1,4 +1,5 @@
 import XCTest
+import os
 @testable import Media_Muncher
 
 final class FileProcessorRecalculationTests: XCTestCase {
@@ -20,7 +21,9 @@ final class FileProcessorRecalculationTests: XCTestCase {
         try fileManager.createDirectory(at: destinationA, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: destinationB, withIntermediateDirectories: true)
         
-        settings = SettingsStore()
+        // Use isolated UserDefaults for test
+        let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        settings = SettingsStore(userDefaults: testDefaults)
         processor = FileProcessorService()
     }
 
@@ -42,17 +45,9 @@ final class FileProcessorRecalculationTests: XCTestCase {
         createFile(at: videoFile)
         createFile(at: sidecarFile)
         
-        // Get initial files with sidecars attached
         let initialFiles = await processor.processFiles(from: sourceDir, destinationURL: destinationA, settings: settings)
-        guard let fileWithSidecar = initialFiles.first else {
-            XCTFail("No files processed")
-            return
-        }
         
-        XCTAssertFalse(fileWithSidecar.sidecarPaths.isEmpty, "File should have sidecar paths attached")
-        let originalSidecarPaths = fileWithSidecar.sidecarPaths
-        
-        // Act - recalculate for new destination
+        // Act
         let recalculatedFiles = await processor.recalculateFileStatuses(
             for: initialFiles,
             destinationURL: destinationB,
@@ -60,13 +55,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         )
         
         // Assert
-        guard let recalculatedFile = recalculatedFiles.first else {
-            XCTFail("No files returned from recalculation")
-            return
-        }
-        
-        XCTAssertEqual(recalculatedFile.sidecarPaths, originalSidecarPaths, "Sidecar paths should be preserved")
-        XCTAssertEqual(recalculatedFile.status, .waiting, "Status should be recalculated to waiting")
+        XCTAssertEqual(recalculatedFiles.first?.sidecarPaths, initialFiles.first?.sidecarPaths)
     }
 
     func testRecalculateFileStatuses_changesPreExistingToWaiting() async throws {

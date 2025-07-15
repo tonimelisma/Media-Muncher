@@ -15,7 +15,7 @@ import os
 extension Logger {
     /// The subsystem is the unique identifier for your entire application.
     /// We use the app's bundle identifier to ensure it's unique.
-    private static var subsystem = Bundle.main.bundleIdentifier!
+    private static var subsystem: String = Bundle.main.bundleIdentifier ?? "net.melisma.Media-Muncher"
 
     /// A logger for events related to the main application state and lifecycle.
     static let appState = Logger(subsystem: subsystem, category: "AppState")

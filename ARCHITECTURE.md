@@ -84,8 +84,7 @@
 | `ImportService` | Copy files, handle duplicates, **remove thumbnail side-cars (".THM"/".thm") after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
 | `SettingsStore` | Type-safe wrapper around `UserDefaults` with direct file system access | Provides Combine `@Published` properties. No longer uses security bookmarks. |
 | `RecalculationManager` | Dedicated state machine for destination change recalculations | Handles file path updates when destination changes, with proper error handling and task cancellation. |
-| `Logger` | Structured logging (os
-data, rotating file handler) | Respect user privacy; in dev builds default to `stdout`. |
+| `Logger` | Structured logging using Apple's Unified Logging system | Centralized logging with subsystem-based categorization for debugging and monitoring. |
 | `AppState` | Pure composition root that orchestrates above services | Slimmed down, no heavy logic. |
 
 ### Dependency Flow
@@ -135,7 +134,79 @@ Our testing strategy prioritizes high-fidelity integration tests over mock-based
 7. **Feature Flags** – Use `#if DEBUG` or `UserDefaults` keys.
 
 ---
-## 11. Build & Run (developers)
+## 11. Debugging with Unified Logging
+
+Media Muncher uses Apple's Unified Logging system (`os.Logger`) for structured debug output. The logging system is organized by subsystem and categories for efficient filtering and analysis.
+
+### Logging Architecture
+- **Subsystem**: `net.melisma.Media-Muncher` (matches bundle identifier)
+- **Categories**: Each service has its own category for focused debugging
+  - `AppState`: Main application state and lifecycle events
+  - `VolumeManager`: Disk mount/unmount and volume discovery
+  - `FileProcessorService`: File scanning and metadata processing
+  - `ImportService`: File copy/delete operations and progress
+  - `SettingsStore`: User preference changes
+  - `RecalculationManager`: Destination path recalculation events
+
+### Debugging Commands
+
+**View Recent Logs (Recommended)**
+```bash
+# Show logs from last 5 minutes with debug detail
+log show --last 5m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+
+# Show logs from last 10 minutes, less verbose
+log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher"' --info --style compact
+
+# Show logs from specific time window
+log show --start '2025-07-14 19:55:00' --end '2025-07-14 20:00:00' --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+```
+
+**Debug Failing Tests**
+```bash
+# Run a failing test then immediately view logs
+xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/AppStateRecalculationTests/testRecalculationHandlesRapidDestinationChanges"
+log show --last 2m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+
+# Debug specific service category
+log show --last 5m --predicate 'subsystem == "net.melisma.Media-Muncher" AND category == "RecalculationManager"' --debug --info
+```
+
+**Filter by Service Category**
+```bash
+# Focus on file processing issues
+log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher" AND category == "FileProcessorService"' --debug --info
+
+# Focus on import pipeline issues
+log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher" AND category == "ImportService"' --debug --info
+
+# Focus on settings and destination changes
+log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher" AND (category == "SettingsStore" OR category == "RecalculationManager")' --debug --info
+```
+
+### Sample Log Output
+```
+2025-07-14 19:59:38.148 Db Media Muncher[81106] [net.melisma.Media-Muncher:SettingsStore] trySetDestination called with: /var/folders/.../test_destA_...
+2025-07-14 19:59:38.149 Db Media Muncher[81106] [net.melisma.Media-Muncher:RecalculationManager] startRecalculation called with new destination: /var/folders/.../test_destA_...
+2025-07-14 19:59:38.149 Db Media Muncher[81106] [net.melisma.Media-Muncher:RecalculationManager] No files to recalculate, resetting state.
+```
+
+### Debugging Workflow
+1. **Reproduce the issue** - Run the failing test or trigger the problematic behavior
+2. **Capture logs immediately** - Use `log show --last 2m` to get recent activity
+3. **Filter by category** - Focus on the relevant service using category predicates
+4. **Analyze timing** - Look for race conditions or unexpected state transitions
+5. **Correlate with test expectations** - Match log events with test assertions
+
+### Log Levels
+- **Debug**: Detailed execution flow, method entry/exit, state changes
+- **Info**: Important events, user actions, significant state transitions
+- **Error**: Failures, exceptions, and error conditions
+
+**Note**: Use `--debug --info` flags together to see both debug and info level messages. Omit `--debug` for less verbose output focusing on important events only.
+
+---
+## 12. Build & Run (developers)
 ```bash
 # prereqs
 xcode-select --install  # command-line tools
@@ -147,12 +218,12 @@ open "Media Muncher.xcodeproj"
 * Run the **Media Muncher** scheme; press ⌘U for tests.
 
 ---
-## 12. Frequently Asked Questions
+## 13. Frequently Asked Questions
 **Q:** Why not just use Photos.app import?  
 **A:** Media Muncher offers a custom folder hierarchy, no proprietary library, automation hooks, and supports professional RAW/video formats that Photos ignores.
 
 ---
-## 13. File Interaction Diagram
+## 14. File Interaction Diagram
 ```mermaid
 graph TD;
   subgraph Services

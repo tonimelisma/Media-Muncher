@@ -32,6 +32,35 @@ brew install swiftformat swiftlint
 # Run tests (press ⌘U in Xcode)
 ```
 
+### Debugging with Unified Logging
+Media Muncher uses Apple's Unified Logging system for structured debug output. Use these commands to capture and analyze logs during development and testing:
+
+```bash
+# View recent logs (recommended for debugging)
+log show --last 5m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+
+# View logs from specific time window
+log show --start '2025-07-14 19:55:00' --end '2025-07-14 20:00:00' --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+
+# Debug failing tests by running test then viewing logs
+xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/AppStateRecalculationTests/testRecalculationHandlesRapidDestinationChanges"
+log show --last 2m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+
+# View logs with different detail levels
+log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher"' --info --style compact  # Less verbose
+log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info         # More detailed
+```
+
+**Log Categories Available:**
+- `AppState`: Main application state and lifecycle events
+- `VolumeManager`: Disk mount/unmount and volume discovery
+- `FileProcessorService`: File scanning and metadata processing
+- `ImportService`: File copy/delete operations and progress
+- `SettingsStore`: User preference changes
+- `RecalculationManager`: Destination path recalculation events
+
+**Bundle Identifier:** `net.melisma.Media-Muncher`
+
 ## Architecture Overview
 
 Media Muncher is a macOS SwiftUI app that automatically imports media files from removable storage. The architecture follows a service-oriented pattern with clear separation of concerns:

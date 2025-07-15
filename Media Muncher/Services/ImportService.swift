@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol SecurityScopedURLAccessWrapperProtocol {
     func startAccessingSecurityScopedResource(for url: URL) -> Bool
@@ -210,12 +211,16 @@ actor ImportService {
     private func deleteSourceFiles(for file: File) throws {
         let allPathsToDelete = [file.sourcePath] + file.sidecarPaths
         
+        Logger.importService.debug("Deleting source files for \(file.sourceName) with paths: \(allPathsToDelete)")
+        
         for path in allPathsToDelete {
             let url = URL(fileURLWithPath: path)
             guard fileManager.fileExists(atPath: url.path) else {
+                Logger.importService.debug("File not found at path: \(path)")
                 continue
             }
             try fileManager.removeItem(at: url)
+            Logger.importService.debug("Deleted file at path: \(path)")
         }
     }
 }

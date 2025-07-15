@@ -3,52 +3,54 @@ import SwiftUI
 import os
 
 class SettingsStore: ObservableObject {
+    private let userDefaults: UserDefaults
+    
     @Published var settingDeleteOriginals: Bool {
         didSet {
             Logger.settings.debug("settingDeleteOriginals changed to: \(self.settingDeleteOriginals, privacy: .public)")
-            UserDefaults.standard.set(settingDeleteOriginals, forKey: "settingDeleteOriginals")
+            userDefaults.set(settingDeleteOriginals, forKey: "settingDeleteOriginals")
         }
     }
 
     @Published var organizeByDate: Bool {
         didSet {
             Logger.settings.debug("organizeByDate changed to: \(self.organizeByDate, privacy: .public)")
-            UserDefaults.standard.set(organizeByDate, forKey: "organizeByDate")
+            userDefaults.set(organizeByDate, forKey: "organizeByDate")
         }
     }
     
     @Published var renameByDate: Bool {
         didSet {
             Logger.settings.debug("renameByDate changed to: \(self.renameByDate, privacy: .public)")
-            UserDefaults.standard.set(renameByDate, forKey: "renameByDate")
+            userDefaults.set(renameByDate, forKey: "renameByDate")
         }
     }
 
     @Published var filterImages: Bool {
         didSet {
             Logger.settings.debug("filterImages changed to: \(self.filterImages, privacy: .public)")
-            UserDefaults.standard.set(filterImages, forKey: "filterImages")
+            userDefaults.set(filterImages, forKey: "filterImages")
         }
     }
 
     @Published var filterVideos: Bool {
         didSet {
             Logger.settings.debug("filterVideos changed to: \(self.filterVideos, privacy: .public)")
-            UserDefaults.standard.set(filterVideos, forKey: "filterVideos")
+            userDefaults.set(filterVideos, forKey: "filterVideos")
         }
     }
 
     @Published var filterAudio: Bool {
         didSet {
             Logger.settings.debug("filterAudio changed to: \(self.filterAudio, privacy: .public)")
-            UserDefaults.standard.set(filterAudio, forKey: "filterAudio")
+            userDefaults.set(filterAudio, forKey: "filterAudio")
         }
     }
 
     @Published var settingAutoEject: Bool {
         didSet {
             Logger.settings.debug("settingAutoEject changed to: \(self.settingAutoEject, privacy: .public)")
-            UserDefaults.standard.set(settingAutoEject, forKey: "settingAutoEject")
+            userDefaults.set(settingAutoEject, forKey: "settingAutoEject")
         }
     }
 
@@ -60,26 +62,29 @@ class SettingsStore: ObservableObject {
     }
 
 
-    init() {
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
         Logger.settings.debug("Initializing SettingsStore")
         
-        self.settingDeleteOriginals = UserDefaults.standard.bool(forKey: "settingDeleteOriginals")
-        self.organizeByDate = UserDefaults.standard.bool(forKey: "organizeByDate")
-        self.renameByDate = UserDefaults.standard.bool(forKey: "renameByDate")
-        self.settingAutoEject = UserDefaults.standard.bool(forKey: "settingAutoEject")
+        self.settingDeleteOriginals = userDefaults.bool(forKey: "settingDeleteOriginals")
+        self.organizeByDate = userDefaults.bool(forKey: "organizeByDate")
+        self.renameByDate = userDefaults.bool(forKey: "renameByDate")
+        self.settingAutoEject = userDefaults.bool(forKey: "settingAutoEject")
         
         // Automation feature removed – auto-launch toggle deprecated.
 
         // Default to true if no value is set
-        self.filterImages = UserDefaults.standard.object(forKey: "filterImages") as? Bool ?? true
-        self.filterVideos = UserDefaults.standard.object(forKey: "filterVideos") as? Bool ?? true
-        self.filterAudio = UserDefaults.standard.object(forKey: "filterAudio") as? Bool ?? true
+        self.filterImages = userDefaults.object(forKey: "filterImages") as? Bool ?? true
+        self.filterVideos = userDefaults.object(forKey: "filterVideos") as? Bool ?? true
+        self.filterAudio = userDefaults.object(forKey: "filterAudio") as? Bool ?? true
 
-        // Remove obsolete automation keys (version <0.3)
-        UserDefaults.standard.removeObject(forKey: "autoLaunchEnabled")
-        UserDefaults.standard.removeObject(forKey: "volumeAutomationSettings")
-        UserDefaults.standard.removeObject(forKey: "destinationBookmarkData")
-        UserDefaults.standard.removeObject(forKey: "lastCustomBookmarkData")
+        // Remove obsolete automation keys (version <0.3) - only for standard UserDefaults
+        if userDefaults == UserDefaults.standard {
+            userDefaults.removeObject(forKey: "autoLaunchEnabled")
+            userDefaults.removeObject(forKey: "volumeAutomationSettings")
+            userDefaults.removeObject(forKey: "destinationBookmarkData")
+            userDefaults.removeObject(forKey: "lastCustomBookmarkData")
+        }
 
         self.destinationURL = nil
         Logger.settings.debug("Initial destinationURL set to nil.")

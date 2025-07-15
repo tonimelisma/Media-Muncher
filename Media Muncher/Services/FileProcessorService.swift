@@ -88,7 +88,7 @@ actor FileProcessorService {
         }
 
         var mainFiles: [File] = []
-        let allURLSet = Set(allFileURLs)
+                let _ = Set(allFileURLs)
 
         for url in allFileURLs {
             let ext = url.pathExtension.lowercased()
@@ -377,6 +377,9 @@ private func calculateDestinationPath(
     settings: SettingsStore
 ) -> File {
     var newFile = file
+    newFile.sidecarPaths = file.sidecarPaths // Explicitly copy sidecarPaths
+    
+    Logger.fileProcessor.debug("Calculating destination path for \(file.sourceName, privacy: .public) with sidecars: \(file.sidecarPaths, privacy: .public)")
     
     // Reset destination-dependent fields
     newFile.destPath = nil
@@ -460,7 +463,7 @@ private func resolveDestination(
     )
     
     // Then check file existence asynchronously
-    guard let destPath = fileWithPath.destPath else {
+        guard fileWithPath.destPath != nil else {
         return fileWithPath
     }
     
