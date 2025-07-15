@@ -8,7 +8,6 @@
 import Foundation
 import SwiftUI
 import Combine
-import os
 
 /// Manages the state and logic for recalculating file destination paths
 /// when the import destination changes.
@@ -46,7 +45,7 @@ class RecalculationManager: ObservableObject {
     init(fileProcessorService: FileProcessorService, settingsStore: SettingsStore) {
         self.fileProcessorService = fileProcessorService
         self.settingsStore = settingsStore
-        Logger.recalculation.debug("Initialized.")
+        LogManager.debug("Initialized", category: "RecalculationManager")
     }
 
     // MARK: - Public API
@@ -64,14 +63,14 @@ class RecalculationManager: ObservableObject {
         newDestinationURL: URL?,
         settings: SettingsStore
     ) {
-        Logger.recalculation.debug("startRecalculation called with new destination: \(newDestinationURL?.path ?? "nil", privacy: .public)")
+        LogManager.debug("startRecalculation called", category: "RecalculationManager", metadata: ["newDestination": newDestinationURL?.path ?? "nil"])
 
         // 1. Cancel any ongoing recalculation task to handle rapid changes.
         currentRecalculationTask?.cancel()
 
         // 2. If there are no files to recalculate, just reset state and return.
         guard !currentFiles.isEmpty else {
-            Logger.recalculation.debug("No files to recalculate, resetting state.")
+            LogManager.debug("No files to recalculate, resetting state", category: "RecalculationManager")
             self.files = [] // Ensure files are cleared if no files were passed in
             self.isRecalculating = false
             self.error = nil
@@ -89,7 +88,7 @@ class RecalculationManager: ObservableObject {
         // 5. Create and start a new asynchronous task for the recalculation.
         currentRecalculationTask = Task {
             do {
-                Logger.recalculation.debug("Recalculation task started.")
+                LogManager.debug("Recalculation task started", category: "RecalculationManager")
                 // Perform the actual recalculation using FileProcessorService.
                 let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(
                     for: currentFiles, // Use the files passed into the function
@@ -102,18 +101,18 @@ class RecalculationManager: ObservableObject {
                 try Task.checkCancellation()
 
                 // If we reach here, the recalculation completed successfully and was not cancelled.
-                Logger.recalculation.debug("Recalculation task completed successfully.")
+                LogManager.debug("Recalculation task completed successfully", category: "RecalculationManager")
                 self.files = recalculatedFiles // Update the published files array
                 self.isRecalculating = false // Reset recalculating flag
                 self.error = nil // Ensure no error is shown
             } catch is CancellationError {
                 // This block is executed if the task was explicitly cancelled (e.g., by a new destination change).
-                Logger.recalculation.debug("Recalculation task was cancelled.")
+                LogManager.debug("Recalculation task was cancelled", category: "RecalculationManager")
                 self.isRecalculating = false // Reset recalculating flag
                 self.error = nil // Clear any error, as cancellation is not an "error" in this context
             } catch {
                 // This block handles any other unexpected errors during recalculation.
-                Logger.recalculation.error("Recalculation task failed: \(error.localizedDescription, privacy: .public)")
+                LogManager.error("Recalculation task failed", category: "RecalculationManager", metadata: ["error": error.localizedDescription])
                 self.isRecalculating = false // Reset recalculating flag
                 self.error = .recalculationFailed(reason: error.localizedDescription) // Set an appropriate error
             }
@@ -122,7 +121,7 @@ class RecalculationManager: ObservableObject {
 
     /// Cancels any ongoing recalculation task.
     func cancelRecalculation() {
-        Logger.recalculation.debug("cancelRecalculation called.")
+        LogManager.debug("cancelRecalculation called", category: "RecalculationManager")
         currentRecalculationTask?.cancel()
         self.isRecalculating = false // Ensure state is reset immediately
         self.error = nil
@@ -130,7 +129,7 @@ class RecalculationManager: ObservableObject {
     
     /// Updates the internal files array. Used by AppState to sync newly scanned files.
     func updateFiles(_ newFiles: [File]) {
-        Logger.recalculation.debug("updateFiles called with \(newFiles.count, privacy: .public) files")
+        LogManager.debug("updateFiles called", category: "RecalculationManager", metadata: ["count": "\(newFiles.count)"])
         self.files = newFiles
     }
 }

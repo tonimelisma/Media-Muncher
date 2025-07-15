@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 import Combine
 import QuickLookThumbnailing
-import os
 //
 //  AppState.swift
 //  Media Muncher
@@ -80,7 +79,7 @@ class AppState: ObservableObject {
         volumeManager.$volumes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newVolumes in
-                Logger.appState.debug("Volume changes received: \(newVolumes.map { $0.name }, privacy: .public)")
+                LogManager.debug("Volume changes received", category: "AppState", metadata: ["volumes": "\(newVolumes.map { $0.name })"])
                 self?.volumes = newVolumes
                 if self?.selectedVolume == nil || !newVolumes.contains(where: { $0.devicePath == self?.selectedVolume }) {
                     self?.ensureVolumeSelection()
@@ -92,7 +91,7 @@ class AppState: ObservableObject {
         self.$selectedVolume
             .receive(on: DispatchQueue.main)
             .sink { [weak self] devicePath in
-                Logger.appState.debug("selectedVolume changed to: \(devicePath ?? "nil", privacy: .public)")
+                LogManager.debug("selectedVolume changed", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
                 self?.startScan(for: devicePath)
             }
             .store(in: &cancellables)
@@ -141,20 +140,20 @@ class AppState: ObservableObject {
 
         // Initial state
         self.volumes = volumeManager.volumes
-        Logger.appState.debug("Initial volumes: \(self.volumes.map { $0.name }, privacy: .public)")
+        LogManager.debug("Initial volumes", category: "AppState", metadata: ["volumes": "\(self.volumes.map { $0.name })"])
         ensureVolumeSelection()
     }
     
     func ensureVolumeSelection() {
-        Logger.appState.debug("ensureVolumeSelection called")
+        LogManager.debug("ensureVolumeSelection called", category: "AppState")
         let currentSelectionIsValid = volumes.contains { $0.devicePath == selectedVolume }
         
         if !currentSelectionIsValid {
             if let firstVolume = self.volumes.first {
-                Logger.appState.debug("Selecting first volume: \(firstVolume.name, privacy: .public) at \(firstVolume.devicePath, privacy: .public)")
+                LogManager.debug("Selecting first volume", category: "AppState", metadata: ["name": firstVolume.name, "devicePath": firstVolume.devicePath])
                 self.selectedVolume = firstVolume.devicePath
             } else {
-                Logger.appState.debug("No volumes available to select, clearing selection.")
+                LogManager.debug("No volumes available to select, clearing selection", category: "AppState")
                 self.selectedVolume = nil
             }
         } else if selectedVolume == nil, let firstVolume = volumes.first {
@@ -164,7 +163,7 @@ class AppState: ObservableObject {
     }
 
     private func startScan(for devicePath: String?) {
-        Logger.appState.debug("startScan called for: \(devicePath ?? "nil", privacy: .public)")
+        LogManager.debug("startScan called", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
         
         scanTask?.cancel()
         
@@ -174,41 +173,41 @@ class AppState: ObservableObject {
         self.error = nil
 
         guard let devicePath = devicePath else { 
-            Logger.appState.debug("No device path provided, skipping scan")
+            LogManager.debug("No device path provided, skipping scan", category: "AppState")
             return 
         }
         
         let url = URL(fileURLWithPath: devicePath, isDirectory: true)
-        Logger.appState.debug("Starting scan for URL: \(url.path, privacy: .public)")
+        LogManager.debug("Starting scan for URL", category: "AppState", metadata: ["path": url.path])
         
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
-            Logger.appState.debug("Scan task started")
+            LogManager.debug("Scan task started", category: "AppState")
             let processedFiles = await fileProcessorService.processFiles(
                 from: url,
                 destinationURL: settingsStore.destinationURL,
                 settings: settingsStore
             )
-            Logger.appState.debug("Scan task completed with \(processedFiles.count, privacy: .public) files")
+            LogManager.debug("Scan task completed", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
 
             await MainActor.run {
                 self.files = processedFiles
                 self.filesScanned = processedFiles.count
                 self.state = .idle
-                Logger.appState.debug("Updated UI with \(processedFiles.count, privacy: .public) files")
+                LogManager.debug("Updated UI", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
             }
         }
     }
     
     func cancelScan() {
-        Logger.appState.debug("cancelScan called")
+        LogManager.debug("cancelScan called", category: "AppState")
         scanTask?.cancel()
         self.state = .idle
     }
     
     func cancelImport() {
-        Logger.appState.debug("cancelImport called")
+        LogManager.debug("cancelImport called", category: "AppState")
         importTask?.cancel()
     }
     

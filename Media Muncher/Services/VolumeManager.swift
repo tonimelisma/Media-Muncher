@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import os
 
 class VolumeManager: ObservableObject {
     @Published var volumes: [Volume] = []
@@ -9,35 +8,33 @@ class VolumeManager: ObservableObject {
     private var observers: [NSObjectProtocol] = []
 
     init() {
-        Logger.volumeManager.debug("Initializing VolumeManager")
+        LogManager.debug("Initializing VolumeManager", category: "VolumeManager")
         self.volumes = loadVolumes()
-        Logger.volumeManager.debug("Initial volumes loaded: \(self.volumes.count, privacy: .public)")
+        LogManager.debug("Initial volumes loaded", category: "VolumeManager", metadata: ["count": "\(self.volumes.count)"])
         setupVolumeObservers()
     }
 
     deinit {
-        Logger.volumeManager.debug("Deinitializing VolumeManager")
+        LogManager.debug("Deinitializing VolumeManager", category: "VolumeManager")
         removeVolumeObservers()
     }
     
     /// Sets up observers for volume mount and unmount events.
     private func setupVolumeObservers() {
-        Logger.volumeManager.debug("Setting up volume observers")
+        LogManager.debug("Setting up volume observers", category: "VolumeManager")
         
         let mountObserver = workspace.notificationCenter.addObserver(
             forName: NSWorkspace.didMountNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            Logger.volumeManager.debug("Volume mounted notification received")
-            print("[VolumeManager] DEBUG: Notification: \(notification)")
+            LogManager.debug("Volume mounted notification received", category: "VolumeManager", metadata: ["notification": "\(notification)"])
             
             guard let userInfo = notification.userInfo,
                 let volumeURL = userInfo[NSWorkspace.volumeURLUserInfoKey]
                     as? URL
             else {
-                print("[VolumeManager] ERROR: Couldn't get volume URL from mounting notification")
-                print("[VolumeManager] DEBUG: userInfo: \(notification.userInfo ?? [:])")
+                LogManager.error("Couldn't get volume URL from mounting notification", category: "VolumeManager", metadata: ["userInfo": "\(notification.userInfo ?? [:])"])
                 return
             }
             print("[VolumeManager] DEBUG: Mounted volume URL: \(volumeURL.path)")
@@ -50,17 +47,18 @@ class VolumeManager: ObservableObject {
                 let volumeName = userInfo[
                     NSWorkspace.localizedVolumeNameUserInfoKey] as? String
             else {
-                print("[VolumeManager] ERROR: Couldn't get UUID, localized name and other resources from mounting notification")
-                print("[VolumeManager] DEBUG: Available resources: \(String(describing: try? volumeURL.resourceValues(forKeys: [.volumeUUIDStringKey, .nameKey, .volumeIsRemovableKey])))")
+                LogManager.error("Couldn't get UUID, localized name and other resources from mounting notification", category: "VolumeManager", metadata: ["availableResources": "\(String(describing: try? volumeURL.resourceValues(forKeys: [.volumeUUIDStringKey, .nameKey, .volumeIsRemovableKey])))"])
                 return
             }
 
-            print("[VolumeManager] DEBUG: Volume UUID: \(uuid)")
-            print("[VolumeManager] DEBUG: Volume name: \(volumeName)")
-            print("[VolumeManager] DEBUG: Volume is removable: \(resources.volumeIsRemovable == true)")
+            LogManager.debug("Volume details", category: "VolumeManager", metadata: [
+                "uuid": uuid,
+                "name": volumeName,
+                "isRemovable": "\(resources.volumeIsRemovable == true)"
+            ])
 
             guard resources.volumeIsRemovable == true else {
-                print("[VolumeManager] DEBUG: Not a removable volume, skipping")
+                LogManager.debug("Not a removable volume, skipping", category: "VolumeManager")
                 return
             }
 
@@ -68,9 +66,9 @@ class VolumeManager: ObservableObject {
                 name: volumeName, devicePath: volumeURL.path,
                 volumeUUID: uuid)
 
-            print("[VolumeManager] DEBUG: Adding new volume: \(newVolume)")
+            LogManager.debug("Adding new volume", category: "VolumeManager", metadata: ["volume": "\(newVolume)"])
             self?.volumes.append(newVolume)
-            print("[VolumeManager] DEBUG: Total volumes after addition: \(self?.volumes.count ?? 0)")
+            LogManager.debug("Total volumes after addition", category: "VolumeManager", metadata: ["count": "\(self?.volumes.count ?? 0)"])
         }
 
         let unmountObserver = workspace.notificationCenter.addObserver(
@@ -78,11 +76,10 @@ class VolumeManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            print("[VolumeManager] DEBUG: Volume unmounted notification received")
-            print("[VolumeManager] DEBUG: Notification: \(notification)")
+            LogManager.debug("Volume unmounted notification received", category: "VolumeManager", metadata: ["notification": "\(notification)"])
             
             guard let userInfo = notification.userInfo else {
-                print("[VolumeManager] ERROR: Couldn't get userInfo from unmounting notification")
+                LogManager.error("Couldn't get userInfo from unmounting notification", category: "VolumeManager")
                 return
             }
 
@@ -90,16 +87,15 @@ class VolumeManager: ObservableObject {
                 let volumeURL = userInfo[NSWorkspace.volumeURLUserInfoKey]
                     as? URL
             else {
-                print("[VolumeManager] ERROR: Couldn't get volume URL from unmounting notification")
-                print("[VolumeManager] DEBUG: userInfo: \(userInfo)")
+                LogManager.error("Couldn't get volume URL from unmounting notification", category: "VolumeManager", metadata: ["userInfo": "\(userInfo)"])
                 return
             }
-            print("[VolumeManager] DEBUG: Unmounted volume URL: \(volumeURL.path)")
+            LogManager.debug("Unmounted volume URL", category: "VolumeManager", metadata: ["path": volumeURL.path])
 
             let removedCount = self?.volumes.count ?? 0
             self?.volumes.removeAll { $0.devicePath == volumeURL.path }
             let remainingCount = self?.volumes.count ?? 0
-            print("[VolumeManager] DEBUG: Removed volume, count before: \(removedCount), after: \(remainingCount)")
+            LogManager.debug("Removed volume", category: "VolumeManager", metadata: ["countBefore": "\(removedCount)", "countAfter": "\(remainingCount)"])
         }
 
         self.observers.append(mountObserver)
@@ -114,13 +110,13 @@ class VolumeManager: ObservableObject {
             workspace.notificationCenter.removeObserver($0)
         }
         self.observers.removeAll()
-        print("[VolumeManager] DEBUG: Volume observers removed")
+        LogManager.debug("Volume observers removed", category: "VolumeManager")
     }
 
     /// Loads all removable volumes connected to the system.
     /// - Returns: An array of `Volume` objects representing the removable volumes.
     func loadVolumes() -> [Volume] {
-        print("[VolumeManager] DEBUG: loadVolumes called")
+        LogManager.debug("loadVolumes called", category: "VolumeManager")
         let fileManager = FileManager.default
         let keys: [URLResourceKey] = [
             .volumeNameKey,
@@ -133,28 +129,32 @@ class VolumeManager: ObservableObject {
                 includingResourceValuesForKeys: keys,
                 options: [.skipHiddenVolumes])
         else {
-            print("[VolumeManager] ERROR: Failed to get mounted volume URLs")
+            LogManager.error("Failed to get mounted volume URLs", category: "VolumeManager")
             return []
         }
         
-        print("[VolumeManager] DEBUG: Found \(mountedVolumeURLs.count) mounted volumes")
+        LogManager.debug("Found mounted volumes", category: "VolumeManager", metadata: ["count": "\(mountedVolumeURLs.count)"])
 
         let volumes = mountedVolumeURLs.compactMap { url -> Volume? in
-            print("[VolumeManager] DEBUG: Examining volume at: \(url.path)")
+            LogManager.debug("Examining volume", category: "VolumeManager", metadata: ["path": url.path])
             
             do {
                 let resourceValues = try url.resourceValues(forKeys: Set(keys))
-                print("[VolumeManager] DEBUG: Resource values for \(url.path): \(resourceValues)")
+                LogManager.debug("Resource values", category: "VolumeManager", metadata: ["path": url.path, "values": "\(resourceValues)"])
                 
                 guard resourceValues.volumeIsRemovable == true else {
-                    print("[VolumeManager] DEBUG: Volume \(url.path) is not removable, skipping")
+                    LogManager.debug("Volume is not removable, skipping", category: "VolumeManager", metadata: ["path": url.path])
                     return nil
                 }
                 
                 let volumeName = resourceValues.volumeName ?? "Unnamed Volume"
                 let volumeUUID = resourceValues.volumeUUIDString ?? ""
                 
-                print("[VolumeManager] DEBUG: Found removable volume: \(volumeName) at \(url.path) with UUID: \(volumeUUID)")
+                LogManager.debug("Found removable volume", category: "VolumeManager", metadata: [
+                    "name": volumeName,
+                    "path": url.path,
+                    "uuid": volumeUUID
+                ])
                 
                 return Volume(
                     name: volumeName,
@@ -162,7 +162,7 @@ class VolumeManager: ObservableObject {
                     volumeUUID: volumeUUID
                 )
             } catch {
-                print("[VolumeManager] ERROR: Error getting resource values for volume at \(url.path): \(error)")
+                LogManager.error("Error getting resource values for volume", category: "VolumeManager", metadata: ["path": url.path, "error": error.localizedDescription])
                 return nil
             }
         }

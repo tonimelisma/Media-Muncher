@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import os
 
 struct SettingsView: View {
     @EnvironmentObject var settingsStore: SettingsStore
@@ -80,7 +79,7 @@ struct SettingsView: View {
         .padding(.vertical, 24) // Slightly less vertical padding above and below
         .frame(width: 600) // Significantly increased width for more horizontal breathing room
         .onAppear {
-            Logger.settings.debug("SettingsView onAppear - destinationURL = \(settingsStore.destinationURL?.path ?? "nil", privacy: .public)")
+            LogManager.debug("SettingsView onAppear", category: "SettingsView", metadata: ["destinationURL": settingsStore.destinationURL?.path ?? "nil"])
         }
     }
 }

@@ -29,18 +29,20 @@ struct MediaView: View {
             }
         }
         .onAppear {
-            print("[MediaView] DEBUG: onAppear - selectedVolume: \(appState.selectedVolume ?? "nil")")
-            print("[MediaView] DEBUG: onAppear - files.count: \(appState.files.count)")
-            print("[MediaView] DEBUG: onAppear - state: \(appState.state)")
+            LogManager.debug("onAppear", category: "MediaView", metadata: [
+                "selectedVolume": appState.selectedVolume ?? "nil",
+                "filesCount": "\(appState.files.count)",
+                "state": "\(appState.state)"
+            ])
         }
         .onChange(of: appState.selectedVolume) { newValue in
-            print("[MediaView] DEBUG: selectedVolume changed to: \(newValue ?? "nil")")
+            LogManager.debug("selectedVolume changed", category: "MediaView", metadata: ["newValue": newValue ?? "nil"])
         }
         .onChange(of: appState.files.count) { newValue in
-            print("[MediaView] DEBUG: files.count changed to: \(newValue)")
+            LogManager.debug("files.count changed", category: "MediaView", metadata: ["newValue": "\(newValue)"])
         }
         .onChange(of: appState.state) { newValue in
-            print("[MediaView] DEBUG: state changed to: \(newValue)")
+            LogManager.debug("state changed", category: "MediaView", metadata: ["newValue": "\(newValue)"])
         }
     }
 }

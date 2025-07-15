@@ -41,9 +41,9 @@ final class FileProcessorServiceSidecarTests: XCTestCase {
         // Act
         let files = await processor.processFiles(from: rootDir, destinationURL: nil, settings: settings)
         if let f = files.first {
-            print("DEBUG sidecarPaths = \(f.sidecarPaths)")
+            LogManager.debug("sidecarPaths", category: "FileProcessorServiceSidecarTests", metadata: ["paths": f.sidecarPaths.joined(separator: ", ")])
         } else {
-            print("DEBUG files empty")
+            LogManager.debug("files empty", category: "FileProcessorServiceSidecarTests")
         }
 
         // Assert – only main video returned and sidecar attached

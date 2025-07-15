@@ -1,6 +1,5 @@
 import XCTest
 import Combine
-import os
 @testable import Media_Muncher
 
 @MainActor
@@ -167,7 +166,7 @@ final class AppStateRecalculationTests: XCTestCase {
         // Create a pre-existing file in destA
         try fileManager.copyItem(at: preExistingFile, to: destA_URL.appendingPathComponent("existing.jpg"))
         
-        Logger.appState.debug("--- Starting testRecalculationWithComplexFileStatuses ---")
+        LogManager.debug("--- Starting testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
         
         // Set initial destination and trigger scan
         settingsStore.setDestination(destA_URL)
@@ -178,7 +177,7 @@ final class AppStateRecalculationTests: XCTestCase {
             self.appState.files.count >= 3 && self.appState.state == .idle
         }
         
-        Logger.appState.debug("Initial files: \(self.appState.files.map { $0.sourceName }, privacy: .public)")
+        LogManager.debug("Initial files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.files.map { $0.sourceName }.joined(separator: ", ")])
         
         // Act: Change destination (should trigger recalculation)
         settingsStore.setDestination(destB_URL)
@@ -189,8 +188,8 @@ final class AppStateRecalculationTests: XCTestCase {
             self.appState.files.allSatisfy { $0.destPath?.contains(self.destB_URL.lastPathComponent) ?? false }
         }
         
-        Logger.appState.debug("Recalculated files: \(self.appState.files.map { $0.sourceName }, privacy: .public)")
-        Logger.appState.debug("--- Ending testRecalculationWithComplexFileStatuses ---")
+        LogManager.debug("Recalculated files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.files.map { $0.sourceName }.joined(separator: ", ")])
+        LogManager.debug("--- Ending testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
         
         // Assert: Verify files after automatic recalculation
         XCTAssertEqual(appState.files.count, 3, "File count should remain stable after recalculation")
