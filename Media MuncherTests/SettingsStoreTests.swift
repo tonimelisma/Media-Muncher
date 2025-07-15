@@ -6,19 +6,16 @@ import XCTest
 class SettingsStoreTests: XCTestCase {
 
     var settingsStore: SettingsStore!
-    let userDefaults = UserDefaults.standard
 
-    override func setUp() {
-        super.setUp()
-        // Clear UserDefaults for a clean slate before each test
-        userDefaults.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
-        settingsStore = SettingsStore()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        settingsStore = SettingsStore(userDefaults: testDefaults)
     }
 
-    override func tearDown() {
+    override func tearDownWithError() throws {
         settingsStore = nil
-        userDefaults.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
-        super.tearDown()
+        try super.tearDownWithError()
     }
     
     // Automation-related tests removed (feature deferred)

@@ -18,6 +18,7 @@ All notable changes to Media Muncher will be documented in this file.
 - Pre-existing file detection improved: identical files are recognised even if modification timestamps differ slightly or filenames already match.
 - Test reliability improved by eliminating all `Task.sleep()` operations and implementing deterministic testing patterns.
 - Test `testAppStateHandlesDestinationChangesGracefully` now properly creates required directories before testing destination changes.
+- **Test State Pollution**: Fixed intermittent test failures caused by shared UserDefaults.standard across multiple test files. Implemented isolated UserDefaults instances in `SettingsStoreTests.swift`, `SettingsStorePersistenceTests.swift`, and `AppStateIntegrationTests.swift` ensuring complete test isolation.
 - **Double assignment bug in SettingsStore**: Fixed unpredictable Combine publisher behavior caused by destinationURL being set twice during bookmark resolution.
 - **Recalculation flow reliability**: Replaced brittle `.dropFirst()` workaround with robust RecalculationManager state machine.
 - **Test reliability improvements**: Removed all `Task.sleep()` timeouts from tests, replacing with proper XCTestExpectation patterns for deterministic completion detection. Fixed hanging tests - all tests now complete in milliseconds instead of timing out.

@@ -29,8 +29,9 @@ final class AppStateIntegrationTests: XCTestCase {
         try fileManager.createDirectory(at: destinationA_URL, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: destinationB_URL, withIntermediateDirectories: true)
 
-        // Initialize services
-        settingsStore = SettingsStore()
+        // Initialize services with isolated UserDefaults for testing
+        let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        settingsStore = SettingsStore(userDefaults: testDefaults)
         fileProcessorService = FileProcessorService()
         importService = ImportService()
         volumeManager = VolumeManager()

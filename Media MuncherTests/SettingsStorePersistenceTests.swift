@@ -5,20 +5,20 @@ import XCTest
 
 final class SettingsStorePersistenceTests: XCTestCase {
 
-    private let userDefaults = UserDefaults.standard
+    private var testDefaults: UserDefaults!
 
-    override func setUp() {
-        super.setUp()
-        userDefaults.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
     }
 
-    override func tearDown() {
-        userDefaults.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
-        super.tearDown()
+    override func tearDownWithError() throws {
+        testDefaults = nil
+        try super.tearDownWithError()
     }
 
     private func makeStore() -> SettingsStore {
-        return SettingsStore()
+        return SettingsStore(userDefaults: testDefaults)
     }
 
     func testDefaultValues() {
