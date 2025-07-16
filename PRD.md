@@ -105,8 +105,8 @@ The specific file extensions for each category in **ST-5** are:
 ### EPIC 8 – Logging & Telemetry  
 | ID | User Story | Status |
 |----|------------|--------|
-| LG-1 | Each import action is logged to rotating file in `~/Library/Logs`. | **Not Started** |
-| LG-2 | Developer-mode console shows verbose debug info. | **Started** (print statements) |
+| LG-1 | Each import action is logged to rotating file in `~/Library/Logs`. | **Finished** |
+| LG-2 | Developer-mode console shows verbose debug info. | **Finished** |
 
 ### EPIC 9 – Testing & Quality  
 | ID | User Story | Status |
@@ -149,6 +149,14 @@ The specific file extensions for each category in **ST-5** are:
 - Removed security-scoped bookmark complexity (app no longer sandboxed)
 - Enhanced test reliability by replacing polling patterns with deterministic expectations
 - All user-facing functionality remains unchanged; improvements are internal architecture and reliability
+
+### 2025-01-15 – Custom JSON Logging System Implementation
+- **EPIC 8 completed**: Replaced Apple's Unified Logging with custom JSON-based LogManager system
+- Implemented persistent logging to `~/Library/Logs/Media Muncher/app.log` with 10MB rotation and 5-file retention
+- Added structured metadata logging for all services with category-based organization
+- Created comprehensive test suite for LogManager with 100% coverage
+- Improved debugging workflow with `jq`-based filtering and real-time log following
+- All logging infrastructure now supports structured querying and long-term log analysis
 
 ---
 **Legend**:  

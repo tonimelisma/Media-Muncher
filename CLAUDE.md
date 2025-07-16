@@ -26,40 +26,48 @@ xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/Import
 ```bash
 # Install required tools (mentioned in ARCHITECTURE.md)
 xcode-select --install
-brew install swiftformat swiftlint
+brew install swiftformat swiftlint jq  # jq for JSON log filtering
 
 # Build and run (use Xcode or press ⌘R)
 # Run tests (press ⌘U in Xcode)
 ```
 
-### Debugging with Unified Logging
-Media Muncher uses Apple's Unified Logging system for structured debug output. Use these commands to capture and analyze logs during development and testing:
+### Debugging with LogManager
+Media Muncher uses a custom JSON-based logging system for structured debug output and persistent logging. Use these commands to capture and analyze logs during development and testing:
 
 ```bash
 # View recent logs (recommended for debugging)
-log show --last 5m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+tail -n 50 ~/Library/Logs/Media\ Muncher/app.log
 
-# View logs from specific time window
-log show --start '2025-07-14 19:55:00' --end '2025-07-14 20:00:00' --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+# Follow logs in real-time during development
+tail -f ~/Library/Logs/Media\ Muncher/app.log
+
+# Filter by category using jq (install with: brew install jq)
+tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "FileProcessor")'
 
 # Debug failing tests by running test then viewing logs
 xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/AppStateRecalculationTests/testRecalculationHandlesRapidDestinationChanges"
-log show --last 2m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+tail -n 20 ~/Library/Logs/Media\ Muncher/app.log
 
-# View logs with different detail levels
-log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher"' --info --style compact  # Less verbose
-log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info         # More detailed
+# Filter by log level
+tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.level == "error")'
+
+# Search for specific terms
+grep "Processing file" ~/Library/Logs/Media\ Muncher/app.log
+
+# Show logs from last hour with metadata
+tail -n 500 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.timestamp > "'$(date -u -v-1H +%Y-%m-%dT%H:%M:%S)'.000Z")'
 ```
 
 **Log Categories Available:**
 - `AppState`: Main application state and lifecycle events
 - `VolumeManager`: Disk mount/unmount and volume discovery
-- `FileProcessorService`: File scanning and metadata processing
+- `FileProcessor`: File scanning and metadata processing
 - `ImportService`: File copy/delete operations and progress
 - `SettingsStore`: User preference changes
 - `RecalculationManager`: Destination path recalculation events
 
-**Bundle Identifier:** `net.melisma.Media-Muncher`
+**Log Location:** `~/Library/Logs/Media Muncher/app.log` (rotated at 10MB, 5 files retained)
 
 ## Architecture Overview
 
@@ -91,10 +99,12 @@ Media Muncher is a macOS SwiftUI app that automatically imports media files from
 Media Muncher/
 ├── Media_MuncherApp.swift          # App entry point, service injection
 ├── AppState.swift                  # Main orchestrator, UI state machine
+├── LogEntry.swift                  # JSON-encodable log entry model
 ├── Services/
 │   ├── VolumeManager.swift         # Volume discovery and monitoring
 │   ├── FileProcessorService.swift  # Media scanning, thumbnail caching (2000 entries)
 │   ├── ImportService.swift         # File copying and collision handling
+│   ├── LogManager.swift            # Custom JSON logging system with file rotation
 │   └── SettingsStore.swift         # User preferences persistence
 ├── Helpers/
 │   └── DestinationPathBuilder.swift # Pure path generation logic
@@ -104,6 +114,7 @@ Media Muncher/
 Media MuncherTests/
 ├── Fixtures/                       # Sample media files for testing
 ├── *IntegrationTests.swift          # End-to-end tests on real file system
+├── LogManagerTests.swift            # LogManager system unit tests
 └── *Tests.swift                     # Unit tests for pure logic
 ```
 

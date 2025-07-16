@@ -45,6 +45,8 @@
 | **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
 | **Services/ImportService.swift**| Copies files to the destination with direct file system access. Delegates all path calculation to `DestinationPathBuilder`. | `ImportService` |
 | **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
+| **LogEntry.swift** | JSON-encodable log entry model | `LogEntry`, `LogLevel` |
+| **Services/LogManager.swift** | Custom logging system with file persistence and rotation | `LogManager` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
 | **Models/FileModel.swift** | Immutable record for a media file & helpers | `File`, `MediaType`, `FileStatus`, `MediaType.from(filePath:)` |
 | **Models/AppError.swift**| Domain-specific error types. | `AppError` |
@@ -84,7 +86,7 @@
 | `ImportService` | Copy files, handle duplicates, **remove thumbnail side-cars (".THM"/".thm") after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
 | `SettingsStore` | Type-safe wrapper around `UserDefaults` with direct file system access | Provides Combine `@Published` properties. No longer uses security bookmarks. |
 | `RecalculationManager` | Dedicated state machine for destination change recalculations | Handles file path updates when destination changes, with proper error handling and task cancellation. |
-| `Logger` | Structured logging using Apple's Unified Logging system | Centralized logging with subsystem-based categorization for debugging and monitoring. |
+| `LogManager` | Custom JSON-based logging system with persistent file storage | Centralized logging with category-based organization, rotating log files, and structured metadata for debugging and monitoring. |
 | `AppState` | Pure composition root that orchestrates above services | Slimmed down, no heavy logic. |
 
 ### Dependency Flow
@@ -134,76 +136,94 @@ Our testing strategy prioritizes high-fidelity integration tests over mock-based
 7. **Feature Flags** – Use `#if DEBUG` or `UserDefaults` keys.
 
 ---
-## 11. Debugging with Unified Logging
+## 11. Logging & Debugging with LogManager
 
-Media Muncher uses Apple's Unified Logging system (`os.Logger`) for structured debug output. The logging system is organized by subsystem and categories for efficient filtering and analysis.
+Media Muncher uses a custom JSON-based logging system via the `LogManager` singleton for structured debug output and persistent logging. The system writes to rotating log files and provides real-time debugging capabilities.
 
 ### Logging Architecture
-- **Subsystem**: `net.melisma.Media-Muncher` (matches bundle identifier)
+- **LogManager**: Singleton service that handles all logging operations
+- **LogEntry**: JSON-encodable model with timestamp, level, category, message, and metadata
 - **Categories**: Each service has its own category for focused debugging
   - `AppState`: Main application state and lifecycle events
   - `VolumeManager`: Disk mount/unmount and volume discovery
-  - `FileProcessorService`: File scanning and metadata processing
+  - `FileProcessor`: File scanning and metadata processing
   - `ImportService`: File copy/delete operations and progress
   - `SettingsStore`: User preference changes
   - `RecalculationManager`: Destination path recalculation events
+- **Log Location**: `~/Library/Logs/Media Muncher/app.log` (rotated at 10MB, 5 files retained)
+
+### Log Format
+Each log entry is written as a JSON object on a single line:
+```json
+{"timestamp":"2025-01-15T10:30:45.123Z","level":"debug","category":"FileProcessor","message":"Processing file","metadata":{"sourcePath":"/Volumes/SD_CARD/IMG_001.jpg"}}
+```
 
 ### Debugging Commands
 
 **View Recent Logs (Recommended)**
 ```bash
-# Show logs from last 5 minutes with debug detail
-log show --last 5m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+# Show last 50 log entries
+tail -n 50 ~/Library/Logs/Media\ Muncher/app.log
 
-# Show logs from last 10 minutes, less verbose
-log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher"' --info --style compact
+# Follow logs in real-time
+tail -f ~/Library/Logs/Media\ Muncher/app.log
 
-# Show logs from specific time window
-log show --start '2025-07-14 19:55:00' --end '2025-07-14 20:00:00' --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+# Filter by category using jq
+tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "FileProcessor")'
+
+# Filter by log level
+tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.level == "error")'
+
+# Search for specific terms
+grep "Processing file" ~/Library/Logs/Media\ Muncher/app.log
 ```
 
 **Debug Failing Tests**
 ```bash
-# Run a failing test then immediately view logs
+# Run a failing test then view recent logs
 xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/AppStateRecalculationTests/testRecalculationHandlesRapidDestinationChanges"
-log show --last 2m --predicate 'subsystem == "net.melisma.Media-Muncher"' --debug --info --style compact
+tail -n 20 ~/Library/Logs/Media\ Muncher/app.log
 
-# Debug specific service category
-log show --last 5m --predicate 'subsystem == "net.melisma.Media-Muncher" AND category == "RecalculationManager"' --debug --info
+# Debug specific service category during tests
+tail -f ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "RecalculationManager")'
 ```
 
-**Filter by Service Category**
+**Advanced Filtering with jq**
 ```bash
-# Focus on file processing issues
-log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher" AND category == "FileProcessorService"' --debug --info
+# Show logs from last hour with metadata
+tail -n 500 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.timestamp > "'$(date -u -v-1H +%Y-%m-%dT%H:%M:%S)'.000Z")'
 
-# Focus on import pipeline issues
-log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher" AND category == "ImportService"' --debug --info
+# Focus on import pipeline with metadata
+tail -n 200 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "ImportService") | {timestamp, message, metadata}'
 
-# Focus on settings and destination changes
-log show --last 10m --predicate 'subsystem == "net.melisma.Media-Muncher" AND (category == "SettingsStore" OR category == "RecalculationManager")' --debug --info
+# Show only error and info messages
+tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.level == "error" or .level == "info")'
 ```
 
 ### Sample Log Output
-```
-2025-07-14 19:59:38.148 Db Media Muncher[81106] [net.melisma.Media-Muncher:SettingsStore] trySetDestination called with: /var/folders/.../test_destA_...
-2025-07-14 19:59:38.149 Db Media Muncher[81106] [net.melisma.Media-Muncher:RecalculationManager] startRecalculation called with new destination: /var/folders/.../test_destA_...
-2025-07-14 19:59:38.149 Db Media Muncher[81106] [net.melisma.Media-Muncher:RecalculationManager] No files to recalculate, resetting state.
+```json
+{"timestamp":"2025-01-15T10:30:45.123Z","level":"debug","category":"SettingsStore","message":"trySetDestination called","metadata":{"path":"/Users/user/Pictures"}}
+{"timestamp":"2025-01-15T10:30:45.124Z","level":"debug","category":"RecalculationManager","message":"startRecalculation called","metadata":{"newDestination":"/Users/user/Pictures"}}
+{"timestamp":"2025-01-15T10:30:45.125Z","level":"debug","category":"RecalculationManager","message":"No files to recalculate, resetting state","metadata":{}}
 ```
 
 ### Debugging Workflow
 1. **Reproduce the issue** - Run the failing test or trigger the problematic behavior
-2. **Capture logs immediately** - Use `log show --last 2m` to get recent activity
-3. **Filter by category** - Focus on the relevant service using category predicates
-4. **Analyze timing** - Look for race conditions or unexpected state transitions
-5. **Correlate with test expectations** - Match log events with test assertions
+2. **Check recent logs** - Use `tail -n 50 ~/Library/Logs/Media\ Muncher/app.log`
+3. **Filter by category** - Use `jq` to focus on relevant service logs
+4. **Analyze timing and metadata** - Look for race conditions or unexpected state in the structured data
+5. **Correlate with test expectations** - Match log timestamps with test execution
 
 ### Log Levels
-- **Debug**: Detailed execution flow, method entry/exit, state changes
-- **Info**: Important events, user actions, significant state transitions
-- **Error**: Failures, exceptions, and error conditions
+- **debug**: Detailed execution flow, method entry/exit, state changes
+- **info**: Important events, user actions, significant state transitions  
+- **error**: Failures, exceptions, and error conditions
 
-**Note**: Use `--debug --info` flags together to see both debug and info level messages. Omit `--debug` for less verbose output focusing on important events only.
+### Log Management
+- **Automatic rotation**: Logs rotate when app.log reaches 10MB
+- **Retention**: 5 log files kept (app.log, app.log.1, app.log.2, app.log.3, app.log.4)
+- **Performance**: Asynchronous writing to avoid blocking UI operations
+- **Thread safety**: LogManager uses internal queues for concurrent access
 
 ---
 ## 12. Build & Run (developers)
@@ -302,3 +322,13 @@ graph TD;
 * **DestinationFolderPicker** simplified by removing `lastCustomURL` functionality
 * All test constructors updated to include new `RecalculationManager` dependency
 * Project builds successfully with improved reliability and maintainability
+
+## 20. Recent Maintenance (2025-01-15)
+* **Custom JSON Logging System Implementation** - Completed EPIC 8 by replacing Apple's Unified Logging:
+  * Implemented `LogManager` singleton with JSON-based structured logging to persistent files
+  * Added `LogEntry` model with timestamp, level, category, message, and metadata fields
+  * Configured automatic log rotation at 10MB with 5-file retention in `~/Library/Logs/Media Muncher/`
+  * Replaced all `Logger.*` calls with `LogManager.*` calls across codebase while preserving business logic
+  * Added comprehensive test suite (`LogManagerTests`) with 100% coverage
+  * Updated debugging workflow to use `jq` for JSON log filtering and analysis
+  * Improved developer experience with real-time log following and structured querying capabilities
