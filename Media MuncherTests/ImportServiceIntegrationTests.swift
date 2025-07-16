@@ -89,7 +89,11 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
         let stream = await importService.importFiles(files: processedFiles, to: destinationURL, settings: settingsStore)
         let results: [File] = try await collectStreamResults(for: stream)
 
+        // Print debug info
+        print("Test Results: \(results)")
+
         // Assert – import succeeded (status .imported) but originals remain because deletion failed
+        XCTAssertEqual(results.first?.status, .imported)
         XCTAssertTrue(fileManager.fileExists(atPath: originalSourcePath), "Original should remain on read-only volume")
         XCTAssertNotNil(results.first?.importError)
     }

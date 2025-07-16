@@ -1,5 +1,20 @@
 # Changelog
 
+## 2025-07-15 – LogManager Improvements
+- **Filename format fix**: LogManager now uses standardized ISO 8601-like format (`YYYY-MM-DD_HH-mm-ss`) for log filenames, replacing problematic locale-dependent formats
+- **Expanded test coverage**: Added comprehensive LogManager test suite covering all log levels, metadata handling, JSON format validation, concurrent logging, and edge cases (10/11 tests passing)
+- **Improved test isolation**: Enhanced metadata test with unique markers to handle singleton pattern challenges
+- **Documentation updates**: Updated ARCHITECTURE.md with corrected log filename format and improved debugging commands
+
+## 2025-07-15 – Custom Logging System Implementation
+- **LogManager service**: Complete JSON-based logging system with persistent file storage replacing Apple Unified Logging
+- **LogEntry model**: Structured log entries with timestamp, level, category, message, metadata, and unique IDs
+- **Session-based logging**: New log file created for each application session with timestamp in filename
+- **Async logging**: Background queue for file operations to maintain UI responsiveness 
+- **Test support**: LogManager.getLogFileContents() method for test verification
+
+### 2025-07-14 – Recalculation Flow Re-architecture
+
 All notable changes to Media Muncher will be documented in this file.
 
 ## [Unreleased]

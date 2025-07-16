@@ -138,62 +138,54 @@ Our testing strategy prioritizes high-fidelity integration tests over mock-based
 ---
 ## 11. Logging & Debugging with LogManager
 
-Media Muncher uses a custom JSON-based logging system via the `LogManager` singleton for structured debug output and persistent logging. The system writes to a new timestamped log file for each application session.
+Media Muncher uses a custom JSON-based logging system with persistent file storage for debugging and monitoring application behavior.
 
-### Logging Architecture
-- **LogManager**: Singleton service that handles all logging operations
-- **LogEntry**: JSON-encodable model with timestamp, level, category, message, and metadata
-- **Categories**: Each service has its own category for focused debugging
-  - `AppState`: Main application state and lifecycle events
-  - `VolumeManager`: Disk mount/unmount and volume discovery
-  - `FileProcessor`: File scanning and metadata processing
-  - `ImportService`: File copy/delete operations and progress
-  - `SettingsStore`: User preference changes
-  - `RecalculationManager`: Destination path recalculation events
-- **Log Location**: `~/Library/Logs/Media Muncher/`
+### Log File Format
+**Location**: `~/Library/Logs/Media Muncher/`  
+**Filename Format**: `media-muncher-YYYY-MM-DD_HH-mm-ss.log`  
+**Content Format**: One JSON object per line
 
-### Log Format
-Each log entry is written as a JSON object on a single line:
+### JSON Log Entry Structure
 ```json
-{"timestamp":"2025-01-15T10:30:45.123Z","level":"debug","category":"FileProcessor","message":"Processing file","metadata":{"sourcePath":"/Volumes/SD_CARD/IMG_001.jpg"}}
+{
+  "timestamp": 774334060.621426,
+  "level": "DEBUG",
+  "message": "Initializing SettingsStore", 
+  "id": "573004EF-D3E6-453E-978D-0915FF4C9FFC",
+  "category": "SettingsStore",
+  "metadata": {
+    "key": "value",
+    "path": "/Users/user/Pictures"
+  }
+}
 ```
 
 ### Debugging Commands
-
-**View Recent Logs (Recommended)**
 ```bash
-# Show last 50 log entries from the latest log file
-ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 50 ~/Library/Logs/Media\ Muncher/{}
-
-# Follow the latest log file in real-time
-ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -f ~/Library/Logs/Media\ Muncher/{}
+# View recent logs
+tail -f ~/Library/Logs/Media\ Muncher/media-muncher-*.log
 
 # Filter by category using jq
-ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 100 ~/Library/Logs/Media\ Muncher/{} | jq 'select(.category == "FileProcessor")'
+jq 'select(.category == "ImportService")' ~/Library/Logs/Media\ Muncher/media-muncher-*.log
 
 # Filter by log level
-ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 100 ~/Library/Logs/Media\ Muncher/{} | jq 'select(.level == "error")'
+jq 'select(.level == "ERROR")' ~/Library/Logs/Media\ Muncher/media-muncher-*.log
 
-# Search for specific terms
-ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} grep "Processing file" ~/Library/Logs/Media\ Muncher/{}
+# Search for specific content
+grep -r "volume mounted" ~/Library/Logs/Media\ Muncher/
+
+# View logs with metadata
+jq 'select(.metadata) | {timestamp, category, message, metadata}' ~/Library/Logs/Media\ Muncher/media-muncher-*.log
+
+# Count log entries by category
+jq -r '.category' ~/Library/Logs/Media\ Muncher/media-muncher-*.log | sort | uniq -c
 ```
 
-### Debugging Workflow
-1. **Reproduce the issue** - Run the failing test or trigger the problematic behavior
-2. **Check recent logs** - Use `ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 50 ~/Library/Logs/Media\ Muncher/{}`
-3. **Filter by category** - Use `jq` to focus on relevant service logs
-4. **Analyze timing and metadata** - Look for race conditions or unexpected state in the structured data
-5. **Correlate with test expectations** - Match log timestamps with test execution
-
-### Log Levels
-- **debug**: Detailed execution flow, method entry/exit, state changes
-- **info**: Important events, user actions, significant state transitions  
-- **error**: Failures, exceptions, and error conditions
-
 ### Log Management
-- **Session-based files**: A new log file is created for each application launch.
-- **Performance**: Asynchronous writing to avoid blocking UI operations
-- **Thread safety**: LogManager uses internal queues for concurrent access
+- **Session-based**: New log file created for each application session with timestamp in filename
+- **No rotation**: Files persist until manually deleted (allows historical debugging)
+- **Performance**: Asynchronous writing on dedicated queue, minimal impact on UI responsiveness
+- **Thread-safe**: Concurrent logging from multiple threads supported
 
 ---
 ## 12. Build & Run (developers)

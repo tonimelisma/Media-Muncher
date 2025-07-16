@@ -2,7 +2,7 @@
 //  LogManager.swift
 //  Media Muncher
 //
-//  Custom JSON-based logging system with file rotation and in-memory storage
+//  Custom JSON-based logging system with session-based file storage
 //
 
 import Foundation
@@ -20,8 +20,17 @@ class LogManager: ObservableObject {
         // Create directory if it doesn't exist
         try? FileManager.default.createDirectory(at: logDirectoryURL, withIntermediateDirectories: true)
         
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: " ", with: "_").replacingOccurrences(of: ":", with: "-")
+        let timestamp = LogManager.generateTimestamp()
         self.logFileURL = logDirectoryURL.appendingPathComponent("media-muncher-\(timestamp).log")
+    }
+    
+    /// Generates a filesystem-safe timestamp string in format: YYYY-MM-DD_HH-mm-ss
+    private static func generateTimestamp() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: Date())
     }
     
     // MARK: - Static convenience methods
