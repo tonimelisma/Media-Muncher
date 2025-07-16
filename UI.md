@@ -92,3 +92,6 @@ This section details planned UI work required to meet all remaining requirements
 
 ### 2025-06-29
 * No visual changes. Backend improvements (duplicate detection, mtime preservation, side-car handling) are invisible to the UI but ensure more accurate status icons in the grid.
+
+### 2025-01-15
+* No user-visible UI changes were made in this development cycle. All efforts focused on backend logging improvements. The `LogManager` system is designed for developer debugging and does not have a user-facing UI component. The `LogManager` was refactored to create a new log file for each application session, removing the in-memory cache and log clearing functionality for a simpler, more robust design.

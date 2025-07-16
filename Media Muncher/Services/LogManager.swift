@@ -13,8 +13,6 @@ class LogManager: ObservableObject {
     private let logQueue = DispatchQueue(label: "com.mediamuncher.logging", qos: .utility)
     let logFileURL: URL
     
-    @Published var entries: [LogEntry] = []
-    
     private init() {
         let homeURL = FileManager.default.homeDirectoryForCurrentUser
         let logDirectoryURL = homeURL.appendingPathComponent("Library/Logs/Media Muncher")
@@ -22,38 +20,32 @@ class LogManager: ObservableObject {
         // Create directory if it doesn't exist
         try? FileManager.default.createDirectory(at: logDirectoryURL, withIntermediateDirectories: true)
         
-        self.logFileURL = logDirectoryURL.appendingPathComponent("media-muncher.log")
-        
-        // Load existing entries
-        loadEntries()
+        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: " ", with: "_").replacingOccurrences(of: ":", with: "-")
+        self.logFileURL = logDirectoryURL.appendingPathComponent("media-muncher-\(timestamp).log")
     }
     
     // MARK: - Static convenience methods
     
-    static func debug(_ message: String, category: String = "General", metadata: [String: String]? = nil) {
-        shared.write(level: .debug, category: category, message: message, metadata: metadata)
+    static func debug(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
+        shared.write(level: .debug, category: category, message: message, metadata: metadata, completion: completion)
     }
     
-    static func info(_ message: String, category: String = "General", metadata: [String: String]? = nil) {
-        shared.write(level: .info, category: category, message: message, metadata: metadata)
+    static func info(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
+        shared.write(level: .info, category: category, message: message, metadata: metadata, completion: completion)
     }
     
-    static func error(_ message: String, category: String = "General", metadata: [String: String]? = nil) {
-        shared.write(level: .error, category: category, message: message, metadata: metadata)
+    static func error(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
+        shared.write(level: .error, category: category, message: message, metadata: metadata, completion: completion)
     }
     
     // MARK: - Core logging methods
     
-    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil) {
+    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
         let entry = LogEntry(timestamp: Date(), level: level, category: category, message: message, metadata: metadata)
         
         logQueue.async {
             self.writeToFile(entry)
-            
-            DispatchQueue.main.async {
-                self.entries.append(entry)
-                self.trimEntriesIfNeeded()
-            }
+            completion?()
         }
     }
     
@@ -69,49 +61,7 @@ class LogManager: ObservableObject {
             }
         } else {
             // Create new file
-            var initialData = data
-            initialData.append("\n".data(using: .utf8)!)
-            try? initialData.write(to: logFileURL, options: .atomic)
-        }
-    }
-    
-    private func loadEntries() {
-        logQueue.async {
-            guard FileManager.default.fileExists(atPath: self.logFileURL.path),
-                  let fileContent = try? String(contentsOf: self.logFileURL, encoding: .utf8) else {
-                return
-            }
-            
-            let lines = fileContent.components(separatedBy: .newlines)
-            let entries = lines.compactMap { line -> LogEntry? in
-                guard !line.isEmpty,
-                      let data = line.data(using: .utf8),
-                      let entry = try? JSONDecoder().decode(LogEntry.self, from: data) else {
-                    return nil
-                }
-                return entry
-            }
-            
-            DispatchQueue.main.async {
-                self.entries = entries
-                self.trimEntriesIfNeeded()
-            }
-        }
-    }
-    
-    private func trimEntriesIfNeeded() {
-        if entries.count > 1000 {
-            entries = Array(entries.suffix(1000))
-        }
-    }
-    
-    func clearLogs() {
-        logQueue.async {
-            try? FileManager.default.removeItem(at: self.logFileURL)
-            
-            DispatchQueue.main.async {
-                self.entries.removeAll()
-            }
+            try? data.write(to: logFileURL, options: .atomic)
         }
     }
     

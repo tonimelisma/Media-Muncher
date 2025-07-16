@@ -35,4 +35,5 @@ All notable changes to Media Muncher will be documented in this file.
 - **ContentView preview cleanup**: Removed unnecessary environment object injections from ContentView preview, maintaining only essential dependencies.
 - **Test file organization**: Renamed `AppStateRecalculationIsolationTest.swift` to `AppStateRecalculationIntegrationTests.swift` to accurately reflect its integration testing nature.
 - **Architectural refinement**: Removed direct `updateFiles()` call from AppState to RecalculationManager, enforcing AppState as the single source of truth for file arrays.
-- **Explicit error mapping**: Enhanced error handling to explicitly map recalculation errors to `.recalculationFailed` type for consistency. 
+- **Explicit error mapping**: Enhanced error handling to explicitly map recalculation errors to `.recalculationFailed` type for consistency.
+- **Logging**: Refactored `LogManager` to create a new log file for each application session, removing the in-memory cache and log clearing functionality for a simpler, more robust design. 

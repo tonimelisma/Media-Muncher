@@ -138,7 +138,7 @@ Our testing strategy prioritizes high-fidelity integration tests over mock-based
 ---
 ## 11. Logging & Debugging with LogManager
 
-Media Muncher uses a custom JSON-based logging system via the `LogManager` singleton for structured debug output and persistent logging. The system writes to rotating log files and provides real-time debugging capabilities.
+Media Muncher uses a custom JSON-based logging system via the `LogManager` singleton for structured debug output and persistent logging. The system writes to a new timestamped log file for each application session.
 
 ### Logging Architecture
 - **LogManager**: Singleton service that handles all logging operations
@@ -150,7 +150,7 @@ Media Muncher uses a custom JSON-based logging system via the `LogManager` singl
   - `ImportService`: File copy/delete operations and progress
   - `SettingsStore`: User preference changes
   - `RecalculationManager`: Destination path recalculation events
-- **Log Location**: `~/Library/Logs/Media Muncher/app.log` (rotated at 10MB, 5 files retained)
+- **Log Location**: `~/Library/Logs/Media Muncher/`
 
 ### Log Format
 Each log entry is written as a JSON object on a single line:
@@ -162,54 +162,25 @@ Each log entry is written as a JSON object on a single line:
 
 **View Recent Logs (Recommended)**
 ```bash
-# Show last 50 log entries
-tail -n 50 ~/Library/Logs/Media\ Muncher/app.log
+# Show last 50 log entries from the latest log file
+ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 50 ~/Library/Logs/Media\ Muncher/{}
 
-# Follow logs in real-time
-tail -f ~/Library/Logs/Media\ Muncher/app.log
+# Follow the latest log file in real-time
+ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -f ~/Library/Logs/Media\ Muncher/{}
 
 # Filter by category using jq
-tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "FileProcessor")'
+ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 100 ~/Library/Logs/Media\ Muncher/{} | jq 'select(.category == "FileProcessor")'
 
 # Filter by log level
-tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.level == "error")'
+ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 100 ~/Library/Logs/Media\ Muncher/{} | jq 'select(.level == "error")'
 
 # Search for specific terms
-grep "Processing file" ~/Library/Logs/Media\ Muncher/app.log
-```
-
-**Debug Failing Tests**
-```bash
-# Run a failing test then view recent logs
-xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/AppStateRecalculationTests/testRecalculationHandlesRapidDestinationChanges"
-tail -n 20 ~/Library/Logs/Media\ Muncher/app.log
-
-# Debug specific service category during tests
-tail -f ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "RecalculationManager")'
-```
-
-**Advanced Filtering with jq**
-```bash
-# Show logs from last hour with metadata
-tail -n 500 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.timestamp > "'$(date -u -v-1H +%Y-%m-%dT%H:%M:%S)'.000Z")'
-
-# Focus on import pipeline with metadata
-tail -n 200 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "ImportService") | {timestamp, message, metadata}'
-
-# Show only error and info messages
-tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.level == "error" or .level == "info")'
-```
-
-### Sample Log Output
-```json
-{"timestamp":"2025-01-15T10:30:45.123Z","level":"debug","category":"SettingsStore","message":"trySetDestination called","metadata":{"path":"/Users/user/Pictures"}}
-{"timestamp":"2025-01-15T10:30:45.124Z","level":"debug","category":"RecalculationManager","message":"startRecalculation called","metadata":{"newDestination":"/Users/user/Pictures"}}
-{"timestamp":"2025-01-15T10:30:45.125Z","level":"debug","category":"RecalculationManager","message":"No files to recalculate, resetting state","metadata":{}}
+ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} grep "Processing file" ~/Library/Logs/Media\ Muncher/{}
 ```
 
 ### Debugging Workflow
 1. **Reproduce the issue** - Run the failing test or trigger the problematic behavior
-2. **Check recent logs** - Use `tail -n 50 ~/Library/Logs/Media\ Muncher/app.log`
+2. **Check recent logs** - Use `ls -t ~/Library/Logs/Media\ Muncher/ | head -n 1 | xargs -I {} tail -n 50 ~/Library/Logs/Media\ Muncher/{}`
 3. **Filter by category** - Use `jq` to focus on relevant service logs
 4. **Analyze timing and metadata** - Look for race conditions or unexpected state in the structured data
 5. **Correlate with test expectations** - Match log timestamps with test execution
@@ -220,8 +191,7 @@ tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.level == "error"
 - **error**: Failures, exceptions, and error conditions
 
 ### Log Management
-- **Automatic rotation**: Logs rotate when app.log reaches 10MB
-- **Retention**: 5 log files kept (app.log, app.log.1, app.log.2, app.log.3, app.log.4)
+- **Session-based files**: A new log file is created for each application launch.
 - **Performance**: Asynchronous writing to avoid blocking UI operations
 - **Thread safety**: LogManager uses internal queues for concurrent access
 

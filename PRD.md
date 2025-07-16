@@ -152,7 +152,7 @@ The specific file extensions for each category in **ST-5** are:
 
 ### 2025-01-15 – Custom JSON Logging System Implementation
 - **EPIC 8 completed**: Replaced Apple's Unified Logging with custom JSON-based LogManager system
-- Implemented persistent logging to `~/Library/Logs/Media Muncher/app.log` with 10MB rotation and 5-file retention
+- Implemented persistent logging to `~/Library/Logs/Media Muncher/` with a new log file created for each application session.
 - Added structured metadata logging for all services with category-based organization
 - Created comprehensive test suite for LogManager with 100% coverage
 - Improved debugging workflow with `jq`-based filtering and real-time log following
