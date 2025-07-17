@@ -67,7 +67,7 @@ tail -n 500 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.timestamp > "'$(
 - `SettingsStore`: User preference changes
 - `RecalculationManager`: Destination path recalculation events
 
-**Log Location:** `~/Library/Logs/Media Muncher/app.log` (rotated at 10MB, 5 files retained)
+**Log Location:** `~/Library/Logs/Media Muncher/media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log` (one file per process, files older than 30 days are automatically deleted at startup)
 
 ## Architecture Overview
 

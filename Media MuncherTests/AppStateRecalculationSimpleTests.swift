@@ -9,24 +9,29 @@ final class AppStateRecalculationSimpleTests: XCTestCase {
     var fileProcessorService: FileProcessorService!
     var importService: ImportService!
     var volumeManager: VolumeManager!
+    var logManager: LogManager!
     private var cancellables: Set<AnyCancellable>!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         cancellables = []
         
-        settingsStore = SettingsStore()
-        fileProcessorService = FileProcessorService()
-        importService = ImportService()
-        volumeManager = VolumeManager()
+        logManager = LogManager()
+        let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        settingsStore = SettingsStore(logManager: logManager, userDefaults: testDefaults)
+        fileProcessorService = FileProcessorService(logManager: logManager)
+        importService = ImportService(logManager: logManager)
+        volumeManager = VolumeManager(logManager: logManager)
 
         // Instantiate RecalculationManager first
         let recalculationManager = RecalculationManager(
+            logManager: logManager,
             fileProcessorService: fileProcessorService,
             settingsStore: settingsStore
         )
 
         appState = AppState(
+            logManager: logManager,
             volumeManager: volumeManager,
             mediaScanner: fileProcessorService,
             settingsStore: settingsStore,

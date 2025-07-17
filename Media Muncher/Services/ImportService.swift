@@ -47,11 +47,14 @@ actor ImportService {
 
     private let fileManager = FileManager.default
     private let urlAccessWrapper: SecurityScopedURLAccessWrapperProtocol
+    private let logManager: Logging
     var nowProvider: () -> Date = { Date() }
 
     init(
+        logManager: Logging = LogManager(),
         urlAccessWrapper: SecurityScopedURLAccessWrapperProtocol = SecurityScopedURLAccessWrapper()
     ) {
+        self.logManager = logManager
         self.urlAccessWrapper = urlAccessWrapper
     }
     
@@ -210,7 +213,7 @@ actor ImportService {
     private func deleteSourceFiles(for file: File) throws {
         let allPathsToDelete = [file.sourcePath] + file.sidecarPaths
         
-        LogManager.debug("Deleting source files", category: "ImportService", metadata: [
+        logManager.debug("Deleting source files", category: "ImportService", metadata: [
             "fileName": file.sourceName,
             "paths": allPathsToDelete.joined(separator: ", ")
         ])
@@ -218,11 +221,11 @@ actor ImportService {
         for path in allPathsToDelete {
             let url = URL(fileURLWithPath: path)
             guard fileManager.fileExists(atPath: url.path) else {
-                LogManager.debug("File not found at path", category: "ImportService", metadata: ["path": path])
+                logManager.debug("File not found at path", category: "ImportService", metadata: ["path": path])
                 continue
             }
             try fileManager.removeItem(at: url)
-            LogManager.debug("Deleted file at path", category: "ImportService", metadata: ["path": path])
+            logManager.debug("Deleted file at path", category: "ImportService", metadata: ["path": path])
         }
     }
 }

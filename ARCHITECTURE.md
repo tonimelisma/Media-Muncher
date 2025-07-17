@@ -138,7 +138,11 @@ Our testing strategy prioritizes high-fidelity integration tests over mock-based
 ---
 ## 11. Logging & Debugging with LogManager
 
-Media Muncher uses a custom JSON-based logging system with persistent file storage for debugging and monitoring application behavior.
+Media Muncher uses an **actor-based** JSON logging system. Each process (app run, XCTest host, command-line tool) opens **one** log file named `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log`, guaranteeing uniqueness without race conditions. The actor holds a single `FileHandle`, serialises all writes, and therefore provides atomic, thread-safe logging under Swift Concurrency.
+
+To prevent log-directory bloat the logger prunes any file older than **30 days** at start-up; no size-based rotation is required.
+
+Developers interact with the logger only through the `Logging` protocol injected into every service (`logManager: Logging = LogManager()`). A convenience extension provides `debug / info / error` helpers.
 
 ### Log File Format
 **Location**: `~/Library/Logs/Media Muncher/`  

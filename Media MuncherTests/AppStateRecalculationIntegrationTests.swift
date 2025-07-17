@@ -30,17 +30,21 @@ final class AppStateRecalculationIntegrationTests: XCTestCase {
         XCTAssertEqual(contents, ["test.jpg"])
         
         // Create fresh AppState
-        let settingsStore = SettingsStore()
-        let fileProcessorService = FileProcessorService()
-        let importService = ImportService()
-        let volumeManager = VolumeManager()
+        let logManager = LogManager()
+        let testDefaults = UserDefaults(suiteName: "AppStateRecalculationIntegrationTests")!
+        let settingsStore = SettingsStore(logManager: logManager, userDefaults: testDefaults)
+        let fileProcessorService = FileProcessorService(logManager: logManager)
+        let importService = ImportService(logManager: logManager)
+        let volumeManager = VolumeManager(logManager: logManager)
         
         let recalculationManager = RecalculationManager(
+            logManager: logManager,
             fileProcessorService: fileProcessorService,
             settingsStore: settingsStore
         )
         
         let appState = AppState(
+            logManager: logManager,
             volumeManager: volumeManager,
             mediaScanner: fileProcessorService,
             settingsStore: settingsStore,

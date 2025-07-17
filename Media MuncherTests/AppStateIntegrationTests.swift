@@ -31,19 +31,22 @@ final class AppStateIntegrationTests: XCTestCase {
 
         // Initialize services with isolated UserDefaults for testing
         let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
-        settingsStore = SettingsStore(userDefaults: testDefaults)
-        fileProcessorService = FileProcessorService()
-        importService = ImportService()
-        volumeManager = VolumeManager()
+        let logManager = LogManager()
+        settingsStore = SettingsStore(logManager: logManager, userDefaults: testDefaults)
+        fileProcessorService = FileProcessorService(logManager: logManager)
+        importService = ImportService(logManager: logManager)
+        volumeManager = VolumeManager(logManager: logManager)
 
         // Initialize RecalculationManager first
         let recalculationManager = RecalculationManager(
+            logManager: logManager,
             fileProcessorService: fileProcessorService,
             settingsStore: settingsStore
         )
 
         // Initialize AppState
         appState = AppState(
+            logManager: logManager,
             volumeManager: volumeManager,
             mediaScanner: fileProcessorService,
             settingsStore: settingsStore,

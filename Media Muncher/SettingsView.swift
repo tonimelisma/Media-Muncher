@@ -79,7 +79,7 @@ struct SettingsView: View {
         .padding(.vertical, 24) // Slightly less vertical padding above and below
         .frame(width: 600) // Significantly increased width for more horizontal breathing room
         .onAppear {
-            LogManager.debug("SettingsView onAppear", category: "SettingsView", metadata: ["destinationURL": settingsStore.destinationURL?.path ?? "nil"])
+            // UI debug logging removed as part of LogManager dependency injection refactoring
         }
     }
 }

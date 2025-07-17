@@ -14,6 +14,7 @@ final class AppStateRecalculationTests: XCTestCase {
     var volumeManager: VolumeManager!
     var appState: AppState!
     private var cancellables: Set<AnyCancellable>!
+    private var logManager: LogManager!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -35,10 +36,11 @@ final class AppStateRecalculationTests: XCTestCase {
 
         // Use isolated UserDefaults for test
         let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
-        settingsStore = SettingsStore(userDefaults: testDefaults)
-        fileProcessorService = FileProcessorService()
-        importService = ImportService()
-        volumeManager = VolumeManager()
+        logManager = LogManager()
+        settingsStore = SettingsStore(logManager: logManager, userDefaults: testDefaults)
+        fileProcessorService = FileProcessorService(logManager: logManager)
+        importService = ImportService(logManager: logManager)
+        volumeManager = VolumeManager(logManager: logManager)
 
         // Instantiate RecalculationManager first
         let recalculationManager = RecalculationManager(
@@ -47,6 +49,7 @@ final class AppStateRecalculationTests: XCTestCase {
         )
 
         appState = AppState(
+            logManager: logManager,
             volumeManager: volumeManager,
             mediaScanner: fileProcessorService,
             settingsStore: settingsStore,
@@ -166,7 +169,7 @@ final class AppStateRecalculationTests: XCTestCase {
         // Create a pre-existing file in destA
         try fileManager.copyItem(at: preExistingFile, to: destA_URL.appendingPathComponent("existing.jpg"))
         
-        LogManager.debug("--- Starting testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
+        logManager.debug("--- Starting testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
         
         // Set initial destination and trigger scan
         settingsStore.setDestination(destA_URL)
@@ -177,7 +180,7 @@ final class AppStateRecalculationTests: XCTestCase {
             self.appState.files.count >= 3 && self.appState.state == .idle
         }
         
-        LogManager.debug("Initial files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.files.map { $0.sourceName }.joined(separator: ", ")])
+        logManager.debug("Initial files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.files.map { $0.sourceName }.joined(separator: ", ")])
         
         // Act: Change destination (should trigger recalculation)
         settingsStore.setDestination(destB_URL)
@@ -188,8 +191,8 @@ final class AppStateRecalculationTests: XCTestCase {
             self.appState.files.allSatisfy { $0.destPath?.contains(self.destB_URL.lastPathComponent) ?? false }
         }
         
-        LogManager.debug("Recalculated files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.files.map { $0.sourceName }.joined(separator: ", ")])
-        LogManager.debug("--- Ending testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
+        logManager.debug("Recalculated files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.files.map { $0.sourceName }.joined(separator: ", ")])
+        logManager.debug("--- Ending testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
         
         // Assert: Verify files after automatic recalculation
         XCTAssertEqual(appState.files.count, 3, "File count should remain stable after recalculation")

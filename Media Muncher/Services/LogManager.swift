@@ -7,21 +7,22 @@
 
 import Foundation
 
-class LogManager: ObservableObject {
-    static let shared = LogManager()
-    
-    private let logQueue = DispatchQueue(label: "com.mediamuncher.logging", qos: .utility)
-    let logFileURL: URL
-    
-    private init() {
+actor LogManager: Logging, @unchecked Sendable {
+    // Location of the log file for this process lifetime (constant)
+    nonisolated let logFileURL: URL
+
+    init() {
         let homeURL = FileManager.default.homeDirectoryForCurrentUser
         let logDirectoryURL = homeURL.appendingPathComponent("Library/Logs/Media Muncher")
-        
-        // Create directory if it doesn't exist
+        // Create directory if it doesn't exist (best-effort)
         try? FileManager.default.createDirectory(at: logDirectoryURL, withIntermediateDirectories: true)
-        
+
+        // Prune logs >30 days old
+        LogManager.pruneLogs(olderThan: 30 * 24 * 3600, in: logDirectoryURL)
+
         let timestamp = LogManager.generateTimestamp()
-        self.logFileURL = logDirectoryURL.appendingPathComponent("media-muncher-\(timestamp).log")
+        let pid = getpid()
+        self.logFileURL = logDirectoryURL.appendingPathComponent("media-muncher-\(timestamp)-\(pid).log")
     }
     
     /// Generates a filesystem-safe timestamp string in format: YYYY-MM-DD_HH-mm-ss
@@ -33,50 +34,50 @@ class LogManager: ObservableObject {
         return formatter.string(from: Date())
     }
     
-    // MARK: - Static convenience methods
+        // MARK: - Core logging methods
     
-    static func debug(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
-        shared.write(level: .debug, category: category, message: message, metadata: metadata, completion: completion)
-    }
-    
-    static func info(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
-        shared.write(level: .info, category: category, message: message, metadata: metadata, completion: completion)
-    }
-    
-    static func error(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
-        shared.write(level: .error, category: category, message: message, metadata: metadata, completion: completion)
-    }
-    
-    // MARK: - Core logging methods
-    
-    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
+    // Public logging entry point – remains *sync* for callers; we dispatch internally.
+    nonisolated func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil, completion: (@Sendable () -> Void)? = nil) {
         let entry = LogEntry(timestamp: Date(), level: level, category: category, message: message, metadata: metadata)
-        
-        logQueue.async {
-            self.writeToFile(entry)
+        // Hop onto the actor to perform file IO.
+        Task {
+            await self.internalWrite(entry)
             completion?()
         }
     }
-    
-    private func writeToFile(_ entry: LogEntry) {
+
+    // MARK: – Actor-isolated implementation
+    private func internalWrite(_ entry: LogEntry) {
         guard let data = try? JSONEncoder().encode(entry) else { return }
-        
+
         if FileManager.default.fileExists(atPath: logFileURL.path) {
             if let fileHandle = try? FileHandle(forWritingTo: logFileURL) {
                 fileHandle.seekToEndOfFile()
-                fileHandle.write("\n".data(using: .utf8)!)
+                if fileHandle.offsetInFile > 0 {
+                    fileHandle.write("\n".data(using: .utf8)!)
+                }
                 fileHandle.write(data)
-                fileHandle.closeFile()
+                fileHandle.synchronizeFile() // Ensure bytes hit disk before completion
+                try? fileHandle.close()
             }
         } else {
-            // Create new file
             try? data.write(to: logFileURL, options: .atomic)
         }
     }
-    
+
     // MARK: - Test support
-    
-    func getLogFileContents() -> String? {
-        return try? String(contentsOf: logFileURL, encoding: .utf8)
+    nonisolated func getLogFileContents() -> String? {
+        try? String(contentsOf: logFileURL, encoding: .utf8)
+    }
+
+    /// Removes log files older than `age` seconds.
+    private static func pruneLogs(olderThan age: TimeInterval, in dir: URL) {
+        guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        let threshold = Date().addingTimeInterval(-age)
+        for url in files where url.lastPathComponent.hasPrefix("media-muncher-") {
+            if let mtime = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate, mtime < threshold {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
     }
 }

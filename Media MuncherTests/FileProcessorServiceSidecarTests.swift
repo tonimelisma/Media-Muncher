@@ -5,13 +5,15 @@ final class FileProcessorServiceSidecarTests: XCTestCase {
     var rootDir: URL!
     var fileManager: FileManager!
     var settings: SettingsStore!
+    private var logManager: LogManager!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         fileManager = FileManager.default
         rootDir = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try fileManager.createDirectory(at: rootDir, withIntermediateDirectories: true)
-        settings = SettingsStore()
+        logManager = LogManager()
+        settings = SettingsStore(logManager: logManager)
         settings.filterImages = true
         settings.filterVideos = true
         settings.filterAudio = true
@@ -36,14 +38,14 @@ final class FileProcessorServiceSidecarTests: XCTestCase {
         createFile(at: video)
         createFile(at: sidecar)
 
-        let processor = FileProcessorService()
+        let processor = FileProcessorService(logManager: logManager)
 
         // Act
         let files = await processor.processFiles(from: rootDir, destinationURL: nil, settings: settings)
         if let f = files.first {
-            LogManager.debug("sidecarPaths", category: "FileProcessorServiceSidecarTests", metadata: ["paths": f.sidecarPaths.joined(separator: ", ")])
+            logManager.debug("sidecarPaths", category: "FileProcessorServiceSidecarTests", metadata: ["paths": f.sidecarPaths.joined(separator: ", ")])
         } else {
-            LogManager.debug("files empty", category: "FileProcessorServiceSidecarTests")
+            logManager.debug("files empty", category: "FileProcessorServiceSidecarTests")
         }
 
         // Assert – only main video returned and sidecar attached

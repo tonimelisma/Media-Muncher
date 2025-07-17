@@ -12,8 +12,10 @@ actor FileProcessorService {
     private let thumbnailCacheLimit = 2000
     
     private let fileManager = FileManager.default
+    private let logManager: Logging
 
-    init() {
+    init(logManager: Logging = LogManager()) {
+        self.logManager = logManager
     }
 
     func processFiles(
@@ -21,8 +23,8 @@ actor FileProcessorService {
         destinationURL: URL?,
         settings: SettingsStore
     ) async -> [File] {
-        LogManager.debug("processFiles called", category: "FileProcessor")
-        LogManager.debug("Processing files", category: "FileProcessor", metadata: [
+        logManager.debug("processFiles called", category: "FileProcessor")
+        logManager.debug("Processing files", category: "FileProcessor", metadata: [
             "sourceURL": sourceURL.path,
             "destinationURL": destinationURL?.path ?? "nil",
             "filterImages": "\(settings.filterImages)",
@@ -37,14 +39,14 @@ actor FileProcessorService {
             filterAudio: settings.filterAudio
         )
         
-        LogManager.debug("fastEnumerate found files", category: "FileProcessor", metadata: ["count": "\(discoveredFilesUnsorted.count)"])
+        logManager.debug("fastEnumerate found files", category: "FileProcessor", metadata: ["count": "\(discoveredFilesUnsorted.count)"])
 
         // Ensure deterministic processing order so collision suffixes are repeatable across runs/tests
         let discoveredFiles = discoveredFilesUnsorted.sorted { $0.sourcePath < $1.sourcePath }
 
         var processedFiles: [File] = []
         for file in discoveredFiles {
-            LogManager.debug("Processing file", category: "FileProcessor", metadata: ["sourcePath": file.sourcePath])
+            logManager.debug("Processing file", category: "FileProcessor", metadata: ["sourcePath": file.sourcePath])
             let processedFile = await processFile(
                 file,
                 allFiles: processedFiles,
@@ -54,7 +56,7 @@ actor FileProcessorService {
             processedFiles.append(processedFile)
         }
         
-        LogManager.debug("processFiles completed", category: "FileProcessor", metadata: ["count": "\(processedFiles.count)"])
+        logManager.debug("processFiles completed", category: "FileProcessor", metadata: ["count": "\(processedFiles.count)"])
         return processedFiles
     }
 
@@ -165,7 +167,7 @@ actor FileProcessorService {
         #if DEBUG
         if settings.renameByDate && settings.organizeByDate {
             if let p = newFile.destPath {
-                LogManager.debug("final destPath", category: "FileProcessor", metadata: ["path": p])
+                logManager.debug("final destPath", category: "FileProcessor", metadata: ["path": p])
             }
         }
         #endif
@@ -184,7 +186,7 @@ actor FileProcessorService {
     private func isSameFile(sourceFile: File, destinationURL: URL) async -> Bool {
         guard let sourceSize = sourceFile.size, let sourceDate = sourceFile.date else {
             #if DEBUG
-            LogManager.debug("isSameFile – Missing source metadata", category: "FileProcessor", metadata: ["sourcePath": sourceFile.sourcePath])
+            logManager.debug("isSameFile – Missing source metadata", category: "FileProcessor", metadata: ["sourcePath": sourceFile.sourcePath])
             #endif
             return false
         }
@@ -199,11 +201,11 @@ actor FileProcessorService {
             // 1. Size check
             guard sourceSize == destSize else {
                 #if DEBUG
-                LogManager.debug("Sizes differ → different file", category: "FileProcessor", metadata: [
-                    "debugPrefix": debugPrefix,
-                    "sourceSize": "\(sourceSize)",
-                    "destSize": "\(destSize)"
-                ])
+                            logManager.debug("Sizes differ → different file", category: "FileProcessor", metadata: [
+                "debugPrefix": debugPrefix,
+                "sourceSize": "\(sourceSize)",
+                "destSize": "\(destSize)"
+            ])
                 #endif
                 return false
             }
@@ -211,7 +213,7 @@ actor FileProcessorService {
             let namesMatch = destinationURL.lastPathComponent == URL(fileURLWithPath: sourceFile.sourcePath).lastPathComponent
             if namesMatch {
                 #if DEBUG
-                LogManager.debug("Filenames match and sizes match → same file", category: "FileProcessor", metadata: ["debugPrefix": debugPrefix])
+                logManager.debug("Filenames match and sizes match → same file", category: "FileProcessor", metadata: ["debugPrefix": debugPrefix])
                 #endif
                 return true
             }
@@ -220,7 +222,7 @@ actor FileProcessorService {
             let datesClose = abs(sourceDate.timeIntervalSince(destDate)) < 60
             if datesClose {
                 #if DEBUG
-                LogManager.debug("Dates within ±60 s → same file", category: "FileProcessor", metadata: [
+                logManager.debug("Dates within ±60 s → same file", category: "FileProcessor", metadata: [
                     "debugPrefix": debugPrefix,
                     "sourceDate": "\(sourceDate)",
                     "destDate": "\(destDate)"
@@ -233,7 +235,7 @@ actor FileProcessorService {
             guard let srcData = try? Data(contentsOf: URL(fileURLWithPath: sourceFile.sourcePath)),
                   let destData = try? Data(contentsOf: destinationURL) else {
                 #if DEBUG
-                LogManager.debug("Failed to read file data for checksum → assuming different file", category: "FileProcessor", metadata: ["debugPrefix": debugPrefix])
+                logManager.debug("Failed to read file data for checksum → assuming different file", category: "FileProcessor", metadata: ["debugPrefix": debugPrefix])
                 #endif
                 return false
             }
@@ -243,7 +245,7 @@ actor FileProcessorService {
 
             let isSame = srcDigest == destDigest
 #if DEBUG
-            LogManager.debug("Checksum compare", category: "FileProcessor", metadata: [
+            logManager.debug("Checksum compare", category: "FileProcessor", metadata: [
                 "debugPrefix": debugPrefix,
                 "result": isSame ? "same" : "different"
             ])
@@ -251,10 +253,10 @@ actor FileProcessorService {
             return isSame
         } catch {
 #if DEBUG
-            LogManager.debug("File attribute lookup failed → assuming different file", category: "FileProcessor", metadata: [
-                "debugPrefix": debugPrefix,
-                "error": error.localizedDescription
-            ])
+                    logManager.debug("File attribute lookup failed → assuming different file", category: "FileProcessor", metadata: [
+            "debugPrefix": debugPrefix,
+            "error": error.localizedDescription
+        ])
 #endif
             return false
         }
@@ -281,7 +283,7 @@ actor FileProcessorService {
                     
                     if let dateTimeOriginal = exifMetadata?["DateTimeOriginal"] as? String ?? tiffMetadata?["DateTime"] as? String {
                         #if DEBUG
-                        LogManager.debug("Exif dateString", category: "FileProcessor", metadata: ["dateTimeOriginal": dateTimeOriginal])
+                        logManager.debug("Exif dateString", category: "FileProcessor", metadata: ["dateTimeOriginal": dateTimeOriginal])
                         #endif
                         let dateFormatter = DateFormatter()
                         dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
@@ -394,7 +396,7 @@ private func calculateDestinationPath(
     var newFile = file
     newFile.sidecarPaths = file.sidecarPaths // Explicitly copy sidecarPaths
     
-    LogManager.debug("Calculating destination path", category: "FileProcessor", metadata: [
+    logManager.debug("Calculating destination path", category: "FileProcessor", metadata: [
         "fileName": file.sourceName,
         "sidecars": file.sidecarPaths.joined(separator: ", ")
     ])

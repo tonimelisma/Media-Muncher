@@ -143,6 +143,13 @@ The specific file extensions for each category in **ST-5** are:
 - Side-car thumbnails (.THM) are automatically removed when their parent video is deleted post-import.
 - Added three unit-test suites covering the above; overall coverage surpasses 90 %.
 
+### 2025-07-16 – Actor-based Logging Refactor
+* Replaced GCD queue in `LogManager` with **actor-isolated implementation** for full Swift Concurrency safety.
+* Log file name now includes the PID for guaranteed uniqueness per process: `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log`.
+* On initialization the logger automatically deletes log files older than **30 days**, keeping the log directory bounded without rotation logic.
+* All services receive the logger via `Logging` protocol with a default parameter (`logManager: Logging = LogManager()`), eliminating the old singleton.
+* Unit-tests updated: each test host process gets its own log file; concurrency tests now await the logger actor for deterministic results.
+
 ### 2025-07-14 – Recalculation Flow Re-architecture
 - **Internal reliability improvement**: Re-architected destination change recalculation system using Command Pattern with explicit state machine
 - Fixed unpredictable behavior when users rapidly changed destination folders in Settings

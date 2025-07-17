@@ -60,8 +60,10 @@ class AppState: ObservableObject {
     private let settingsStore: SettingsStore
     private let importService: ImportService
     private let recalculationManager: RecalculationManager
+    private let logManager: Logging
 
     init(
+        logManager: Logging,
         volumeManager: VolumeManager,
         mediaScanner: FileProcessorService,
         settingsStore: SettingsStore,
@@ -69,17 +71,21 @@ class AppState: ObservableObject {
         recalculationManager: RecalculationManager
     ) {
         
+        self.logManager = logManager
         self.volumeManager = volumeManager
         self.fileProcessorService = mediaScanner
         self.settingsStore = settingsStore
         self.importService = importService
         self.recalculationManager = recalculationManager
         
+        // Example of using the injected logger
+        self.logManager.info("AppState initialized")
+        
         // Subscribe to volume changes
         volumeManager.$volumes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newVolumes in
-                LogManager.debug("Volume changes received", category: "AppState", metadata: ["volumes": "\(newVolumes.map { $0.name })"])
+                self?.logManager.debug("Volume changes received", category: "AppState", metadata: ["volumes": "\(newVolumes.map { $0.name })"])
                 self?.volumes = newVolumes
                 if self?.selectedVolume == nil || !newVolumes.contains(where: { $0.devicePath == self?.selectedVolume }) {
                     self?.ensureVolumeSelection()
@@ -91,7 +97,7 @@ class AppState: ObservableObject {
         self.$selectedVolume
             .receive(on: DispatchQueue.main)
             .sink { [weak self] devicePath in
-                LogManager.debug("selectedVolume changed", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
+                self?.logManager.debug("selectedVolume changed", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
                 self?.startScan(for: devicePath)
             }
             .store(in: &cancellables)
@@ -140,20 +146,20 @@ class AppState: ObservableObject {
 
         // Initial state
         self.volumes = volumeManager.volumes
-        LogManager.debug("Initial volumes", category: "AppState", metadata: ["volumes": "\(self.volumes.map { $0.name })"])
+        self.logManager.debug("Initial volumes", category: "AppState", metadata: ["volumes": "\(self.volumes.map { $0.name })"])
         ensureVolumeSelection()
     }
     
     func ensureVolumeSelection() {
-        LogManager.debug("ensureVolumeSelection called", category: "AppState")
+        self.logManager.debug("ensureVolumeSelection called", category: "AppState")
         let currentSelectionIsValid = volumes.contains { $0.devicePath == selectedVolume }
         
         if !currentSelectionIsValid {
             if let firstVolume = self.volumes.first {
-                LogManager.debug("Selecting first volume", category: "AppState", metadata: ["name": firstVolume.name, "devicePath": firstVolume.devicePath])
+                self.logManager.debug("Selecting first volume", category: "AppState", metadata: ["name": firstVolume.name, "devicePath": firstVolume.devicePath])
                 self.selectedVolume = firstVolume.devicePath
             } else {
-                LogManager.debug("No volumes available to select, clearing selection", category: "AppState")
+                self.logManager.debug("No volumes available to select, clearing selection", category: "AppState")
                 self.selectedVolume = nil
             }
         } else if selectedVolume == nil, let firstVolume = volumes.first {
@@ -163,7 +169,7 @@ class AppState: ObservableObject {
     }
 
     private func startScan(for devicePath: String?) {
-        LogManager.debug("startScan called", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
+        self.logManager.debug("startScan called", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
         
         scanTask?.cancel()
         
@@ -173,41 +179,41 @@ class AppState: ObservableObject {
         self.error = nil
 
         guard let devicePath = devicePath else { 
-            LogManager.debug("No device path provided, skipping scan", category: "AppState")
+            self.logManager.debug("No device path provided, skipping scan", category: "AppState")
             return 
         }
         
         let url = URL(fileURLWithPath: devicePath, isDirectory: true)
-        LogManager.debug("Starting scan for URL", category: "AppState", metadata: ["path": url.path])
+        self.logManager.debug("Starting scan for URL", category: "AppState", metadata: ["path": url.path])
         
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
-            LogManager.debug("Scan task started", category: "AppState")
+            self.logManager.debug("Scan task started", category: "AppState")
             let processedFiles = await fileProcessorService.processFiles(
                 from: url,
                 destinationURL: settingsStore.destinationURL,
                 settings: settingsStore
             )
-            LogManager.debug("Scan task completed", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
+            self.logManager.debug("Scan task completed", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
 
             await MainActor.run {
                 self.files = processedFiles
                 self.filesScanned = processedFiles.count
                 self.state = .idle
-                LogManager.debug("Updated UI", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
+                self.logManager.debug("Updated UI", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
             }
         }
     }
     
     func cancelScan() {
-        LogManager.debug("cancelScan called", category: "AppState")
+        self.logManager.debug("cancelScan called", category: "AppState")
         scanTask?.cancel()
         self.state = .idle
     }
     
     func cancelImport() {
-        LogManager.debug("cancelImport called", category: "AppState")
+        self.logManager.debug("cancelImport called", category: "AppState")
         importTask?.cancel()
     }
     

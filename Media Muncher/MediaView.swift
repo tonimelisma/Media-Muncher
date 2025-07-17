@@ -29,20 +29,16 @@ struct MediaView: View {
             }
         }
         .onAppear {
-            LogManager.debug("onAppear", category: "MediaView", metadata: [
-                "selectedVolume": appState.selectedVolume ?? "nil",
-                "filesCount": "\(appState.files.count)",
-                "state": "\(appState.state)"
-            ])
+            // UI debug logging removed as part of LogManager dependency injection refactoring
         }
         .onChange(of: appState.selectedVolume) { newValue in
-            LogManager.debug("selectedVolume changed", category: "MediaView", metadata: ["newValue": newValue ?? "nil"])
+            // UI debug logging removed as part of LogManager dependency injection refactoring
         }
         .onChange(of: appState.files.count) { newValue in
-            LogManager.debug("files.count changed", category: "MediaView", metadata: ["newValue": "\(newValue)"])
+            // UI debug logging removed as part of LogManager dependency injection refactoring
         }
         .onChange(of: appState.state) { newValue in
-            LogManager.debug("state changed", category: "MediaView", metadata: ["newValue": "\(newValue)"])
+            // UI debug logging removed as part of LogManager dependency injection refactoring
         }
     }
 }
