@@ -39,7 +39,7 @@ class VolumeManager: ObservableObject {
                 self?.logManager.error("Couldn't get volume URL from mounting notification", category: "VolumeManager", metadata: ["userInfo": "\(notification.userInfo ?? [:])"])
                 return
             }
-            print("[VolumeManager] DEBUG: Mounted volume URL: \(volumeURL.path)")
+            self?.logManager.debug("Mounted volume URL", category: "VolumeManager", metadata: ["path": volumeURL.path])
 
             guard
                 let resources = try? volumeURL.resourceValues(forKeys: [
@@ -102,12 +102,12 @@ class VolumeManager: ObservableObject {
 
         self.observers.append(mountObserver)
         self.observers.append(unmountObserver)
-        print("[VolumeManager] DEBUG: Volume observers set up successfully")
+        logManager.debug("Volume observers set up successfully", category: "VolumeManager")
     }
 
     /// Removes volume observers.
     private func removeVolumeObservers() {
-        print("[VolumeManager] DEBUG: Removing volume observers")
+        logManager.debug("Removing volume observers", category: "VolumeManager")
         self.observers.forEach {
             workspace.notificationCenter.removeObserver($0)
         }
@@ -169,7 +169,7 @@ class VolumeManager: ObservableObject {
             }
         }
         
-        print("[VolumeManager] DEBUG: loadVolumes returning \(volumes.count) removable volumes")
+        logManager.debug("loadVolumes completed", category: "VolumeManager", metadata: ["count": "\(volumes.count)"])
         return volumes
     }
     
@@ -177,13 +177,13 @@ class VolumeManager: ObservableObject {
     /// - Parameter volume: The `Volume` to eject.
     /// - Throws: An error if the ejection fails.
     func ejectVolume(_ volume: Volume) {
-        print("[VolumeManager] DEBUG: Attempting to eject volume: \(volume.name) at \(volume.devicePath)")
+        logManager.debug("Attempting to eject volume", category: "VolumeManager", metadata: ["name": volume.name, "path": volume.devicePath])
         let url = URL(fileURLWithPath: volume.devicePath)
         do {
             try NSWorkspace.shared.unmountAndEjectDevice(at: url)
-            print("[VolumeManager] DEBUG: Successfully ejected volume: \(volume.name)")
+            logManager.debug("Successfully ejected volume", category: "VolumeManager", metadata: ["name": volume.name])
         } catch {
-            print("[VolumeManager] ERROR: Error ejecting volume \(volume.devicePath): \(error)")
+            logManager.error("Error ejecting volume", category: "VolumeManager", metadata: ["path": volume.devicePath, "error": error.localizedDescription])
         }
     }
 } 

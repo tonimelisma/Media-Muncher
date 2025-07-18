@@ -1,5 +1,11 @@
 # Changelog
 
+## 2025-07-18 - Logging Standardization
+- **Consistent structured logging**: Replaced all print statements in VolumeManager.swift with structured LogManager calls for better operational visibility
+- **Improved log categorization**: All volume-related operations now use consistent "VolumeManager" category with structured metadata
+- **Enhanced debugging**: Volume mount/unmount, enumeration, and eject operations now generate properly formatted JSON log entries
+- **Code quality improvement**: Eliminated inconsistent console output in favor of structured logging infrastructure
+
 ## 2025-07-17 - Test Fixes & Stability
 - **Fixed failing test**: Corrected the logic in `testImport_readOnlySource_deletionFailsButImportSucceeds` to check the *last* emitted value from the async stream, resolving a race condition where the test would check the file's state before the import and deletion-failure handling had completed.
 - **Improved Test Reliability**: The test now correctly validates that the import succeeds and a non-fatal error is recorded when the source is read-only.
