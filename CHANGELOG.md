@@ -1,5 +1,9 @@
 # Changelog
 
+## 2025-07-17 - Test Fixes & Stability
+- **Fixed failing test**: Corrected the logic in `testImport_readOnlySource_deletionFailsButImportSucceeds` to check the *last* emitted value from the async stream, resolving a race condition where the test would check the file's state before the import and deletion-failure handling had completed.
+- **Improved Test Reliability**: The test now correctly validates that the import succeeds and a non-fatal error is recorded when the source is read-only.
+
 ## 2025-07-15 – LogManager Improvements
 - **Filename format fix**: LogManager now uses standardized ISO 8601-like format (`YYYY-MM-DD_HH-mm-ss`) for log filenames, replacing problematic locale-dependent formats
 - **Expanded test coverage**: Added comprehensive LogManager test suite covering all log levels, metadata handling, JSON format validation, concurrent logging, and edge cases (10/11 tests passing)

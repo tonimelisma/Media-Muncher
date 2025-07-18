@@ -19,3 +19,4 @@ build/
 *.log
 xcresult_snippet.txt
 test_debug.log
+logs/

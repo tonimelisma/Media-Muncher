@@ -298,3 +298,6 @@ graph TD;
   * Added comprehensive test suite (`LogManagerTests`) with 100% coverage
   * Updated debugging workflow to use `jq` for JSON log filtering and analysis
   * Improved developer experience with real-time log following and structured querying capabilities
+
+## 21. Recent Maintenance (2025-07-17)
+* **Test Reliability Fix**: Corrected a flaky integration test (`testImport_readOnlySource_deletionFailsButImportSucceeds`) that was failing due to a race condition. The test was asserting on the first result from an `AsyncThrowingStream` before all processing was complete. The fix involves consuming the entire stream and asserting on the final state of the file, making the test deterministic and reliable.

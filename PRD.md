@@ -112,7 +112,7 @@ The specific file extensions for each category in **ST-5** are:
 | ID | User Story | Status |
 |----|------------|--------|
 | TQ-1 | Core logic has automated tests with ≥70 % coverage. | **Finished** |
-| TQ-2 | Critical UI flows have UI tests. | **Started** |
+| TQ-2 | Critical UI flows have UI tests. | **Finished** |
 
 ### EPIC 10 – Performance & Scalability  
 | ID | User Story | Status |

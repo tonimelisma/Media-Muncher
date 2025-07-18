@@ -108,9 +108,15 @@ class LogManagerTests: XCTestCase {
             XCTestExpectation(description: "Error log completes")
         ]
         
-        let debugMessage = "Debug message"
-        let infoMessage = "Info message"
-        let errorMessage = "Error message"
+        let debugMessage = "Debug message \(UUID())"
+        let infoMessage = "Info message \(UUID())"
+        let errorMessage = "Error message \(UUID())"
+        
+        // Capture baseline line count before new writes
+        let baselineCount = logManager.getLogFileContents()?
+            .components(separatedBy: "\n")
+            .filter { !$0.isEmpty }
+            .count ?? 0
         
         // When
         logManager.debug(debugMessage, category: "Test") {
@@ -130,7 +136,7 @@ class LogManagerTests: XCTestCase {
         XCTAssertNotNil(logContent)
 
         let lines = logContent?.components(separatedBy: "\n").filter { !$0.isEmpty } ?? []
-        XCTAssertEqual(lines.count, 3, "Should have three log entries")
+        XCTAssertEqual(lines.count - baselineCount, 3, "Should have three new log entries")
 
         XCTAssertTrue(logContent?.contains(debugMessage) ?? false)
         XCTAssertTrue(logContent?.contains(infoMessage) ?? false)
