@@ -186,7 +186,6 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
         let finalDiagnostics = combinedDiagnostics + "\n" + resultsInfo
         try finalDiagnostics.data(using: .utf8)?.write(to: diagnosticFile)
         
-        print("Diagnostic file written to: \(diagnosticFile.path)")
         
         // Basic assertions
         XCTAssertTrue(fileManager.fileExists(atPath: diagnosticFile.path), "Should have created diagnostic file")
