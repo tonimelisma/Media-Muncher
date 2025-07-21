@@ -39,12 +39,12 @@ struct ContentView: View {
 #Preview {
     let logManager = LogManager() // Use real instance for previews
     let volumeManager = VolumeManager(logManager: logManager)
-    let mediaScanner = FileProcessorService(logManager: logManager) // Keep this line to initialize AppState
+    let fileProcessorService = FileProcessorService(logManager: logManager) // Keep this line to initialize AppState
     let settingsStore = SettingsStore(logManager: logManager)
     let importService = ImportService(logManager: logManager) // Keep this line to initialize AppState
     let recalculationManager = RecalculationManager( // Keep this line to initialize AppState
         logManager: logManager,
-        fileProcessorService: mediaScanner,
+        fileProcessorService: fileProcessorService,
         settingsStore: settingsStore
     )
 
@@ -52,7 +52,7 @@ struct ContentView: View {
         .environmentObject(AppState(
             logManager: logManager,
             volumeManager: volumeManager,
-            mediaScanner: mediaScanner,
+            fileProcessorService: fileProcessorService,
             settingsStore: settingsStore,
             importService: importService,
             recalculationManager: recalculationManager

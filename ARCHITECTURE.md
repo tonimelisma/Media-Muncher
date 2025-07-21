@@ -41,9 +41,9 @@
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. Manages the UI state machine. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
 | **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread, maintains an **in-memory thumbnail cache (2,000 entry limit)**, and detects pre-existing files in the destination. | `FileProcessorService` |
-| **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. Provides direct file system access without security-scoped bookmarks. | `SettingsStore` |
+| **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. Uses security-scoped resources for folder access when needed. | `SettingsStore` |
 | **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
-| **Services/ImportService.swift**| Copies files to the destination with direct file system access. Delegates all path calculation to `DestinationPathBuilder`. | `ImportService` |
+| **Services/ImportService.swift**| Copies files to the destination using security-scoped resource access. Delegates all path calculation to `DestinationPathBuilder`. Handles sidecar files (THM, XMP, LRC) automatically. | `ImportService` |
 | **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
 | **LogEntry.swift** | JSON-encodable log entry model | `LogEntry`, `LogLevel` |
 | **Services/LogManager.swift** | Custom logging system with file persistence and rotation | `LogManager` |
@@ -83,8 +83,8 @@
 |--------|----------------|-------|
 | `VolumeManager` | Discover, eject & monitor volumes, expose `Publisher<[Volume]>` | Wrap `NSWorkspace` & external devices (future PTP/MTP). |
 | `FileProcessorService` | **Phase 1:** fast filesystem walk that emits basic `File` structs (path, name, size) immediately; **Phase 2:** schedules asynchronous enrichment tasks that add heavy metadata (EXIF, thumbnails) without blocking the UI | Move initial `enumerateFiles()` here and spin-off a `MetadataEnricher` actor (or background `Task`) for phase 2. |
-| `ImportService` | Copy files, handle duplicates, **remove thumbnail side-cars (".THM"/".thm") after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Handles file naming in a two-phase process: first it generates ideal destination paths based on templates; second it resolves any name collisions within that list before any copy operations begin.** |
-| `SettingsStore` | Type-safe wrapper around `UserDefaults` with direct file system access | Provides Combine `@Published` properties. No longer uses security bookmarks. |
+| `ImportService` | Copy files, handle duplicates, **remove sidecar files (THM, XMP, LRC) after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Uses simple numerical suffix collision resolution (_1, _2, etc.) to ensure unique destination paths.** |
+| `SettingsStore` | Type-safe wrapper around `UserDefaults` with security-scoped resource access when needed | Provides Combine `@Published` properties for all user settings including RAW file filtering. |
 | `RecalculationManager` | Dedicated state machine for destination change recalculations | Handles file path updates when destination changes, with proper error handling and task cancellation. |
 | `LogManager` | Custom JSON-based logging system with persistent file storage | Centralized logging with category-based organization, rotating log files, and structured metadata for debugging and monitoring. |
 | `AppState` | Pure composition root that orchestrates above services | Slimmed down, no heavy logic. |
@@ -103,19 +103,20 @@ No service depends back on SwiftUI, keeping layers clean.
 ## 6. Error Handling Strategy
 * Domain-specific `enum AppError : Error` with associated values for context.
 * Services throw typed errors; `AppState` converts them into user-facing banners or alerts.
-* Never crash on disk-I/O error – report & allow the user to retry.
+* Never crash on disk-I/O error – report errors to user via UI.
 
 ---
 ## 7. Persistence & Idempotency
 * Destination file uniqueness is guaranteed by a combination of capture-date and file-size. This logic is centralized in `DestinationPathBuilder` to ensure consistency.
 * The **filesystem is the single source of truth**. Import operations always recompute the expected destination path; if a file already exists it is skipped.
-* User settings are stored in `UserDefaults` (some as security-scoped bookmarks).
+* User settings are stored in `UserDefaults` with standard file paths.
 
 ---
-## 8. Security & Sandboxing
-* Entitlements: `com.apple.security.device.usb`, `com.apple.security.files.user-selected.read-write`, `com.apple.security.files.removable`.
-* Destination folder persisted as a security-scoped bookmark so user grants access once.
-* No plain file paths are stored outside the sandbox container.
+## 8. Security & Permissions
+* **Application is not sandboxed** but uses security-scoped resources defensively for removable volumes and user-selected folders.
+* SecurityScopedURLAccessWrapper provides fallback access when standard file system permissions are insufficient.
+* Write-access validation is performed before setting destination folders.
+* Destination folder paths are stored as standard file paths, with security-scoped resource access acquired as needed.
 
 ---
 ## 9. Testing Strategy
@@ -253,58 +254,13 @@ graph TD;
 ```
 
 ---
-## 14. Recent Maintenance (2025-06-25)
-* **ALT-1** – Introduced `DestinationPathBuilder` helper; `ImportService` & `FileProcessorService` now delegate path logic → single source of truth.
-* Purged all Automation/LaunchAgent code (Epic-7 reset).
-* Added LRU thumbnail cache (2 000 entries) into `FileProcessorService` actor.
-* Renamed `MediaScanner` to `FileProcessorService` for clarity.
+## 14. Change History
 
-## 15. Recent Maintenance (2025-06-27)
-* Added four new pure-Swift **unit-test suites** covering `DestinationPathBuilder`, `FileProcessorService`, `ImportService`, and filename-collision edge cases. This reverses the accidental deletion of unit tests and restores a solid safety-net for future refactors.
-* Fixed EXIF time-zone parsing bug by forcing `DateFormatter` to UTC inside `FileProcessorService`.
-* Introduced `BUGS.md` to keep a living list of test-proven regressions. Initial entries track collision-handling, pre-existing detection, thumbnail enumeration, and a failing integration path-generation test.
+For detailed maintenance history and version changes, see [CHANGELOG.md](CHANGELOG.md).
 
-## 16. Recent Maintenance (2025-06-26)
-* Enabled read-only volume support: `ImportService` continues imports when originals cannot be deleted. The failure is surfaced via `.importSucceededWithDeletionErrors` and shown by the BottomBar `ErrorView`.
-* Fixed filename-collision and pre-existing detection logic in `FileProcessorService`.
-* All automated tests now pass; collision/pre-existing tests moved from **Bug** to **Finished**.
-
-## 17. Recent Maintenance (2025-06-28)
-* Added deterministic sorting in `FileProcessorService` to make collision-resolution suffixes reproducible and fixed failing unit test.
-* Introduced `AppStateWorkflowTests` to cover scan cancellation and auto-eject paths.
-
-## 18. Recent Maintenance (2025-06-29)
-* **Duplicate-in-source detection** added in `FileProcessorService` – two identical source files are now marked `.duplicate_in_source`, preventing double-copy.
-* Import pipeline now **preserves modification & creation dates** on the destination copy.
-* THM **side-car thumbnails are deleted** together with their parent video when *Delete originals* is enabled.
-* Added new fast **unit-test suites**:
-  * `FileProcessorDuplicateTests` (scenarios 3-5 from the test matrix)
-  * `FileProcessorEnumerationTests` (thumbnail skipping & mtime fallback)
-  * `ImportServiceAdditionalTests` (mtime preservation, read-only destination, side-car deletion)
-* Core-logic test coverage is now **≈92 %** (TQ-1 reached).
-
-## 19. Recent Maintenance (2025-07-14)
-* **Recalculation flow re-architecture** - Implemented Command Pattern with explicit state machine to fix reliability issues:
-  * Removed all security-scoped bookmark logic from `SettingsStore` (app no longer sandboxed)
-  * Fixed "double assignment" bug causing unpredictable Combine publisher behavior in `destinationURL`
-  * Created dedicated `RecalculationManager` service as state machine for destination change handling
-  * Refactored `AppState` to delegate recalculation logic to `RecalculationManager`, improving separation of concerns
-  * Replaced brittle `.dropFirst()` workaround with robust publisher chain
-  * Updated all tests to use deterministic `XCTestExpectation` patterns instead of polling with `Task.sleep()`
-  * Added `recalculationFailed` error type with helper properties for better error identification
-* **DestinationFolderPicker** simplified by removing `lastCustomURL` functionality
-* All test constructors updated to include new `RecalculationManager` dependency
-* Project builds successfully with improved reliability and maintainability
-
-## 20. Recent Maintenance (2025-01-15)
-* **Custom JSON Logging System Implementation** - Completed EPIC 8 by replacing Apple's Unified Logging:
-  * Implemented `LogManager` singleton with JSON-based structured logging to persistent files
-  * Added `LogEntry` model with timestamp, level, category, message, and metadata fields
-  * Configured automatic log rotation at 10MB with 5-file retention in `~/Library/Logs/Media Muncher/`
-  * Replaced all `Logger.*` calls with `LogManager.*` calls across codebase while preserving business logic
-  * Added comprehensive test suite (`LogManagerTests`) with 100% coverage
-  * Updated debugging workflow to use `jq` for JSON log filtering and analysis
-  * Improved developer experience with real-time log following and structured querying capabilities
-
-## 21. Recent Maintenance (2025-07-17)
-* **Test Reliability Fix**: Corrected a flaky integration test (`testImport_readOnlySource_deletionFailsButImportSucceeds`) that was failing due to a race condition. The test was asserting on the first result from an `AsyncThrowingStream` before all processing was complete. The fix involves consuming the entire stream and asserting on the final state of the file, making the test deterministic and reliable.
+**Recent Key Changes:**
+* Added RAW file support as separate media type with dedicated filtering
+* Implemented comprehensive JSON logging system with structured metadata
+* Created RecalculationManager for reliable destination change handling
+* Enhanced sidecar file support (THM, XMP, LRC) with automatic cleanup
+* Replaced mediaScanner naming with consistent FileProcessorService references

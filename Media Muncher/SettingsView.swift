@@ -60,6 +60,7 @@ struct SettingsView: View {
                         Toggle("Images", isOn: $settingsStore.filterImages)
                         Toggle("Videos", isOn: $settingsStore.filterVideos)
                         Toggle("Audio", isOn: $settingsStore.filterAudio)
+                        Toggle("RAW", isOn: $settingsStore.filterRaw)
                     }
                 }
 
@@ -78,8 +79,5 @@ struct SettingsView: View {
         }
         .padding(.vertical, 24) // Slightly less vertical padding above and below
         .frame(width: 600) // Significantly increased width for more horizontal breathing room
-        .onAppear {
-            // UI debug logging removed as part of LogManager dependency injection refactoring
-        }
     }
 }

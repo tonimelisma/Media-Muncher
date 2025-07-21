@@ -65,7 +65,7 @@ class AppState: ObservableObject {
     init(
         logManager: Logging,
         volumeManager: VolumeManager,
-        mediaScanner: FileProcessorService,
+        fileProcessorService: FileProcessorService,
         settingsStore: SettingsStore,
         importService: ImportService,
         recalculationManager: RecalculationManager
@@ -73,7 +73,7 @@ class AppState: ObservableObject {
         
         self.logManager = logManager
         self.volumeManager = volumeManager
-        self.fileProcessorService = mediaScanner
+        self.fileProcessorService = fileProcessorService
         self.settingsStore = settingsStore
         self.importService = importService
         self.recalculationManager = recalculationManager

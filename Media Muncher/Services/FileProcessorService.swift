@@ -29,14 +29,16 @@ actor FileProcessorService {
             "destinationURL": destinationURL?.path ?? "nil",
             "filterImages": "\(settings.filterImages)",
             "filterVideos": "\(settings.filterVideos)",
-            "filterAudio": "\(settings.filterAudio)"
+            "filterAudio": "\(settings.filterAudio)",
+            "filterRaw": "\(settings.filterRaw)"
         ])
         
         let discoveredFilesUnsorted = fastEnumerate(
             at: sourceURL,
             filterImages: settings.filterImages,
             filterVideos: settings.filterVideos,
-            filterAudio: settings.filterAudio
+            filterAudio: settings.filterAudio,
+            filterRaw: settings.filterRaw
         )
         
         logManager.debug("fastEnumerate found files", category: "FileProcessor", metadata: ["count": "\(discoveredFilesUnsorted.count)"])
@@ -64,7 +66,8 @@ actor FileProcessorService {
         at rootURL: URL,
         filterImages: Bool,
         filterVideos: Bool,
-        filterAudio: Bool
+        filterAudio: Bool,
+        filterRaw: Bool
     ) -> [File] {
         let sidecarExtensions: Set<String> = ["thm", "xmp", "lrc"]
         var allFileURLs: [URL] = []
@@ -107,6 +110,7 @@ actor FileProcessorService {
             case .image where !filterImages: shouldInclude = false
             case .video where !filterVideos: shouldInclude = false
             case .audio where !filterAudio: shouldInclude = false
+            case .raw where !filterRaw: shouldInclude = false
             default: break
             }
 

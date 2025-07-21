@@ -48,7 +48,7 @@ final class AppStateIntegrationTests: XCTestCase {
         appState = AppState(
             logManager: logManager,
             volumeManager: volumeManager,
-            mediaScanner: fileProcessorService,
+            fileProcessorService: fileProcessorService,
             settingsStore: settingsStore,
             importService: importService,
             recalculationManager: recalculationManager

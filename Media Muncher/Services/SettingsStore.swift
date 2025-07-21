@@ -47,6 +47,13 @@ class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var filterRaw: Bool {
+        didSet {
+            logManager.debug("filterRaw changed", category: "SettingsStore", metadata: ["value": "\(filterRaw)"])
+            userDefaults.set(filterRaw, forKey: "filterRaw")
+        }
+    }
+
     @Published var settingAutoEject: Bool {
         didSet {
             logManager.debug("settingAutoEject changed", category: "SettingsStore", metadata: ["value": "\(settingAutoEject)"])
@@ -72,20 +79,11 @@ class SettingsStore: ObservableObject {
         self.renameByDate = userDefaults.bool(forKey: "renameByDate")
         self.settingAutoEject = userDefaults.bool(forKey: "settingAutoEject")
         
-        // Automation feature removed – auto-launch toggle deprecated.
-
         // Default to true if no value is set
         self.filterImages = userDefaults.object(forKey: "filterImages") as? Bool ?? true
         self.filterVideos = userDefaults.object(forKey: "filterVideos") as? Bool ?? true
         self.filterAudio = userDefaults.object(forKey: "filterAudio") as? Bool ?? true
-
-        // Remove obsolete automation keys (version <0.3) - only for standard UserDefaults
-        if userDefaults == UserDefaults.standard {
-            userDefaults.removeObject(forKey: "autoLaunchEnabled")
-            userDefaults.removeObject(forKey: "volumeAutomationSettings")
-            userDefaults.removeObject(forKey: "destinationBookmarkData")
-            userDefaults.removeObject(forKey: "lastCustomBookmarkData")
-        }
+        self.filterRaw = userDefaults.object(forKey: "filterRaw") as? Bool ?? true
 
         self.destinationURL = nil
         logManager.debug("Initial destinationURL set to nil", category: "SettingsStore")
@@ -163,5 +161,4 @@ class SettingsStore: ObservableObject {
     }
     
 
-    // Volume-specific automation logic removed.
 } 

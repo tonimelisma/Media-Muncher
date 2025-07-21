@@ -14,7 +14,7 @@ struct Media_MuncherApp: App {
     // Services
     private let logManager: Logging = LogManager() // Create the instance
     private let volumeManager: VolumeManager
-    private let mediaScanner: FileProcessorService
+    private let fileProcessorService: FileProcessorService
     private let settingsStore: SettingsStore
     private let importService: ImportService
     private let recalculationManager: RecalculationManager
@@ -22,21 +22,21 @@ struct Media_MuncherApp: App {
     init() {
         // Initialize services with LogManager dependency
         volumeManager = VolumeManager(logManager: logManager)
-        mediaScanner = FileProcessorService(logManager: logManager)
+        fileProcessorService = FileProcessorService(logManager: logManager)
         settingsStore = SettingsStore(logManager: logManager)
         importService = ImportService(logManager: logManager)
         
         // Initialize RecalculationManager with its dependencies
         recalculationManager = RecalculationManager(
             logManager: logManager,
-            fileProcessorService: mediaScanner,
+            fileProcessorService: fileProcessorService,
             settingsStore: settingsStore
         )
         
         let state = AppState(
             logManager: logManager,
             volumeManager: volumeManager,
-            mediaScanner: mediaScanner,
+            fileProcessorService: fileProcessorService,
             settingsStore: settingsStore,
             importService: importService,
             recalculationManager: recalculationManager

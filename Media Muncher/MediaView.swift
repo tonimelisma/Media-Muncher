@@ -28,17 +28,5 @@ struct MediaView: View {
                 }
             }
         }
-        .onAppear {
-            // UI debug logging removed as part of LogManager dependency injection refactoring
-        }
-        .onChange(of: appState.selectedVolume) { newValue in
-            // UI debug logging removed as part of LogManager dependency injection refactoring
-        }
-        .onChange(of: appState.files.count) { newValue in
-            // UI debug logging removed as part of LogManager dependency injection refactoring
-        }
-        .onChange(of: appState.state) { newValue in
-            // UI debug logging removed as part of LogManager dependency injection refactoring
-        }
     }
 }

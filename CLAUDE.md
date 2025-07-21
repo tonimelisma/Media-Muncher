@@ -89,13 +89,14 @@ Media Muncher is a macOS SwiftUI app that automatically imports media files from
 - **VolumeManager**: Discovers and monitors removable volumes using NSWorkspace
 - **FileProcessorService**: Actor that scans volumes for media files, generates thumbnails, and detects pre-existing files in destination
 - **ImportService**: Actor that handles file copying, collision resolution, and deletion of originals  
-- **SettingsStore**: Manages user preferences via UserDefaults and security-scoped bookmarks
+- **SettingsStore**: Manages user preferences via UserDefaults with security-scoped resource access
+- **RecalculationManager**: Dedicated state machine for handling destination path recalculations
 - **AppState**: Main orchestrator that coordinates services and exposes unified state to SwiftUI views
 
 ### Key Architectural Patterns
 - **Actor-based concurrency**: File processing and import operations run on background actors to keep UI responsive
 - **Combine publishers**: Services expose state changes via `@Published` properties
-- **Security-scoped bookmarks**: Destination folder access persisted across app launches
+- **Security-scoped resources**: Used defensively for removable volume and folder access
 - **Centralized path building**: `DestinationPathBuilder` handles all file naming logic to ensure consistency
 
 ### Data Flow
@@ -152,29 +153,30 @@ Media MuncherTests/
 1. **Path calculation**: DestinationPathBuilder generates ideal destination paths
 2. **Collision resolution**: Numerical suffixes added before any copying begins
 3. **File copying**: Preserves modification and creation timestamps
-4. **Sidecar handling**: THM thumbnails are copied and deleted with parent videos
+4. **Sidecar handling**: THM, XMP, LRC files are copied and deleted with parent media
 5. **Source cleanup**: Original files deleted only after successful copy (if enabled)
 
 ### Supported File Types
-- **Photos**: jpg, jpeg, png, heif, heic, tiff, raw formats (cr2, cr3, nef, etc.)
+- **Photos**: jpg, jpeg, png, heif, heic, tiff, and other image formats
 - **Videos**: mp4, mov, avi, mkv, professional formats (braw, r3d, ari)  
 - **Audio**: mp3, wav, aac
-- **Sidecars**: THM files automatically managed with parent videos
+- **RAW**: cr2, cr3, nef, arw, dng, and other RAW camera formats (separate filtering)
+- **Sidecars**: THM, XMP, LRC files automatically managed with parent media
 
 ### Settings and Preferences
-- Destination folder (security-scoped bookmark)
+- Destination folder with write-access validation
 - File organization: date-based subfolders (YYYY/MM/)
 - File renaming: capture date-based filenames
-- File type filters: enable/disable photos/videos/audio/raw
+- File type filters: enable/disable photos/videos/audio/RAW files separately
 - Delete originals after import
 - Auto-eject volume after import
 
 ## Important Constraints
 
 ### Security Model
-- App sandbox with removable drive entitlements
-- Security-scoped bookmarks for destination folder access
-- No plain file paths stored outside sandbox
+- Application is not sandboxed for simplified file access
+- Security-scoped resources used defensively for removable volumes and user folders
+- Direct file system access with write-permission validation
 
 ### Performance Requirements  
 - Import throughput ≥200 MB/s (hardware limited)
