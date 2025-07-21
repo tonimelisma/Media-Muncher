@@ -2,7 +2,7 @@ import XCTest
 @testable import Media_Muncher
 
 /// Focused additional tests that complement the existing comprehensive test suite
-final class FocusedAdditionalTests: XCTestCase {
+final class ModelValidationTests: XCTestCase {
     
     private var tempDir: URL!
     private let fm = FileManager.default

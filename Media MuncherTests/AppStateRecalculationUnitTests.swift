@@ -3,7 +3,7 @@ import Combine
 @testable import Media_Muncher
 
 @MainActor
-final class AppStateRecalculationSimpleTests: XCTestCase {
+final class AppStateRecalculationUnitTests: XCTestCase {
     var appState: AppState!
     var settingsStore: SettingsStore!
     var fileProcessorService: FileProcessorService!

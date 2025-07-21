@@ -1,7 +1,7 @@
 import XCTest
 @testable import Media_Muncher
 
-final class DestinationPathBuilderAdditionalTests: XCTestCase {
+final class DestinationPathBuilderExtensionTests: XCTestCase {
 
     private let referenceDate = Date(timeIntervalSince1970: 1735732800) // 2025-01-01 12:00:00 UTC
     private let rootURL = URL(fileURLWithPath: "/DestinationRoot")

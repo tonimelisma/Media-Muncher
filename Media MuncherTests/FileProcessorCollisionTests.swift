@@ -1,7 +1,7 @@
 import XCTest
 @testable import Media_Muncher
 
-final class FileProcessorServiceAdditionalTests: XCTestCase {
+final class FileProcessorCollisionTests: XCTestCase {
     var tempSrcDir: URL!
     var tempDestDir: URL!
     var fileManager: FileManager!

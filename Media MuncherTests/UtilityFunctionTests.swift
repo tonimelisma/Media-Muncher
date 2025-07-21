@@ -1,7 +1,7 @@
 import XCTest
 @testable import Media_Muncher
 
-final class HelperFunctionsTests: XCTestCase {
+final class UtilityFunctionTests: XCTestCase {
 
     // MARK: determineMediaType(for:)
     func testClassifierDetectsCommonExtensions() {
