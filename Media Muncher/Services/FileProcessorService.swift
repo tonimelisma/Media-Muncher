@@ -4,12 +4,34 @@ import AVFoundation
 import QuickLookThumbnailing
 import CryptoKit // For SHA-256 checksum fallback when date/name heuristics fail
 
+/// Actor responsible for file discovery, metadata extraction, and thumbnail generation.
+/// 
+/// ## Async Pattern: Actor-Based Concurrency
+/// This service is implemented as an actor to provide thread-safe access to file system operations
+/// and maintain an internal thumbnail cache without data races. All public methods are async
+/// and should be called from other actors or MainActor code.
+/// 
+/// ## Usage Pattern:
+/// ```swift
+/// // From MainActor (AppState)
+/// let files = await fileProcessorService.processFiles(from: volume, destinationURL: dest, settings: settings)
+/// 
+/// // For recalculation (sync path calculation + async file checks)
+/// let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(for: files, destinationURL: newDest, settings: settings)
+/// ```
+/// 
+/// ## Responsibilities:
+/// - File discovery and enumeration on volumes
+/// - EXIF metadata extraction and thumbnail generation
+/// - Destination path calculation and collision resolution
+/// - Pre-existing file detection using multiple heuristics
+/// - Sidecar file (THM, XMP, LRC) association
 actor FileProcessorService {
 
     // Thumbnail Cache
     private var thumbnailCache: [String: Image] = [:] // key = file path
     private var thumbnailOrder: [String] = []
-    private let thumbnailCacheLimit = 2000
+    private let thumbnailCacheLimit = Constants.thumbnailCacheLimit
     
     private let fileManager = FileManager.default
     private let logManager: Logging
@@ -184,7 +206,7 @@ actor FileProcessorService {
     /// The heuristic works in the following order (the first definitive check decides the outcome):
     /// 1. **Size check** – Early-out if the byte sizes differ.
     /// 2. **Filename match** – If the *filenames* (not full paths) are identical, we treat them as the same file even if timestamps differ (typical “overwrite” case).
-    /// 3. **Timestamp proximity** – If filenames differ, fall back to a 60-second timestamp window to account for FAT-type filesystems that round seconds.
+    /// 3. **Timestamp proximity** – If filenames differ, fall back to a configurable timestamp window to account for FAT-type filesystems that round seconds.
     /// 4. **SHA-256 checksum** – As a last-resort, calculate a digest of both files and compare. This is expensive but only reached when the previous
     ///    heuristics are inconclusive, and it greatly improves duplicate detection when files are renamed by the importer (e.g. date-based names).
     private func isSameFile(sourceFile: File, destinationURL: URL) async -> Bool {
@@ -222,11 +244,11 @@ actor FileProcessorService {
                 return true
             }
 
-            // 3. Timestamp proximity (within 60 seconds)
-            let datesClose = abs(sourceDate.timeIntervalSince(destDate)) < 60
+            // 3. Timestamp proximity (within configured threshold)
+            let datesClose = abs(sourceDate.timeIntervalSince(destDate)) < Constants.timestampProximityThreshold
             if datesClose {
                 #if DEBUG
-                logManager.debug("Dates within ±60 s → same file", category: "FileProcessor", metadata: [
+                logManager.debug("Dates within threshold → same file", category: "FileProcessor", metadata: [
                     "debugPrefix": debugPrefix,
                     "sourceDate": "\(sourceDate)",
                     "destDate": "\(destDate)"

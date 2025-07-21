@@ -94,10 +94,47 @@
 No service depends back on SwiftUI, keeping layers clean.
 
 ---
-## 5. Concurrency Model
-* **Actors** – `FileProcessorService` & `ImportService`
-* **MainActor** – Only UI changes run here; services stay off the main thread.
-* **Task Cancellation** – Long-running scans / imports call `Task.checkCancellation()` each iteration.
+## 5. Concurrency Model & Async Patterns
+
+Media Muncher follows a **"Hybrid with Clear Boundaries"** approach to async programming, leveraging different concurrency tools for their specific strengths.
+
+### Architectural Async Patterns
+
+| Layer | Pattern | Purpose | Usage |
+|-------|---------|---------|-------|
+| **UI Layer** | MainActor + Combine | SwiftUI reactive binding | `@MainActor` classes with `@Published` properties |
+| **Service Layer** | Actors + Async/Await | Thread-safe file operations | `actor` for I/O, simple `async func` interfaces |
+| **Cross-Layer** | Async/Await + Task | Background coordination | Service calls via `await`, `Task` for lifecycle |
+| **Progress Reporting** | AsyncThrowingStream | Real-time updates | Only for import progress with backpressure |
+| **State Management** | Combine Publishers | Reactive UI updates | Settings and configuration changes |
+
+### Pattern Guidelines
+
+#### When to Use Actors
+- ✅ File system operations (`FileProcessorService`, `ImportService`)
+- ✅ Shared mutable state that needs isolation
+- ✅ Operations that must be serialized
+- ❌ UI state management (use `@MainActor` instead)
+- ❌ Simple configuration holders
+
+#### When to Use AsyncThrowingStream
+- ✅ Progress reporting with backpressure (`ImportService.importFiles`)
+- ✅ Long-running operations that need incremental updates
+- ❌ Simple request-response patterns (use `async func`)
+- ❌ State synchronization (use Combine publishers)
+
+#### When to Use Combine Publishers
+- ✅ Reactive UI binding (`@Published` properties)
+- ✅ Settings and configuration changes
+- ✅ Volume mount/unmount events
+- ❌ File system operations (use async/await)
+- ❌ Complex data processing (use actors)
+
+### Concurrency Implementation Details
+* **Actors** – `FileProcessorService` & `ImportService` for file system isolation
+* **MainActor** – `AppState` & `RecalculationManager` for UI coordination
+* **Task Management** – Explicit cancellation support via stored `Task` references
+* **Publisher Chains** – Simplified with helper methods to improve readability
 
 ---
 ## 6. Error Handling Strategy

@@ -1,6 +1,33 @@
 import Foundation
 import SwiftUI
 
+/// Service responsible for user preference persistence and reactive state management.
+/// 
+/// ## Async Pattern: ObservableObject + Combine Publishers + Security-Scoped Resources
+/// This service uses ObservableObject with @Published properties for reactive UI updates.
+/// File system validation operations are synchronous but could be made async in the future.
+/// Uses security-scoped resources defensively for folder access validation.
+/// 
+/// ## Usage Pattern:
+/// ```swift
+/// // From SwiftUI Views (reactive binding)
+/// @EnvironmentObject var settingsStore: SettingsStore
+/// Toggle("Delete Originals", isOn: $settingsStore.settingDeleteOriginals)
+/// 
+/// // From AppState (reactive subscription)
+/// settingsStore.$destinationURL
+///     .receive(on: DispatchQueue.main)
+///     .sink { newDestination in
+///         // Trigger recalculation
+///     }
+///     .store(in: &cancellables)
+/// ```
+/// 
+/// ## Responsibilities:
+/// - Persist user preferences via UserDefaults
+/// - Validate destination folder write access
+/// - Provide reactive updates for setting changes
+/// - Handle security-scoped resource access for folder permissions
 class SettingsStore: ObservableObject {
     private let userDefaults: UserDefaults
     private let logManager: Logging

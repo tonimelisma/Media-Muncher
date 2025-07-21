@@ -102,47 +102,9 @@ class AppState: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Subscribe to destination changes
-        settingsStore.$destinationURL
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] newDestination in
-                guard let self = self else { return }
-                // Now, we tell the RecalculationManager to start the process.
-                self.recalculationManager.startRecalculation(
-                    for: self.files, // Pass AppState's current files
-                    newDestinationURL: newDestination,
-                    settings: self.settingsStore // Pass settings
-                )
-            }
-            .store(in: &cancellables)
-
-        // Subscribe to RecalculationManager's files updates
-        recalculationManager.$files
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] updatedFiles in
-                self?.files = updatedFiles // AppState's files reflect RecalculationManager's files
-            }
-            .store(in: &cancellables)
-
-        // Subscribe to RecalculationManager's recalculating status
-        recalculationManager.$isRecalculating
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.isRecalculating, on: self)
-            .store(in: &cancellables)
-
-        // Subscribe to RecalculationManager's errors
-        recalculationManager.$error
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] recalculationError in
-                // Explicitly map the recalculation error to our domain-specific error type.
-                // This ensures consistency in how recalculation errors are presented to the UI.
-                if let error = recalculationError {
-                    self?.error = .recalculationFailed(reason: error.localizedDescription)
-                } else if self?.error?.isRecalculationError == true { // Clear if it was a recalculation error
-                    self?.error = nil
-                }
-            }
-            .store(in: &cancellables)
+        // Subscribe to destination changes and setup recalculation chain
+        setupDestinationChangeHandling()
+        setupRecalculationManagerBindings()
 
         // Initial state
         self.volumes = volumeManager.volumes
@@ -289,5 +251,53 @@ class AppState: ObservableObject {
         }
     }
     
+    // MARK: - Publisher Chain Setup
+    
+    /// Configures subscription to destination URL changes to trigger recalculation.
+    private func setupDestinationChangeHandling() {
+        settingsStore.$destinationURL
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newDestination in
+                guard let self = self else { return }
+                self.recalculationManager.startRecalculation(
+                    for: self.files,
+                    newDestinationURL: newDestination,
+                    settings: self.settingsStore
+                )
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Configures reactive bindings between RecalculationManager and AppState UI properties.
+    private func setupRecalculationManagerBindings() {
+        // Sync files from RecalculationManager
+        recalculationManager.$files
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.files, on: self)
+            .store(in: &cancellables)
+        
+        // Sync recalculation status
+        recalculationManager.$isRecalculating
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isRecalculating, on: self)
+            .store(in: &cancellables)
+        
+        // Map recalculation errors to AppState error handling
+        recalculationManager.$error
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] recalculationError in
+                self?.handleRecalculationError(recalculationError)
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Handles recalculation errors with proper domain error mapping.
+    private func handleRecalculationError(_ recalculationError: AppError?) {
+        if let error = recalculationError {
+            self.error = .recalculationFailed(reason: error.localizedDescription)
+        } else if self.error?.isRecalculationError == true {
+            self.error = nil // Clear only recalculation errors
+        }
+    }
 
 }

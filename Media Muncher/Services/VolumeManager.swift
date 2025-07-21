@@ -1,6 +1,32 @@
 import Foundation
 import SwiftUI
 
+/// Service responsible for volume discovery, monitoring, and ejection.
+/// 
+/// ## Async Pattern: ObservableObject + Combine Publishers
+/// This service uses ObservableObject and @Published properties to provide reactive
+/// volume state updates to SwiftUI views. Volume operations are synchronous but
+/// monitoring happens via NSWorkspace notifications on the main queue.
+/// 
+/// ## Usage Pattern:
+/// ```swift
+/// // From SwiftUI Views
+/// @EnvironmentObject var volumeManager: VolumeManager
+/// 
+/// // From AppState (reactive subscription)
+/// volumeManager.$volumes
+///     .receive(on: DispatchQueue.main)
+///     .sink { newVolumes in
+///         // Handle volume changes
+///     }
+///     .store(in: &cancellables)
+/// ```
+/// 
+/// ## Responsibilities:
+/// - Discover removable volumes on system startup
+/// - Monitor volume mount/unmount events via NSWorkspace
+/// - Filter for removable volumes only (excludes internal drives)
+/// - Provide safe volume ejection functionality
 class VolumeManager: ObservableObject {
     @Published var volumes: [Volume] = []
     

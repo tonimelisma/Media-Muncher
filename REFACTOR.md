@@ -4,7 +4,7 @@ This document tracks architectural and performance debt that should be addressed
 
 ## Architectural Debt
 
-### 1. Mixed Async Patterns
+### 1. Mixed Async Patterns ✅ ADDRESSED
 
 **Issue**: Inconsistent concurrency patterns across the codebase.
 - Some files use `Task` directly (AppState.swift:191)
@@ -16,10 +16,11 @@ This document tracks architectural and performance debt that should be addressed
 - Potential for subtle race conditions
 - Inconsistent error handling patterns
 
-**Recommendation**: 
-- Standardize on async/await patterns
-- Use actors consistently for shared mutable state
-- Simplify Combine publisher chains where possible
+**Resolution Applied**: 
+- ✅ Documented "Hybrid with Clear Boundaries" pattern guidelines in ARCHITECTURE.md
+- ✅ Added comprehensive async pattern documentation to all services
+- ✅ Simplified complex publisher chains in AppState with helper methods
+- ✅ Established clear patterns for each architectural layer
 
 ### 2. Error Handling Inconsistency
 
@@ -39,7 +40,7 @@ This document tracks architectural and performance debt that should be addressed
 - Use Result types consistently
 - Ensure all errors bubble up to UI appropriately
 
-### 3. Hard-coded Constants
+### 3. Hard-coded Constants ✅ ADDRESSED
 
 **Issue**: Magic numbers scattered throughout codebase.
 - Thumbnail cache limit: 2000 (FileProcessorService.swift:12)
@@ -51,10 +52,11 @@ This document tracks architectural and performance debt that should be addressed
 - Unclear business logic
 - Hard to maintain consistency
 
-**Recommendation**:
-- Create Constants.swift file
-- Group related constants
-- Document why specific values were chosen
+**Resolution Applied**:
+- ✅ Created Constants.swift with all magic numbers consolidated
+- ✅ Added documentation explaining the choice of each value
+- ✅ Updated all references to use Constants instead of literals
+- ✅ Added helper functions for computed constants (grid layout)
 
 ### 4. Service Injection Pattern Incomplete
 
@@ -187,11 +189,11 @@ if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.fi
 ### High Priority (Address Next Sprint)
 1. Thumbnail cache LRU implementation
 2. Async file enumeration with cancellation
-3. Standardize error handling patterns
+3. ✅ ~~Standardize error handling patterns~~ → **Partially addressed via async pattern documentation**
 
 ### Medium Priority (Next Quarter)
 1. Service dependency injection
-2. Constants consolidation
+2. ✅ ~~Constants consolidation~~ → **COMPLETED**
 3. Large class decomposition
 
 ### Low Priority (Future)

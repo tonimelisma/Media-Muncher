@@ -16,9 +16,8 @@ struct MediaFilesGridView: View {
         guard width != lastGeometryWidth else { return }
         lastGeometryWidth = width
         
-        let columnWidth: CGFloat = 120
-        let columnsCount = Int((width - 20)/(columnWidth + 10))
-        columns = Array(repeating: GridItem(.fixed(columnWidth), spacing: 10, alignment: .topLeading), count: columnsCount)
+        let columnsCount = Constants.gridColumnsCount(for: width)
+        columns = Array(repeating: GridItem(.fixed(Constants.gridColumnWidth), spacing: Constants.gridColumnSpacing, alignment: .topLeading), count: columnsCount)
     }
 
     var body: some View {

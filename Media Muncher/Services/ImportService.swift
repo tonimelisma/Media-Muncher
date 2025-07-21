@@ -22,6 +22,29 @@ struct SecurityScopedURLAccessWrapper: SecurityScopedURLAccessWrapperProtocol {
     }
 }
 
+/// Actor responsible for file copying, verification, and deletion operations.
+/// 
+/// ## Async Pattern: Actor + AsyncThrowingStream
+/// This service is implemented as an actor for thread-safe file system operations
+/// and uses AsyncThrowingStream for real-time progress reporting during imports.
+/// 
+/// ## Usage Pattern:
+/// ```swift
+/// // From MainActor (AppState)
+/// let stream = await importService.importFiles(files: files, to: destinationURL, settings: settings)
+/// for try await updatedFile in stream {
+///     // Update UI with progress on MainActor
+///     await MainActor.run {
+///         self.files[index] = updatedFile
+///     }
+/// }
+/// ```
+/// 
+/// ## Stream Behavior:
+/// - Yields File objects with updated status (.copying, .verifying, .imported, .failed)
+/// - Supports cancellation via Task.checkCancellation()
+/// - Handles pre-existing files and source duplicates
+/// - Automatically manages sidecar files (THM, XMP, LRC)
 actor ImportService {
     enum ImportError: Error, LocalizedError, Equatable {
         case destinationNotReachable

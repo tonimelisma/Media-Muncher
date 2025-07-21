@@ -1,5 +1,14 @@
 # Changelog
 
+## 2025-07-21 - Async Pattern Standardization & Constants Consolidation
+- **Async architecture documentation**: Added comprehensive documentation for "Hybrid with Clear Boundaries" async pattern approach across all services
+- **Constants consolidation**: Created Constants.swift to centralize all magic numbers and configuration values with clear documentation
+- **Publisher chain simplification**: Refactored complex Combine publisher chains in AppState into focused helper methods for improved readability
+- **Service interface documentation**: Added detailed async pattern usage documentation to FileProcessorService, ImportService, VolumeManager, and SettingsStore
+- **Architecture guidelines**: Updated ARCHITECTURE.md with clear async pattern guidelines and when to use each concurrency tool
+- **Performance optimization**: Grid layout now uses centralized constants and helper functions for better maintainability
+- **Technical debt addressed**: Marked async pattern inconsistencies and hard-coded constants as resolved in REFACTOR.md
+
 ## 2025-07-18 - SwiftUI Performance Optimization
 - **Grid layout performance**: Optimized MediaFilesGridView to cache grid calculations and prevent redundant layout operations on every geometry change
 - **Reduced UI overhead**: Grid columns now only recalculate when window width actually changes, improving responsiveness during window resizing

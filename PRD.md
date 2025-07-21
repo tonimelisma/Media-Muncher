@@ -165,6 +165,13 @@ The specific file extensions for each category in **ST-5** are:
 - Improved debugging workflow with `jq`-based filtering and real-time log following
 - All logging infrastructure now supports structured querying and long-term log analysis
 
+### 2025-07-21 – Async Pattern Standardization & Architecture Documentation
+- **Technical debt resolution**: Addressed mixed async patterns architectural debt identified in REFACTOR.md
+- **Constants consolidation**: Created Constants.swift with centralized configuration values for performance tuning
+- **Documentation enhancement**: Added comprehensive async pattern guidelines and service interface documentation
+- **Code maintainability**: Simplified complex publisher chains and improved code organization
+- **Testing improvements**: Added ConstantsTests.swift to validate configuration values and grid layout calculations
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  
