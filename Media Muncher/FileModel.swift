@@ -53,7 +53,7 @@ enum MediaType: String {
 }
 
 enum FileStatus: String {
-    case waiting, pre_existing, copying, verifying, imported, failed, duplicate_in_source, deleted_as_duplicate
+    case waiting, pre_existing, copying, verifying, imported, failed, duplicate_in_source, deleted_as_duplicate, imported_with_deletion_error
 }
 
 struct File: Identifiable, Sendable {

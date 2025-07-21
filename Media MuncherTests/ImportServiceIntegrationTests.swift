@@ -100,12 +100,12 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
             return
         }
         
-        guard let lastResult = results.last(where: { $0.id == processedFiles.first?.id }) else {
+        guard let lastResult = results.last else {
             XCTFail("Last result should not be nil")
             return
         }
         
-        XCTAssertEqual(lastResult.status, .imported, "Expected status to be .imported, got \(lastResult.status)")
+        XCTAssertEqual(lastResult.status, .imported_with_deletion_error, "Expected status to be .imported_with_deletion_error, got \(lastResult.status)")
         XCTAssertTrue(fileManager.fileExists(atPath: originalSourcePath), "Original should remain on read-only volume")
         XCTAssertNotNil(lastResult.importError, "Should have an import error due to deletion failure")
     }
@@ -203,6 +203,7 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
         let sourceURL = try createTestVolume(withFiles: ["no_exif_image.heic"])
         let originalSourcePath = sourceURL.appendingPathComponent("no_exif_image.heic").path
         
+        
         // Verify initial state
         XCTAssertTrue(fileManager.fileExists(atPath: originalSourcePath), "Source file should exist initially")
         
@@ -215,6 +216,7 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
         let processedFile = processedFiles[0]
         XCTAssertEqual(processedFile.status, .waiting, "Processed file should be waiting")
         XCTAssertNotNil(processedFile.destPath, "Processed file should have destination path")
+        
         
         // Make read-only AFTER processing
         try fileManager.setAttributes([.posixPermissions: NSNumber(value: Int16(0o555))], ofItemAtPath: sourceURL.path)
@@ -229,12 +231,12 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
         let stream = await importService.importFiles(files: processedFiles, to: destinationURL, settings: settingsStore)
         let results: [File] = try await collectStreamResults(for: stream)
 
-        // Verify results
+        // Verify results - import service yields multiple intermediate results, we want the final one
         XCTAssertFalse(results.isEmpty, "Should have results")
-        XCTAssertEqual(results.count, 1, "Should have exactly one result")
         
-        let result = results[0]
-        XCTAssertEqual(result.status, .imported, "Should be imported, got: \(result.status)")
+        let result = results.last!
+        
+        XCTAssertEqual(result.status, .imported_with_deletion_error, "Should be imported_with_deletion_error, got: \(result.status)")
         XCTAssertNotNil(result.importError, "Should have import error about deletion failure")
         XCTAssertTrue(fileManager.fileExists(atPath: originalSourcePath), "Source should remain")
         

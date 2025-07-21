@@ -69,6 +69,18 @@ tail -n 500 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.timestamp > "'$(
 
 **Log Location:** `~/Library/Logs/Media Muncher/media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log` (one file per process, files older than 30 days are automatically deleted at startup)
 
+**Convenient Log Access:** The project includes a symbolic link `./logs/` that points to the log directory, allowing easy access with standard tools:
+```bash
+# Browse log files
+ls logs/
+
+# View recent entries
+cat logs/media-muncher-2025-07-20_21-55-06-19965.log
+
+# Real-time monitoring
+tail -f logs/media-muncher-*.log
+```
+
 ## Architecture Overview
 
 Media Muncher is a macOS SwiftUI app that automatically imports media files from removable storage. The architecture follows a service-oriented pattern with clear separation of concerns:

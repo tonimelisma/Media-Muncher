@@ -178,7 +178,7 @@ actor ImportService {
                     }
 
                     // 4. Success (even if deletionFailed)
-                    file.status = .imported
+                    file.status = deletionFailed ? .imported_with_deletion_error : .imported
                     continuation.yield(file)
                     successfullyImportedIds.insert(file.id)
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2025-07-18 - SwiftUI Performance Optimization
+- **Grid layout performance**: Optimized MediaFilesGridView to cache grid calculations and prevent redundant layout operations on every geometry change
+- **Reduced UI overhead**: Grid columns now only recalculate when window width actually changes, improving responsiveness during window resizing
+- **Deprecation fixes**: Updated onChange API to macOS 14.0+ syntax for forward compatibility
+
 ## 2025-07-18 - Logging Standardization
 - **Complete print statement elimination**: Removed all print statements from production and test code across the entire codebase
 - **Consistent structured logging**: Replaced all print statements in VolumeManager.swift with structured LogManager calls for better operational visibility
