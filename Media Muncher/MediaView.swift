@@ -12,7 +12,7 @@ struct MediaView: View {
 
     var body: some View {
         VStack {
-            if appState.selectedVolume == nil {
+            if appState.selectedVolumeID == nil {
                 Spacer()
                 Text("Select a volume to begin")
                     .foregroundColor(.secondary)

@@ -18,21 +18,21 @@ struct BottomBarView: View {
                 .padding(.horizontal, 6)
             } else if appState.state == .importingFiles {
                 VStack(alignment: .leading, spacing: 4) {
-                    ProgressView(value: Double(appState.importedBytes), total: Double(appState.totalBytesToImport > 0 ? appState.totalBytesToImport : 1))
+                    ProgressView(value: Double(appState.importProgress.importedBytes), total: Double(appState.importProgress.totalBytesToImport > 0 ? appState.importProgress.totalBytesToImport : 1))
                         .progressViewStyle(LinearProgressViewStyle())
                     
                     HStack {
-                        Text("\(appState.importedFileCount) / \(appState.files.filter { $0.status != .pre_existing }.count) files")
+                        Text("\(appState.importProgress.importedFileCount) / \(appState.importProgress.totalFilesToImport) files")
                         Spacer()
-                        Text(byteCountFormatter.string(fromByteCount: appState.importedBytes) + " / " + byteCountFormatter.string(fromByteCount: appState.totalBytesToImport))
+                        Text(byteCountFormatter.string(fromByteCount: appState.importProgress.importedBytes) + " / " + byteCountFormatter.string(fromByteCount: appState.importProgress.totalBytesToImport))
                     }
                     .font(.caption)
 
                     // Timing row
-                    if let elapsed = appState.elapsedSeconds {
+                    if let elapsed = appState.importProgress.elapsedSeconds {
                         HStack(spacing: 8) {
                             Text("Elapsed " + formatTime(elapsed))
-                            if let remaining = appState.remainingSeconds {
+                            if let remaining = appState.importProgress.remainingSeconds {
                                 Text("· ETA " + formatTime(remaining))
                             }
                         }

@@ -124,7 +124,9 @@ final class AppStateRecalculationTests: XCTestCase {
         
         // Set initial destination and trigger full scan
         settingsStore.setDestination(destA_URL)
-        appState.selectedVolume = sourceURL.path
+        let testVolume = Volume(name: "Test", devicePath: sourceURL.path, volumeUUID: UUID().uuidString)
+        appState.volumes = [testVolume]
+        appState.selectedVolumeID = testVolume.id
         
         // Wait for initial scan to complete (this is the real integration test)
         try await waitForCondition(timeout: 5.0, description: "Initial scan") {
@@ -173,7 +175,9 @@ final class AppStateRecalculationTests: XCTestCase {
         
         // Set initial destination and trigger scan
         settingsStore.setDestination(destA_URL)
-        appState.selectedVolume = sourceURL.path
+        let testVolume = Volume(name: "Test", devicePath: sourceURL.path, volumeUUID: UUID().uuidString)
+        appState.volumes = [testVolume]
+        appState.selectedVolumeID = testVolume.id
         
         // Wait for initial scan to complete
         try await waitForCondition(timeout: 5.0, description: "Initial scan") {
@@ -206,7 +210,9 @@ final class AppStateRecalculationTests: XCTestCase {
         let testFile = sourceURL.appendingPathComponent("test.jpg")
         createFile(at: testFile)
         settingsStore.setDestination(destA_URL)
-        appState.selectedVolume = sourceURL.path
+        let testVolume = Volume(name: "Test", devicePath: sourceURL.path, volumeUUID: UUID().uuidString)
+        appState.volumes = [testVolume]
+        appState.selectedVolumeID = testVolume.id
 
         // Wait for initial scan to complete
         try await waitForCondition(timeout: 5.0, description: "Initial scan") {

@@ -24,7 +24,7 @@ flowchart LR
 | File | Responsibility | Key SwiftUI Containers |
 |------|----------------|------------------------|
 | **ContentView.swift** | Defines the main window as a `NavigationSplitView` (sidebar & detail) and bottom toolbar. Injects **Settings** button in the standard toolbar. | `NavigationSplitView`, `VStack`, `HStack`, `ToolbarItem` |
-| **VolumeView.swift** | Sidebar that lists mounted volumes. Binding to `AppState.selectedVolume` provides 2-way selection. Each row shows SD-card icon, name, and an **eject** button. | `List`, `Section`, `ForEach` |
+| **VolumeView.swift** | Sidebar that lists mounted volumes. Binding to `AppState.selectedVolumeID` provides 2-way selection. Each row shows SD-card icon, name, and an **eject** button. | `List`, `Section`, `ForEach` |
 | **MediaView.swift** | Chooses what to show in the detail pane: a placeholder when no volume, a placeholder when no files are found, or the actual grid. | Conditional `if`/`else`, `Spacer` |
 | **MediaFilesGridView.swift** | Adaptive icon grid of discovered files. Calculates column width based on window size. | `GeometryReader`, `ScrollView`, `LazyVGrid`, `VStack` |
 | **MediaFileCellView.swift** | A small view that represents a single cell in the `MediaFilesGridView`, displaying the thumbnail and status overlays. | `Image`, `Text`, `Spacer` |

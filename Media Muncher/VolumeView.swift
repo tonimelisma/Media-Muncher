@@ -20,7 +20,7 @@ struct VolumeView: View {
                 Text("No removable drives detected.")
                     .font(.headline)
             } else {
-                List(selection: $appState.selectedVolume) {
+                List(selection: $appState.selectedVolumeID) {
                     Section(header: Text("Devices")) {
                         ForEach(volumeManager.volumes) { volume in
                             HStack {
@@ -34,7 +34,7 @@ struct VolumeView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                             }
-                            .tag(volume.devicePath)
+                            .tag(volume.id)
                         }
                     }
                 }

@@ -77,3 +77,24 @@ All notable changes to Media Muncher will be documented in this file.
 - **Architectural refinement**: Removed direct `updateFiles()` call from AppState to RecalculationManager, enforcing AppState as the single source of truth for file arrays.
 - **Explicit error mapping**: Enhanced error handling to explicitly map recalculation errors to `.recalculationFailed` type for consistency.
 - **Logging**: Refactored `LogManager` to create a new log file for each application session, removing the in-memory cache and log clearing functionality for a simpler, more robust design. 
+
+## [1.2.0] - 2025-07-21
+
+### Added
+- Created `Constants.swift` to centralize configuration values.
+- Added comprehensive architecture and async pattern documentation in `ARCHITECTURE.md`.
+- Introduced `ConstantsTests.swift` to validate key configuration values.
+
+### Changed
+- **Technical debt resolution**: Standardized async patterns across services to align with new architectural guidelines.
+- **Code maintainability**: Simplified complex publisher chains and improved code organization for better readability.
+
+## [1.2.1] - 2025-07-22
+
+### Changed
+- **Refactor (State Management)**: Encapsulated import progress tracking into a new `ImportProgress` observable object, simplifying `AppState` and improving separation of concerns.
+- **Refactor (Type Safety)**: Changed volume selection logic to use a type-safe `Volume.ID` instead of a raw `String`, reducing the risk of stringly-typed errors.
+
+---
+
+## [1.1.0] - 2025-07-16 

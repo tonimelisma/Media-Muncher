@@ -24,32 +24,14 @@ private typealias ScanTask = Task<Void, Never>
 
 @MainActor
 class AppState: ObservableObject {
-    @Published var selectedVolume: String?
+    @Published var selectedVolumeID: Volume.ID?
     @Published var volumes: [Volume] = []
     @Published var files: [File] = []
     @Published var state: ProgramState = .idle
     @Published var error: AppError? = nil
     @Published var filesScanned: Int = 0
-    @Published var totalBytesToImport: Int64 = 0
-    @Published var importedBytes: Int64 = 0
-    @Published var importedFileCount: Int = 0
-    @Published var importStartTime: Date? = nil
+    @Published private(set) var importProgress = ImportProgress()
     @Published var isRecalculating: Bool = false
-    
-    /// Returns seconds elapsed since the current import started. Nil when no import is running.
-    var elapsedSeconds: TimeInterval? {
-        guard let start = importStartTime, state == .importingFiles else { return nil }
-        return Date().timeIntervalSince(start)
-    }
-    
-    /// Estimated seconds remaining based on current throughput (bytes/sec). Nil if not computable yet.
-    var remainingSeconds: TimeInterval? {
-        guard let elapsed = elapsedSeconds, elapsed > 0, importedBytes > 0 else { return nil }
-        let throughput = Double(importedBytes) / elapsed
-        guard throughput > 0 else { return nil }
-        let remainingBytes = Double(max(0, totalBytesToImport - importedBytes))
-        return remainingBytes / throughput
-    }
     
     private var cancellables = Set<AnyCancellable>()
     private var scanTask: Task<Void, Never>?
@@ -87,18 +69,16 @@ class AppState: ObservableObject {
             .sink { [weak self] newVolumes in
                 self?.logManager.debug("Volume changes received", category: "AppState", metadata: ["volumes": "\(newVolumes.map { $0.name })"])
                 self?.volumes = newVolumes
-                if self?.selectedVolume == nil || !newVolumes.contains(where: { $0.devicePath == self?.selectedVolume }) {
-                    self?.ensureVolumeSelection()
-                }
+                self?.ensureVolumeSelection()
             }
             .store(in: &cancellables)
             
         // Subscribe to selection changes
-        self.$selectedVolume
+        self.$selectedVolumeID
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] devicePath in
-                self?.logManager.debug("selectedVolume changed", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
-                self?.startScan(for: devicePath)
+            .sink { [weak self] volumeID in
+                self?.logManager.debug("selectedVolumeID changed", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
+                self?.startScan(for: volumeID)
             }
             .store(in: &cancellables)
 
@@ -113,25 +93,28 @@ class AppState: ObservableObject {
     }
     
     func ensureVolumeSelection() {
-        self.logManager.debug("ensureVolumeSelection called", category: "AppState")
-        let currentSelectionIsValid = volumes.contains { $0.devicePath == selectedVolume }
-        
+        logManager.debug("ensureVolumeSelection called", category: "AppState")
+        // Check if the currently selected ID corresponds to a connected volume.
+        let currentSelectionIsValid = volumes.contains { $0.id == selectedVolumeID }
+
         if !currentSelectionIsValid {
+            // If selection is invalid (or nil), select the first available volume.
             if let firstVolume = self.volumes.first {
-                self.logManager.debug("Selecting first volume", category: "AppState", metadata: ["name": firstVolume.name, "devicePath": firstVolume.devicePath])
-                self.selectedVolume = firstVolume.devicePath
+                logManager.debug("Selecting first volume", category: "AppState", metadata: ["name": firstVolume.name, "id": firstVolume.id])
+                self.selectedVolumeID = firstVolume.id
             } else {
-                self.logManager.debug("No volumes available to select, clearing selection", category: "AppState")
-                self.selectedVolume = nil
+                // If no volumes are available, clear the selection.
+                logManager.debug("No volumes available to select, clearing selection", category: "AppState")
+                self.selectedVolumeID = nil
             }
-        } else if selectedVolume == nil, let firstVolume = volumes.first {
+        } else if selectedVolumeID == nil, let firstVolume = volumes.first {
             // This handles the initial launch case where selection is nil but volumes are present.
-            self.selectedVolume = firstVolume.devicePath
+            self.selectedVolumeID = firstVolume.id
         }
     }
 
-    private func startScan(for devicePath: String?) {
-        self.logManager.debug("startScan called", category: "AppState", metadata: ["devicePath": devicePath ?? "nil"])
+    private func startScan(for volumeID: Volume.ID?) {
+        logManager.debug("startScan called", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
         
         scanTask?.cancel()
         
@@ -140,13 +123,15 @@ class AppState: ObservableObject {
         self.state = .idle
         self.error = nil
 
-        guard let devicePath = devicePath else { 
-            self.logManager.debug("No device path provided, skipping scan", category: "AppState")
-            return 
+        // Find the volume by its ID to get the path for the URL.
+        guard let volumeID = volumeID,
+              let volume = volumes.first(where: { $0.id == volumeID }) else {
+            logManager.debug("No volume ID provided or volume not found, skipping scan", category: "AppState")
+            return
         }
         
-        let url = URL(fileURLWithPath: devicePath, isDirectory: true)
-        self.logManager.debug("Starting scan for URL", category: "AppState", metadata: ["path": url.path])
+        let url = URL(fileURLWithPath: volume.devicePath, isDirectory: true)
+        logManager.debug("Starting scan for URL", category: "AppState", metadata: ["path": url.path])
         
         self.state = .enumeratingFiles
         
@@ -185,19 +170,17 @@ class AppState: ObservableObject {
         let filesToImport = self.files.filter { $0.status == .waiting }
         guard !filesToImport.isEmpty else { return }
 
-        // Progress should only be calculated based on files that will actually be copied.
-        self.totalBytesToImport = filesToImport.reduce(0) { $0 + ($1.size ?? 0) }
-        self.importedFileCount = 0
-        self.importedBytes = 0
-
-        self.importStartTime = Date()
-
+        // Reset and start progress tracking
+        self.importProgress.start(with: filesToImport)
         self.state = .importingFiles
 
         importTask = Task {
+            // This defer block will run regardless of how the task exits (success, error, cancellation).
+            // It ensures the program state always returns to idle and progress tracking is reset.
             defer {
                 Task { @MainActor in
                     self.state = .idle
+                    self.importProgress.finish()
                 }
             }
 
@@ -214,20 +197,16 @@ class AppState: ObservableObject {
                     await MainActor.run {
                         if let index = self.files.firstIndex(where: { $0.id == updatedFile.id }) {
                             self.files[index] = updatedFile
-
-                            // Only increment progress for files that were actually copied.
-                            if updatedFile.status == .imported {
-                                self.importedFileCount += 1
-                                self.importedBytes += updatedFile.size ?? 0
-                            }
+                            // Delegate progress update
+                            self.importProgress.update(with: updatedFile)
                         }
                     }
                 }
 
                 // After the import process is finished...
                 if settingsStore.settingAutoEject,
-                   let selectedVolumePath = selectedVolume,
-                   let volumeToEject = volumes.first(where: { $0.devicePath == selectedVolumePath }) {
+                   let selectedVolumeID = selectedVolumeID,
+                   let volumeToEject = volumes.first(where: { $0.id == selectedVolumeID }) {
                     volumeManager.ejectVolume(volumeToEject)
                 }
 
@@ -235,7 +214,6 @@ class AppState: ObservableObject {
                 let deletionFailures = self.files.contains { $0.importError?.contains("Failed to delete original") == true }
 
                 await MainActor.run {
-                    self.importStartTime = nil // clear when done
                     if deletionFailures {
                         self.error = .importSucceededWithDeletionErrors(reason: "One or more originals could not be deleted (read-only drive)")
                     }
