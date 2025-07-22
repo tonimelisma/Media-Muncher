@@ -27,6 +27,13 @@ class RecalculationManager: ObservableObject {
     /// An optional error that occurred during the recalculation process.
     @Published private(set) var error: AppError? = nil
 
+    /// Emits once every time a recalculation finishes (success, cancel or error).
+    let didFinish = PassthroughSubject<Void, Never>()
+
+    var didFinishPublisher: AnyPublisher<Void, Never> {
+        didFinish.eraseToAnyPublisher()
+    }
+
     // MARK: - Dependencies
 
     /// The service responsible for performing the actual file path calculations and existence checks.
@@ -109,16 +116,19 @@ class RecalculationManager: ObservableObject {
                 self.files = recalculatedFiles // Update the published files array
                 self.isRecalculating = false // Reset recalculating flag
                 self.error = nil // Ensure no error is shown
+                self.didFinish.send()
             } catch is CancellationError {
                 // This block is executed if the task was explicitly cancelled (e.g., by a new destination change).
                 logManager.debug("Recalculation task was cancelled", category: "RecalculationManager")
                 self.isRecalculating = false // Reset recalculating flag
-                self.error = nil // Clear any error, as cancellation is not an "error" in this context
+                self.error = nil
+                self.didFinish.send()
             } catch {
                 // This block handles any other unexpected errors during recalculation.
                 logManager.error("Recalculation task failed", category: "RecalculationManager", metadata: ["error": error.localizedDescription])
                 self.isRecalculating = false // Reset recalculating flag
-                self.error = .recalculationFailed(reason: error.localizedDescription) // Set an appropriate error
+                self.error = .recalculationFailed(reason: error.localizedDescription)
+                self.didFinish.send()
             }
         }
     }
@@ -129,6 +139,7 @@ class RecalculationManager: ObservableObject {
         currentRecalculationTask?.cancel()
         self.isRecalculating = false // Ensure state is reset immediately
         self.error = nil
+        didFinish.send()
     }
     
     /// Updates the internal files array. Used by AppState to sync newly scanned files.

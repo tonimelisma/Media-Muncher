@@ -1,8 +1,7 @@
 import Foundation
 @testable import Media_Muncher
 
-class MockLogManager: Logging {
-    
+class MockLogManager: Logging, @unchecked Sendable {
     struct LogCall {
         let level: LogEntry.LogLevel
         let category: String
@@ -10,10 +9,23 @@ class MockLogManager: Logging {
         let metadata: [String: String]?
     }
     
-    var calls = [LogCall]()
+    private let queue = DispatchQueue(label: "MockLogManager.calls")
+    private var _calls = [LogCall]()
     
-    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]?, completion: (() -> Void)?) {
-        calls.append(LogCall(level: level, category: category, message: message, metadata: metadata))
+    var calls: [LogCall] {
+        queue.sync { _calls }
+    }
+    
+    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String : String]?, completion: (@Sendable () -> Void)?) {
+        queue.sync {
+            _calls.append(LogCall(level: level, category: category, message: message, metadata: metadata))
+        }
         completion?()
+    }
+    
+    func clearCalls() {
+        queue.sync {
+            _calls.removeAll()
+        }
     }
 } 

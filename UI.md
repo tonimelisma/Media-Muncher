@@ -98,3 +98,6 @@ This section details planned UI work required to meet all remaining requirements
 
 ### 2025-07-21
 * No user-visible UI changes were made in this development cycle. Grid layout performance was improved through constants consolidation - MediaFilesGridView now uses centralized Constants.swift values instead of hard-coded numbers. The grid calculation logic was enhanced with helper functions for better maintainability, but the visual appearance and behavior remain unchanged.
+
+### 2025-07-22
+* Internal performance update: thumbnail generation now handled by new actor `ThumbnailCache`, reducing MainActor load and improving grid scrolling smoothness. No visual changes.

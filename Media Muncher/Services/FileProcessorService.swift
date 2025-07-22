@@ -1,20 +1,18 @@
 import Foundation
 import SwiftUI
 import AVFoundation
-import QuickLookThumbnailing
 import CryptoKit // For SHA-256 checksum fallback when date/name heuristics fail
 
-/// Actor responsible for file discovery, metadata extraction, and thumbnail generation.
+/// Actor responsible for file discovery, metadata extraction, and destination path calculation.
 /// 
 /// ## Async Pattern: Actor-Based Concurrency
-/// This service is implemented as an actor to provide thread-safe access to file system operations
-/// and maintain an internal thumbnail cache without data races. All public methods are async
-/// and should be called from other actors or MainActor code.
+/// This service is implemented as an actor to provide thread-safe access to file system operations.
+/// Thumbnail generation is now delegated to FileStore to centralize UI-related state management.
 /// 
 /// ## Usage Pattern:
 /// ```swift
 /// // From MainActor (AppState)
-/// let files = await fileProcessorService.processFiles(from: volume, destinationURL: dest, settings: settings)
+/// let files = await fileProcessorService.processFiles(from: volume, destinationURL: dest, settings: settings, fileStore: fileStore)
 /// 
 /// // For recalculation (sync path calculation + async file checks)
 /// let recalculatedFiles = await fileProcessorService.recalculateFileStatuses(for: files, destinationURL: newDest, settings: settings)
@@ -22,22 +20,19 @@ import CryptoKit // For SHA-256 checksum fallback when date/name heuristics fail
 /// 
 /// ## Responsibilities:
 /// - File discovery and enumeration on volumes
-/// - EXIF metadata extraction and thumbnail generation
+/// - EXIF metadata extraction (delegates thumbnail generation to FileStore)
 /// - Destination path calculation and collision resolution
 /// - Pre-existing file detection using multiple heuristics
 /// - Sidecar file (THM, XMP, LRC) association
 actor FileProcessorService {
 
-    // Thumbnail Cache
-    private var thumbnailCache: [String: Image] = [:] // key = file path
-    private var thumbnailOrder: [String] = []
-    private let thumbnailCacheLimit = Constants.thumbnailCacheLimit
-    
     private let fileManager = FileManager.default
     private let logManager: Logging
+    private let thumbnailCache: ThumbnailCache
 
-    init(logManager: Logging = LogManager()) {
+    init(logManager: Logging = LogManager(), thumbnailCache: ThumbnailCache = ThumbnailCache()) {
         self.logManager = logManager
+        self.thumbnailCache = thumbnailCache
     }
 
     func processFiles(
@@ -171,7 +166,7 @@ actor FileProcessorService {
         let (date, size) = await getFileMetadata(url: url, mediaType: newFile.mediaType)
         newFile.date = date
         newFile.size = size
-        newFile.thumbnail = await generateThumbnail(for: url)
+        newFile.thumbnail = await thumbnailCache.thumbnail(for: url)
 
         // 2. Source-to-source deduplication (same timestamp && size)
         for otherFile in allFiles where otherFile.status != .duplicate_in_source {
@@ -329,30 +324,7 @@ actor FileProcessorService {
         return (mediaDate, size)
     }
 
-    private func generateThumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
-        let key = url.path
-        if let cached = thumbnailCache[key] {
-            return cached
-        }
-
-        let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 1.0, representationTypes: .all)
-        
-        guard let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
-            return nil
-        }
-        
-        let img = Image(nsImage: thumbnail.nsImage)
-        
-        // Store in cache and evict oldest if needed.
-        thumbnailCache[key] = img
-        thumbnailOrder.append(key)
-        if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.first {
-            thumbnailOrder.removeFirst()
-            thumbnailCache.removeValue(forKey: oldestKey)
-        }
-        
-        return img
-    }
+    // Thumbnail generation handled by ThumbnailCache injected via init.
 
 // MARK: - Recalculation Support
 

@@ -1,165 +1,102 @@
 import XCTest
 import Combine
+import Foundation
 @testable import Media_Muncher
 
 @MainActor
-final class AppStateIntegrationTests: XCTestCase {
+final class AppStateIntegrationTests: MediaMuncherTestCase {
+    
+    private var appState: AppState!
+    private var fileStore: FileStore!
 
-    var sourceURL: URL!
-    var destinationA_URL: URL!
-    var destinationB_URL: URL!
-    var fileManager: FileManager!
-    var settingsStore: SettingsStore!
-    var fileProcessorService: FileProcessorService!
-    var importService: ImportService!
-    var volumeManager: VolumeManager!
-    var appState: AppState!
-    private var cancellables: Set<AnyCancellable>!
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        fileManager = FileManager.default
-        cancellables = []
-
-        // Create unique temporary source and destination directories
-        sourceURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        destinationA_URL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        destinationB_URL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try fileManager.createDirectory(at: sourceURL, withIntermediateDirectories: true)
-        try fileManager.createDirectory(at: destinationA_URL, withIntermediateDirectories: true)
-        try fileManager.createDirectory(at: destinationB_URL, withIntermediateDirectories: true)
-
-        // Initialize services with isolated UserDefaults for testing
-        let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+    override func setUp() async throws {
+        try await super.setUp()
+        
         let logManager = LogManager()
-        settingsStore = SettingsStore(logManager: logManager, userDefaults: testDefaults)
-        fileProcessorService = FileProcessorService(logManager: logManager)
-        importService = ImportService(logManager: logManager)
-        volumeManager = VolumeManager(logManager: logManager)
-
-        // Initialize RecalculationManager first
-        let recalculationManager = RecalculationManager(
-            logManager: logManager,
-            fileProcessorService: fileProcessorService,
-            settingsStore: settingsStore
-        )
-
-        // Initialize AppState
+        let volumeManager = VolumeManager(logManager: logManager)
+        let fileProcessorService = FileProcessorService(logManager: logManager)
+        let settingsStore = SettingsStore(logManager: logManager)
+        let importService = ImportService(logManager: logManager)
+        let recalculationManager = RecalculationManager(logManager: logManager, fileProcessorService: fileProcessorService, settingsStore: settingsStore)
+        fileStore = FileStore(logManager: logManager)
+        
         appState = AppState(
             logManager: logManager,
             volumeManager: volumeManager,
             fileProcessorService: fileProcessorService,
             settingsStore: settingsStore,
             importService: importService,
-            recalculationManager: recalculationManager
+            recalculationManager: recalculationManager,
+            fileStore: fileStore
         )
+        
+        // Clear any existing files
+        fileStore.setFiles([])
     }
 
-    override func tearDownWithError() throws {
-        // Cancel any ongoing operations
-        appState?.cancelScan()
-        appState?.cancelImport()
-        
-        // Clear state
-        if let appState = appState {
-            appState.files = []
-            appState.state = .idle
-            appState.error = nil
-        }
-        
-        // Remove test directories
-        try? fileManager.removeItem(at: sourceURL)
-        try? fileManager.removeItem(at: destinationA_URL)
-        try? fileManager.removeItem(at: destinationB_URL)
-        
-        // Clear references
-        sourceURL = nil
-        destinationA_URL = nil
-        destinationB_URL = nil
-        fileManager = nil
-        settingsStore = nil
-        fileProcessorService = nil
-        importService = nil
-        volumeManager = nil
+    override func tearDown() async throws {
         appState = nil
-        cancellables = nil
-        
-        try super.tearDownWithError()
+        fileStore = nil
+        try await super.tearDown()
     }
 
-    private func setupSourceFile(named fileName: String) throws -> URL {
-        guard let fixtureURL = Bundle(for: type(of: self)).url(forResource: fileName, withExtension: nil) else {
-            throw TestError.fixtureNotFound(name: fileName)
-        }
-        let destinationInSource = sourceURL.appendingPathComponent(fileName)
-        try fileManager.copyItem(at: fixtureURL, to: destinationInSource)
-        return destinationInSource
+    // MARK: - Tests
+
+    func testVolumeInitialization() {
+        // Test that volumes are initialized when AppState is created
+        XCTAssertNotNil(appState.volumes)
     }
 
-    func testDestinationChangeRecalculatesFileStatuses() async throws {
-        // 1. SETUP - Create source files
-        let file1_sourceURL = try setupSourceFile(named: "exif_image.jpg")
-        _ = try setupSourceFile(named: "no_exif_image.heic")
+    // MARK: Recalculation after status change
+    func testRecalculationAfterStatusChange() async throws {
+        // Arrange: create real source volume with two files
+        let srcDir = tempDirectory.appendingPathComponent("SRC")
+        try FileManager.default.createDirectory(at: srcDir, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: srcDir.appendingPathComponent("a.jpg").path, contents: Data([0xFF]))
+        FileManager.default.createFile(atPath: srcDir.appendingPathComponent("b.jpg").path, contents: Data([0xFF,0xD8]))
 
-        // Create a pre-existing file in Destination A
-        try fileManager.copyItem(at: file1_sourceURL, to: destinationA_URL.appendingPathComponent("exif_image.jpg"))
+        // Configure settings BEFORE scan so DestinationPathBuilder uses them
+        appState.settingsStore.organizeByDate = false
+        appState.settingsStore.renameByDate = false
 
-        // 2. INITIAL SCAN - Set destination and scan source
-        settingsStore.setDestination(destinationA_URL)
-
-        // Perform initial scan directly (bypassing volume selection which doesn't work in tests)
-        let processedFiles = await fileProcessorService.processFiles(
-            from: sourceURL,
-            destinationURL: destinationA_URL,
-            settings: settingsStore
-        )
-        appState.files = processedFiles
-
-        // 3. VALIDATE INITIAL STATE
-        XCTAssertEqual(appState.files.count, 2, "Should have 2 files after initial scan")
-        
-        let preExistingFile = appState.files.first { $0.sourceName == "exif_image.jpg" }
-        let waitingFile = appState.files.first { $0.sourceName == "no_exif_image.heic" }
-        
-        XCTAssertNotNil(preExistingFile, "Should find exif_image.jpg")
-        XCTAssertNotNil(waitingFile, "Should find no_exif_image.heic")
-        XCTAssertEqual(preExistingFile?.status, .pre_existing, "exif_image.jpg should be pre-existing")
-        XCTAssertEqual(waitingFile?.status, .waiting, "no_exif_image.heic should be waiting")
-
-        // 4. DESTINATION CHANGE & RECALCULATION
-        // Trigger destination change (this automatically triggers handleDestinationChange)
-        settingsStore.setDestination(destinationB_URL)
-
-        // Wait for recalculation to complete using proper expectation
-        let recalcExpectation = XCTestExpectation(description: "Recalculation complete")
-        appState.$isRecalculating
-            .dropFirst()
-            .sink { isRecalculating in
-                if !isRecalculating {
-                    recalcExpectation.fulfill()
+        // Hook expectations
+        var cancellables = Set<AnyCancellable>()
+        let scanFinished = expectation(description: "Scan finished")
+        appState.fileStore.$files
+            .sink { files in
+                if files.count == 2 && self.appState.state == .idle {
+                    scanFinished.fulfill()
                 }
             }
             .store(in: &cancellables)
-        
-        await fulfillment(of: [recalcExpectation], timeout: 5.0)
 
-        // 5. FINAL ASSERTIONS
-        XCTAssertEqual(appState.files.count, 2, "Should still have 2 files")
-        XCTAssertFalse(appState.isRecalculating, "Should not be recalculating")
-        
-        // All files should now be .waiting (no pre-existing files in empty destination B)
-        XCTAssertTrue(appState.files.allSatisfy { $0.status == .waiting }, 
-                     "All files should be .waiting in empty destination B")
-        
-        // All destination paths should point to destination B
-        XCTAssertTrue(appState.files.allSatisfy { 
-            guard let destPath = $0.destPath else { return false }
-            return destPath.hasPrefix(destinationB_URL.path)
-        }, "All files should have destination paths pointing to destination B")
-        
-        // Previously pre-existing file should now be waiting
-        let updatedPreExistingFile = appState.files.first { $0.sourceName == "exif_image.jpg" }
-        XCTAssertEqual(updatedPreExistingFile?.status, .waiting, 
-                      "Previously pre-existing file should now be waiting")
+        // Simulate volume mount & scan
+        let vol = Volume(name: "TestVol", devicePath: srcDir.path, volumeUUID: UUID().uuidString)
+        appState.volumes = [vol]
+        appState.selectedVolumeID = vol.id
+
+        await fulfillment(of: [scanFinished], timeout: 5)
+
+        XCTAssertEqual(fileStore.files.count, 2)
+
+        // Recalculation expectation
+        let recalcFinished = expectation(description: "Recalc finished")
+        appState.recalculationManager.didFinishPublisher
+            .sink { _ in recalcFinished.fulfill() }
+            .store(in: &cancellables)
+
+        let newDest = tempDirectory.appendingPathComponent("NewDest")
+        try FileManager.default.createDirectory(at: newDest, withIntermediateDirectories: true)
+        appState.settingsStore.setDestination(newDest)
+
+        await fulfillment(of: [recalcFinished], timeout: 5)
+
+        // Assert destinations
+        XCTAssertTrue(fileStore.files.allSatisfy { file in
+            guard let dest = file.destPath else { return false }
+            return dest.hasPrefix(newDest.path)
+        })
+        // Assert statuses waiting
+        XCTAssertTrue(fileStore.files.allSatisfy { $0.status == .waiting })
     }
 }

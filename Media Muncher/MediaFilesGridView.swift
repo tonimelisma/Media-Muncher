@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MediaFilesGridView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var fileStore: FileStore
     @State private var columns: [GridItem] = []
     @State private var lastGeometryWidth: CGFloat = 0
     
@@ -19,12 +19,12 @@ struct MediaFilesGridView: View {
         let columnsCount = Constants.gridColumnsCount(for: width)
         columns = Array(repeating: GridItem(.fixed(Constants.gridColumnWidth), spacing: Constants.gridColumnSpacing, alignment: .topLeading), count: columnsCount)
     }
-
+    
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 LazyVGrid(columns: columns) {
-                    ForEach(appState.files) { file in
+                    ForEach(fileStore.files) { file in
                         MediaFileCellView(file: file)
                     }
                 }
@@ -32,7 +32,6 @@ struct MediaFilesGridView: View {
                 .onAppear { updateColumns(for: geometry.size.width) }
                 .onChange(of: geometry.size.width) { _, newWidth in updateColumns(for: newWidth) }
             }
-            Spacer()
         }
     }
 }

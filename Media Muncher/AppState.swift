@@ -26,7 +26,6 @@ private typealias ScanTask = Task<Void, Never>
 class AppState: ObservableObject {
     @Published var selectedVolumeID: Volume.ID?
     @Published var volumes: [Volume] = []
-    @Published var files: [File] = []
     @Published var state: ProgramState = .idle
     @Published var error: AppError? = nil
     @Published var filesScanned: Int = 0
@@ -37,12 +36,13 @@ class AppState: ObservableObject {
     private var scanTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
 
-    private let volumeManager: VolumeManager
-    private let fileProcessorService: FileProcessorService
-    private let settingsStore: SettingsStore
-    private let importService: ImportService
-    private let recalculationManager: RecalculationManager
+    internal let volumeManager: VolumeManager
+    internal let fileProcessorService: FileProcessorService
+    internal let settingsStore: SettingsStore
+    internal let importService: ImportService
+    internal let recalculationManager: RecalculationManager
     private let logManager: Logging
+    internal let fileStore: FileStore
 
     init(
         logManager: Logging,
@@ -50,7 +50,8 @@ class AppState: ObservableObject {
         fileProcessorService: FileProcessorService,
         settingsStore: SettingsStore,
         importService: ImportService,
-        recalculationManager: RecalculationManager
+        recalculationManager: RecalculationManager,
+        fileStore: FileStore
     ) {
         
         self.logManager = logManager
@@ -59,6 +60,7 @@ class AppState: ObservableObject {
         self.settingsStore = settingsStore
         self.importService = importService
         self.recalculationManager = recalculationManager
+        self.fileStore = fileStore
         
         // Example of using the injected logger
         self.logManager.info("AppState initialized")
@@ -118,7 +120,7 @@ class AppState: ObservableObject {
         
         scanTask?.cancel()
         
-        self.files = []
+        fileStore.clearFiles()
         self.filesScanned = 0
         self.state = .idle
         self.error = nil
@@ -145,7 +147,7 @@ class AppState: ObservableObject {
             self.logManager.debug("Scan task completed", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
 
             await MainActor.run {
-                self.files = processedFiles
+                self.fileStore.setFiles(processedFiles)
                 self.filesScanned = processedFiles.count
                 self.state = .idle
                 self.logManager.debug("Updated UI", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
@@ -167,7 +169,7 @@ class AppState: ObservableObject {
     func importFiles() {
         self.error = nil
 
-        let filesToImport = self.files.filter { $0.status == .waiting }
+        let filesToImport = fileStore.filesToImport
         guard !filesToImport.isEmpty else { return }
 
         // Reset and start progress tracking
@@ -192,14 +194,12 @@ class AppState: ObservableObject {
             }
 
             do {
-                let stream = await importService.importFiles(files: self.files, to: destinationURL, settings: self.settingsStore)
+                let stream = await importService.importFiles(files: fileStore.files, to: destinationURL, settings: self.settingsStore)
                 for try await updatedFile in stream {
                     await MainActor.run {
-                        if let index = self.files.firstIndex(where: { $0.id == updatedFile.id }) {
-                            self.files[index] = updatedFile
-                            // Delegate progress update
-                            self.importProgress.update(with: updatedFile)
-                        }
+                        self.fileStore.updateFile(updatedFile)
+                        // Delegate progress update
+                        self.importProgress.update(with: updatedFile)
                     }
                 }
 
@@ -211,7 +211,7 @@ class AppState: ObservableObject {
                 }
 
                 // Detect any deletion failures recorded in File.importError
-                let deletionFailures = self.files.contains { $0.importError?.contains("Failed to delete original") == true }
+                let deletionFailures = fileStore.files.contains { $0.importError?.contains("Failed to delete original") == true }
 
                 await MainActor.run {
                     if deletionFailures {
@@ -238,7 +238,7 @@ class AppState: ObservableObject {
             .sink { [weak self] newDestination in
                 guard let self = self else { return }
                 self.recalculationManager.startRecalculation(
-                    for: self.files,
+                    for: self.fileStore.files,
                     newDestinationURL: newDestination,
                     settings: self.settingsStore
                 )
@@ -248,10 +248,12 @@ class AppState: ObservableObject {
     
     /// Configures reactive bindings between RecalculationManager and AppState UI properties.
     private func setupRecalculationManagerBindings() {
-        // Sync files from RecalculationManager
+        // Sync files from RecalculationManager to FileStore
         recalculationManager.$files
             .receive(on: DispatchQueue.main)
-            .assign(to: \.files, on: self)
+            .sink { [weak self] updatedFiles in
+                self?.fileStore.setFiles(updatedFiles)
+            }
             .store(in: &cancellables)
         
         // Sync recalculation status

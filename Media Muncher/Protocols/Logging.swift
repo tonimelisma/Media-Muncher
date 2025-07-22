@@ -12,15 +12,15 @@ protocol Logging: Sendable {
 }
 
 extension Logging {
-    func debug(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
+    func debug(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (@Sendable () -> Void)? = nil) {
         write(level: .debug, category: category, message: message, metadata: metadata, completion: completion)
     }
 
-    func info(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
+    func info(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (@Sendable () -> Void)? = nil) {
         write(level: .info, category: category, message: message, metadata: metadata, completion: completion)
     }
 
-    func error(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (() -> Void)? = nil) {
+    func error(_ message: String, category: String = "General", metadata: [String: String]? = nil, completion: (@Sendable () -> Void)? = nil) {
         write(level: .error, category: category, message: message, metadata: metadata, completion: completion)
     }
 } 

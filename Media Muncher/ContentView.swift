@@ -37,26 +37,22 @@ struct ContentView: View {
 }
 
 #Preview {
-    let logManager = LogManager() // Use real instance for previews
-    let volumeManager = VolumeManager(logManager: logManager)
-    let fileProcessorService = FileProcessorService(logManager: logManager) // Keep this line to initialize AppState
-    let settingsStore = SettingsStore(logManager: logManager)
-    let importService = ImportService(logManager: logManager) // Keep this line to initialize AppState
-    let recalculationManager = RecalculationManager( // Keep this line to initialize AppState
-        logManager: logManager,
-        fileProcessorService: fileProcessorService,
-        settingsStore: settingsStore
-    )
+    // Create container on MainActor for preview
+    let container = MainActor.assumeIsolated {
+        AppContainer()
+    }
 
-    ContentView()
+    return ContentView()
         .environmentObject(AppState(
-            logManager: logManager,
-            volumeManager: volumeManager,
-            fileProcessorService: fileProcessorService,
-            settingsStore: settingsStore,
-            importService: importService,
-            recalculationManager: recalculationManager
+            logManager: container.logManager,
+            volumeManager: container.volumeManager,
+            fileProcessorService: container.fileProcessorService,
+            settingsStore: container.settingsStore,
+            importService: container.importService,
+            recalculationManager: container.recalculationManager,
+            fileStore: container.fileStore
         ))
-        .environmentObject(volumeManager) // Keep this line for VolumeView
-        .environmentObject(settingsStore) // Keep this line for SettingsView
+        .environmentObject(container.volumeManager) // Keep this line for VolumeView
+        .environmentObject(container.settingsStore) // Keep this line for SettingsView
+        .environmentObject(container.fileStore) // Add FileStore to environment
 }

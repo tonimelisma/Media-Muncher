@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BottomBarView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var fileStore: FileStore
 
     var body: some View {
         HStack {
@@ -52,7 +53,7 @@ struct BottomBarView: View {
                 Button("Import") {
                     appState.importFiles()
                 }
-                .disabled(appState.state != .idle || appState.files.isEmpty)
+                .disabled(appState.state != .idle || fileStore.filesToImport.isEmpty)
             }
         }
         .padding()

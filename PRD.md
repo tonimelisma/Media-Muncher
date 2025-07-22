@@ -172,6 +172,12 @@ The specific file extensions for each category in **ST-5** are:
 - **Code maintainability**: Simplified complex publisher chains and improved code organization
 - **Testing improvements**: Added ConstantsTests.swift to validate configuration values and grid layout calculations
 
+### 2025-07-22 – ThumbnailCache & DI cleanup
+- Introduced actor-based `ThumbnailCache` to offload QuickLook work from the UI and replace the in-Store cache.
+- Removed thumbnail logic from `FileStore`; now pure state holder.
+- `AppContainer` no longer runs heavy service instantiation on MainActor; services injected via DI.
+- Updated tests and documentation accordingly.
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  
