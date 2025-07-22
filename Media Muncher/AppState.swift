@@ -36,13 +36,13 @@ class AppState: ObservableObject {
     private var scanTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
 
-    internal let volumeManager: VolumeManager
-    internal let fileProcessorService: FileProcessorService
-    internal let settingsStore: SettingsStore
-    internal let importService: ImportService
-    internal let recalculationManager: RecalculationManager
+    private let volumeManager: VolumeManager
+    private let fileProcessorService: FileProcessorService
+    private let settingsStore: SettingsStore
+    private let importService: ImportService
+    private let recalculationManager: RecalculationManager
     private let logManager: Logging
-    internal let fileStore: FileStore
+    private let fileStore: FileStore
 
     init(
         logManager: Logging,
@@ -62,16 +62,20 @@ class AppState: ObservableObject {
         self.recalculationManager = recalculationManager
         self.fileStore = fileStore
         
-        // Example of using the injected logger
-        self.logManager.info("AppState initialized")
+        Task {
+            // Example of using the injected logger
+            await self.logManager.info("AppState initialized")
+        }
         
         // Subscribe to volume changes
         volumeManager.$volumes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newVolumes in
-                self?.logManager.debug("Volume changes received", category: "AppState", metadata: ["volumes": "\(newVolumes.map { $0.name })"])
-                self?.volumes = newVolumes
-                self?.ensureVolumeSelection()
+                Task { [weak self] in
+                    await self?.logManager.debug("Volume changes received", category: "AppState", metadata: ["volumes": "\(newVolumes.map { $0.name })"])
+                    self?.volumes = newVolumes
+                    self?.ensureVolumeSelection()
+                }
             }
             .store(in: &cancellables)
             
@@ -79,8 +83,10 @@ class AppState: ObservableObject {
         self.$selectedVolumeID
             .receive(on: DispatchQueue.main)
             .sink { [weak self] volumeID in
-                self?.logManager.debug("selectedVolumeID changed", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
-                self?.startScan(for: volumeID)
+                Task { [weak self] in
+                    await self?.logManager.debug("selectedVolumeID changed", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
+                    self?.startScan(for: volumeID)
+                }
             }
             .store(in: &cancellables)
 
@@ -90,23 +96,31 @@ class AppState: ObservableObject {
 
         // Initial state
         self.volumes = volumeManager.volumes
-        self.logManager.debug("Initial volumes", category: "AppState", metadata: ["volumes": "\(self.volumes.map { $0.name })"])
+        Task {
+            await self.logManager.debug("Initial volumes", category: "AppState", metadata: ["volumes": "\(self.volumes.map { $0.name })"])
+        }
         ensureVolumeSelection()
     }
     
     func ensureVolumeSelection() {
-        logManager.debug("ensureVolumeSelection called", category: "AppState")
+        Task {
+            await logManager.debug("ensureVolumeSelection called", category: "AppState")
+        }
         // Check if the currently selected ID corresponds to a connected volume.
         let currentSelectionIsValid = volumes.contains { $0.id == selectedVolumeID }
 
         if !currentSelectionIsValid {
             // If selection is invalid (or nil), select the first available volume.
             if let firstVolume = self.volumes.first {
-                logManager.debug("Selecting first volume", category: "AppState", metadata: ["name": firstVolume.name, "id": firstVolume.id])
+                Task {
+                    await logManager.debug("Selecting first volume", category: "AppState", metadata: ["name": firstVolume.name, "id": firstVolume.id])
+                }
                 self.selectedVolumeID = firstVolume.id
             } else {
                 // If no volumes are available, clear the selection.
-                logManager.debug("No volumes available to select, clearing selection", category: "AppState")
+                Task {
+                    await logManager.debug("No volumes available to select, clearing selection", category: "AppState")
+                }
                 self.selectedVolumeID = nil
             }
         } else if selectedVolumeID == nil, let firstVolume = volumes.first {
@@ -116,7 +130,9 @@ class AppState: ObservableObject {
     }
 
     private func startScan(for volumeID: Volume.ID?) {
-        logManager.debug("startScan called", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
+        Task {
+            await logManager.debug("startScan called", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
+        }
         
         scanTask?.cancel()
         
@@ -128,41 +144,51 @@ class AppState: ObservableObject {
         // Find the volume by its ID to get the path for the URL.
         guard let volumeID = volumeID,
               let volume = volumes.first(where: { $0.id == volumeID }) else {
-            logManager.debug("No volume ID provided or volume not found, skipping scan", category: "AppState")
+            Task {
+                await logManager.debug("No volume ID provided or volume not found, skipping scan", category: "AppState")
+            }
             return
         }
         
         let url = URL(fileURLWithPath: volume.devicePath, isDirectory: true)
-        logManager.debug("Starting scan for URL", category: "AppState", metadata: ["path": url.path])
+        Task {
+            await logManager.debug("Starting scan for URL", category: "AppState", metadata: ["path": url.path])
+        }
         
         self.state = .enumeratingFiles
         
         self.scanTask = Task {
-            self.logManager.debug("Scan task started", category: "AppState")
+            await self.logManager.debug("Scan task started", category: "AppState")
             let processedFiles = await fileProcessorService.processFiles(
                 from: url,
                 destinationURL: settingsStore.destinationURL,
                 settings: settingsStore
             )
-            self.logManager.debug("Scan task completed", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
+            await self.logManager.debug("Scan task completed", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
 
             await MainActor.run {
                 self.fileStore.setFiles(processedFiles)
                 self.filesScanned = processedFiles.count
                 self.state = .idle
-                self.logManager.debug("Updated UI", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
+                Task {
+                    await self.logManager.debug("Updated UI", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
+                }
             }
         }
     }
     
     func cancelScan() {
-        self.logManager.debug("cancelScan called", category: "AppState")
+        Task {
+            await self.logManager.debug("cancelScan called", category: "AppState")
+        }
         scanTask?.cancel()
         self.state = .idle
     }
     
     func cancelImport() {
-        self.logManager.debug("cancelImport called", category: "AppState")
+        Task {
+            await self.logManager.debug("cancelImport called", category: "AppState")
+        }
         importTask?.cancel()
     }
     

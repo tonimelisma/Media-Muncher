@@ -10,35 +10,43 @@ import SwiftUI
 @main
 struct Media_MuncherApp: App {
     @StateObject private var appState: AppState
+    @StateObject private var fileStore: FileStore
+    @StateObject private var settingsStore: SettingsStore
+    @StateObject private var volumeManager: VolumeManager
     
-    // Centralized dependency injection container
-    private let container: AppContainer
-
-    @MainActor
     init() {
-        // Initialize the dependency injection container
-        container = AppContainer()
+        // Use the blocking factory method to synchronously create the container
+        let container = AppContainer.blocking()
         
-        // Create AppState with all dependencies injected from container
-        let state = AppState(
+        // Extract services for StateObject initialization
+        let fileStore = container.fileStore
+        let settingsStore = container.settingsStore
+        let volumeManager = container.volumeManager
+        
+        let appState = AppState(
             logManager: container.logManager,
-            volumeManager: container.volumeManager,
+            volumeManager: volumeManager,
             fileProcessorService: container.fileProcessorService,
-            settingsStore: container.settingsStore,
+            settingsStore: settingsStore,
             importService: container.importService,
             recalculationManager: container.recalculationManager,
-            fileStore: container.fileStore
+            fileStore: fileStore
         )
-        _appState = StateObject(wrappedValue: state)
+        
+        // Initialize StateObjects with the created services
+        _appState = StateObject(wrappedValue: appState)
+        _fileStore = StateObject(wrappedValue: fileStore)
+        _settingsStore = StateObject(wrappedValue: settingsStore)
+        _volumeManager = StateObject(wrappedValue: volumeManager)
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
-                .environmentObject(container.volumeManager)
-                .environmentObject(container.settingsStore)
-                .environmentObject(container.fileStore)
+                .environmentObject(volumeManager)
+                .environmentObject(settingsStore)
+                .environmentObject(fileStore)
         }
         .commands {
             // This adds a "Settings" menu item to the app menu
@@ -46,8 +54,8 @@ struct Media_MuncherApp: App {
 
         Settings {
             SettingsView()
-                .environmentObject(container.settingsStore)
-                .environmentObject(container.volumeManager)
+                .environmentObject(settingsStore)
+                .environmentObject(volumeManager)
         }
     }
 }

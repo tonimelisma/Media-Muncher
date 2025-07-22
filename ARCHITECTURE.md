@@ -88,7 +88,7 @@
 | `ImportService` | Copy files, handle duplicates, **remove sidecar files (THM, XMP, LRC) after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Uses simple numerical suffix collision resolution (_1, _2, etc.) to ensure unique destination paths.** |
 | `SettingsStore` | Type-safe wrapper around `UserDefaults` with security-scoped resource access when needed | Provides Combine `@Published` properties for all user settings including RAW file filtering. |
 | `RecalculationManager` | Dedicated state machine for destination change recalculations | Handles file path updates when destination changes, with proper error handling and task cancellation. |
-| `LogManager` | Custom JSON-based logging system with persistent file storage | Centralized logging with category-based organization, rotating log files, and structured metadata for debugging and monitoring. |
+| `LogManager` | Custom JSON-based logging system with persistent file storage | Centralized logging with category-based organization, rotating log files, and structured metadata for debugging and monitoring. All logging calls are fully `async`. |
 | `AppState` | Pure composition root that orchestrates above services | Slimmed down, no heavy logic. |
 
 ### Dependency Flow
@@ -105,7 +105,7 @@ Media Muncher follows a **"Hybrid with Clear Boundaries"** approach to async pro
 | Layer | Pattern | Purpose | Usage |
 |-------|---------|---------|-------|
 | **UI Layer** | MainActor + Combine | SwiftUI reactive binding | `@MainActor` classes with `@Published` properties |
-| **Service Layer** | Actors + Async/Await | Thread-safe file operations | `actor` for I/O, simple `async func` interfaces |
+| **Service Layer** | Actors + Async/Await | Thread-safe file operations | `actor` for I/O, pure `async func` interfaces with no completion handlers. |
 | **Cross-Layer** | Async/Await + Task | Background coordination | Service calls via `await`, `Task` for lifecycle |
 | **Progress Reporting** | AsyncThrowingStream | Real-time updates | Only for import progress with backpressure |
 | **State Management** | Combine Publishers | Reactive UI updates | Settings and configuration changes |
@@ -136,6 +136,7 @@ Media Muncher follows a **"Hybrid with Clear Boundaries"** approach to async pro
 ### Concurrency Implementation Details
 * **Actors** – `FileProcessorService` & `ImportService` for file system isolation
 * **MainActor** – `AppState` & `RecalculationManager` for UI coordination
+* **No MainActor on DI Container** - The `AppContainer` is not MainActor-isolated, allowing its initialization and service creation to start off the main thread.
 * **Task Management** – Explicit cancellation support via stored `Task` references
 * **Publisher Chains** – Simplified with helper methods to improve readability
 
@@ -179,7 +180,7 @@ Our testing strategy prioritizes high-fidelity integration tests over mock-based
 ---
 ## 11. Logging & Debugging with LogManager
 
-Media Muncher uses an **actor-based** JSON logging system. Each process (app run, XCTest host, command-line tool) opens **one** log file named `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log`, guaranteeing uniqueness without race conditions. The actor holds a single `FileHandle`, serialises all writes, and therefore provides atomic, thread-safe logging under Swift Concurrency.
+Media Muncher uses an **actor-based** JSON logging system. Each process (app run, XCTest host, command-line tool) opens **one** log file named `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log`, guaranteeing uniqueness without race conditions. The actor holds a single `FileHandle`, serialises all writes, and therefore provides atomic, thread-safe logging under Swift Concurrency. All logging functions are `async` and must be awaited.
 
 **Convenient Log Access:** The project includes a symbolic link `./logs/` (git-ignored) that points to `~/Library/Logs/Media Muncher`, allowing developers to easily access logs using standard command-line tools:
 ```bash
@@ -236,71 +237,9 @@ jq -r '.category' ~/Library/Logs/Media\ Muncher/media-muncher-*.log | sort | uni
 ### Log Management
 - **Session-based**: New log file created for each application session with timestamp in filename
 - **No rotation**: Files persist until manually deleted (allows historical debugging)
-- **Performance**: Asynchronous writing on dedicated queue, minimal impact on UI responsiveness
-- **Thread-safe**: Concurrent logging from multiple threads supported
+- **Performance**: Asynchronous writing via an actor, minimal impact on UI responsiveness
+- **Thread-safe**: Concurrent logging from multiple threads supported via actor serialization
 
 ---
 ## 12. Build & Run (developers)
-```bash
-# prereqs
-xcode-select --install  # command-line tools
-brew install swiftformat swiftlint
-
-open "Media Muncher.xcodeproj"
 ```
-* Deployment target macOS 13+.
-* Run the **Media Muncher** scheme; press ⌘U for tests.
-
----
-## 13. Frequently Asked Questions
-**Q:** Why not just use Photos.app import?  
-**A:** Media Muncher offers a custom folder hierarchy, no proprietary library, automation hooks, and supports professional RAW/video formats that Photos ignores.
-
----
-## 14. File Interaction Diagram
-```mermaid
-graph TD;
-  subgraph Services
-    VM(VolumeManager)
-    FPS(FileProcessorService)
-    SS(SettingsStore)
-    IS(ImportService)
-    DPB(DestinationPathBuilder)
-  end
-
-  subgraph UI
-    CV(ContentView)
-    VV(VolumeView)
-    GV(MediaFilesGridView)
-    SV(SettingsView)
-    EV(ErrorView)
-  end
-  
-  App(Media_MuncherApp) -- instantiates --> AS(AppState)
-  App --> VM & FPS & SS & IS
-
-  AS --> VM & FPS & SS & IS
-  
-  CV --> AS
-  VV --> VM & AS
-  GV --> AS
-  SV --> SS
-  EV --> AS
-
-  VM -- publishes volumes --> AS
-  FPS -- streams files --> AS
-  FPS --> DPB
-  IS --> DPB
-```
-
----
-## 14. Change History
-
-For detailed maintenance history and version changes, see [CHANGELOG.md](CHANGELOG.md).
-
-**Recent Key Changes:**
-* Added RAW file support as separate media type with dedicated filtering
-* Implemented comprehensive JSON logging system with structured metadata
-* Created RecalculationManager for reliable destination change handling
-* Enhanced sidecar file support (THM, XMP, LRC) with automatic cleanup
-* Replaced mediaScanner naming with consistent FileProcessorService references

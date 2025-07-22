@@ -55,7 +55,9 @@ final class FileStore: ObservableObject {
     
     init(logManager: Logging) {
         self.logManager = logManager
-        logManager.debug("FileStore initialized", category: "FileStore")
+        Task {
+            await logManager.debug("FileStore initialized", category: "FileStore")
+        }
     }
     
     // MARK: - Computed Properties
@@ -97,7 +99,9 @@ final class FileStore: ObservableObject {
     
     /// Updates the files array from a background service
     func setFiles(_ newFiles: [File]) {
-        logManager.debug("Setting files", category: "FileStore", metadata: ["count": "\(newFiles.count)"])
+        Task {
+            await logManager.debug("Setting files", category: "FileStore", metadata: ["count": "\(newFiles.count)"])
+        }
         files = newFiles
     }
     
@@ -105,12 +109,16 @@ final class FileStore: ObservableObject {
     func updateFile(_ updatedFile: File) {
         if let index = files.firstIndex(where: { $0.id == updatedFile.id }) {
             files[index] = updatedFile
-            logManager.debug("Updated file", category: "FileStore", metadata: [
-                "id": updatedFile.id,
-                "status": updatedFile.status.rawValue
-            ])
+            Task {
+                await logManager.debug("Updated file", category: "FileStore", metadata: [
+                    "id": updatedFile.id,
+                    "status": updatedFile.status.rawValue
+                ])
+            }
         } else {
-            logManager.error("Attempted to update non-existent file", category: "FileStore", metadata: ["id": updatedFile.id])
+            Task {
+                await logManager.error("Attempted to update non-existent file", category: "FileStore", metadata: ["id": updatedFile.id])
+            }
         }
     }
     
@@ -123,7 +131,9 @@ final class FileStore: ObservableObject {
     
     /// Clears all files from the store
     func clearFiles() {
-        logManager.debug("Clearing all files", category: "FileStore")
+        Task {
+            await logManager.debug("Clearing all files", category: "FileStore")
+        }
         files.removeAll()
     }
     

@@ -36,14 +36,9 @@ actor LogManager: Logging, @unchecked Sendable {
     
         // MARK: - Core logging methods
     
-    // Public logging entry point – remains *sync* for callers; we dispatch internally.
-    nonisolated func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil, completion: (@Sendable () -> Void)? = nil) {
+    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil) async {
         let entry = LogEntry(timestamp: Date(), level: level, category: category, message: message, metadata: metadata)
-        // Hop onto the actor to perform file IO.
-        Task {
-            await self.internalWrite(entry)
-            completion?()
-        }
+        await self.internalWrite(entry)
     }
 
     // MARK: – Actor-isolated implementation

@@ -9,23 +9,29 @@ class MockLogManager: Logging, @unchecked Sendable {
         let metadata: [String: String]?
     }
     
-    private let queue = DispatchQueue(label: "MockLogManager.calls")
-    private var _calls = [LogCall]()
-    
-    var calls: [LogCall] {
-        queue.sync { _calls }
+    actor State {
+        var calls = [LogCall]()
+        
+        func recordCall(level: LogEntry.LogLevel, category: String, message: String, metadata: [String : String]?) {
+            calls.append(LogCall(level: level, category: category, message: message, metadata: metadata))
+        }
+        
+        func clear() {
+            calls.removeAll()
+        }
     }
     
-    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String : String]?, completion: (@Sendable () -> Void)?) {
-        queue.sync {
-            _calls.append(LogCall(level: level, category: category, message: message, metadata: metadata))
-        }
-        completion?()
+    private let state = State()
+
+    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String : String]?) async {
+        await state.recordCall(level: level, category: category, message: message, metadata: metadata)
     }
     
-    func clearCalls() {
-        queue.sync {
-            _calls.removeAll()
-        }
+    func getCalls() async -> [LogCall] {
+        await state.calls
+    }
+    
+    func clearCalls() async {
+        await state.clear()
     }
 } 

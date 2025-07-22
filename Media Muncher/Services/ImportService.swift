@@ -113,7 +113,7 @@ actor ImportService {
                     // Handle pre-existing files that should be deleted from source
                     if file.status == .pre_existing && settings.settingDeleteOriginals {
                         do {
-                            try deleteSourceFiles(for: file)
+                            try await deleteSourceFiles(for: file)
                             file.status = .deleted_as_duplicate
                             continuation.yield(file)
                             successfullyImportedIds.insert(file.id)
@@ -191,7 +191,7 @@ actor ImportService {
                     var deletionFailed = false
                     if settings.settingDeleteOriginals {
                         do {
-                            try deleteSourceFiles(for: file)
+                            try await deleteSourceFiles(for: file)
                         } catch {
                             // Non-fatal: mark importError and continue so remaining files are processed.
                             deletionFailed = true
@@ -214,7 +214,7 @@ actor ImportService {
                     for var duplicate in duplicateFiles {
                         if let masterId = duplicate.duplicateOf, successfullyImportedIds.contains(masterId) {
                             do {
-                                try deleteSourceFiles(for: duplicate)
+                                try await deleteSourceFiles(for: duplicate)
                                 duplicate.status = .deleted_as_duplicate
                                 continuation.yield(duplicate)
                             } catch {
@@ -233,10 +233,10 @@ actor ImportService {
 
     // MARK: - Private helpers
 
-    private func deleteSourceFiles(for file: File) throws {
+    private func deleteSourceFiles(for file: File) async throws {
         let allPathsToDelete = [file.sourcePath] + file.sidecarPaths
         
-        logManager.debug("Deleting source files", category: "ImportService", metadata: [
+        await logManager.debug("Deleting source files", category: "ImportService", metadata: [
             "fileName": file.sourceName,
             "paths": allPathsToDelete.joined(separator: ", ")
         ])
@@ -244,11 +244,11 @@ actor ImportService {
         for path in allPathsToDelete {
             let url = URL(fileURLWithPath: path)
             guard fileManager.fileExists(atPath: url.path) else {
-                logManager.debug("File not found at path", category: "ImportService", metadata: ["path": path])
+                await logManager.debug("File not found at path", category: "ImportService", metadata: ["path": path])
                 continue
             }
             try fileManager.removeItem(at: url)
-            logManager.debug("Deleted file at path", category: "ImportService", metadata: ["path": path])
+            await logManager.debug("Deleted file at path", category: "ImportService", metadata: ["path": path])
         }
     }
 }

@@ -26,7 +26,6 @@ import Foundation
 /// - Simplified dependency management
 /// - Enhanced testability through mock injection
 /// - Clear service dependency graph
-@MainActor
 final class AppContainer {
     
     // MARK: - Core Services
@@ -59,7 +58,7 @@ final class AppContainer {
     
     /// Creates a new container with all services properly initialized and wired together.
     /// Services are created in dependency order to ensure proper initialization.
-    init() {
+    init() async {
         // Initialize core services first (no dependencies)
         self.logManager = LogManager()
         self.volumeManager = VolumeManager(logManager: logManager)
@@ -67,16 +66,19 @@ final class AppContainer {
         self.fileProcessorService = FileProcessorService(logManager: logManager, thumbnailCache: thumbnailCache)
         self.settingsStore = SettingsStore(logManager: logManager)
         self.importService = ImportService(logManager: logManager)
-        self.fileStore = FileStore(logManager: logManager)
+        
+        // These services are @MainActor, so their initialization must be awaited
+        // from a non-MainActor context.
+        self.fileStore = await FileStore(logManager: logManager)
         
         // Initialize services with dependencies last
-        self.recalculationManager = RecalculationManager(
+        self.recalculationManager = await RecalculationManager(
             logManager: logManager,
             fileProcessorService: fileProcessorService,
             settingsStore: settingsStore
         )
         
-        logManager.info("AppContainer initialized", category: "AppContainer", metadata: [
+        await logManager.info("AppContainer initialized", category: "AppContainer", metadata: [
             "services": "7 services instantiated"
         ])
     }
@@ -98,6 +100,19 @@ extension AppContainer {
     ) -> AppContainer {
         // This would be implemented when we add proper mock services
         fatalError("Mock container not yet implemented - create mock services first")
+    }
+
+    /// A temporary synchronous wrapper for the async initializer.
+    /// To be removed when SwiftUI's App protocol supports async initialization.
+    static func blocking() -> AppContainer {
+        let semaphore = DispatchSemaphore(value: 0)
+        var container: AppContainer!
+        Task {
+            container = await AppContainer()
+            semaphore.signal()
+        }
+        semaphore.wait()
+        return container
     }
 }
 #endif 

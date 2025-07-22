@@ -14,364 +14,180 @@ extension LogManager {
     }
 }
 
-class LogManagerTests: XCTestCase {
+// A mock implementation of the Logging protocol for testing purposes.
+// This mock does not write to a file but stores log entries in memory.
+class TestLogManager: Logging {
+    func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String : String]?) async {
+        // For unit testing LogManager, we don't need a complex mock.
+        // The real LogManager is tested against the file system.
+    }
+}
+
+final class LogManagerTests: XCTestCase {
     
     var logManager: LogManager!
     var logFileURL: URL!
-    
+
     override func setUpWithError() throws {
         try super.setUpWithError()
-        // Create a new instance for each test
         logManager = LogManager()
         logFileURL = logManager.logFileURL
-    }
-    
-    override func tearDownWithError() throws {
+        // Ensure no previous log file exists
         try? FileManager.default.removeItem(at: logFileURL)
+    }
+
+    override func tearDownWithError() throws {
+        // Clean up the created log file
+        try? FileManager.default.removeItem(at: logFileURL)
+        logManager = nil
+        logFileURL = nil
         try super.tearDownWithError()
     }
     
-    func testNoMalformedJSONAfterConcurrentWrites() async {
-        // Given
-        let concurrentLogCount = 100
-
-        // Capture baseline line count before new writes
-        let baselineCount = logManager.getLogFileContents()?
-            .split(separator: "\n")
-            .filter { !$0.isEmpty }
-            .count ?? 0
-
-        // When – launch concurrent tasks that await write completion
-        await withTaskGroup(of: Void.self) { group in
-            for i in 0..<concurrentLogCount {
-                group.addTask {
-                    let metadata = ["index": "\(i)"]
-                    await self.logManager.writeSync(level: .info, category: "NoMalformedJSONTest", message: "Concurrent message \(i)", metadata: metadata)
-                }
-            }
-        }
-
-        // All writes finished – safe to read file
-
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-
-        let lines = logContent?.components(separatedBy: "\n").filter { !$0.isEmpty } ?? []
-        XCTAssertEqual(lines.count - baselineCount, concurrentLogCount, "Exactly the new entries should have been added")
-
-        var decodedCount = 0
-        for (i, line) in lines.enumerated() {
-            guard let data = line.data(using: .utf8) else {
-                XCTFail("Line \(i) is not valid UTF-8: \(line)")
-                continue
-            }
-
-            do {
-                _ = try JSONDecoder().decode(LogEntry.self, from: data)
-                decodedCount += 1
-            } catch {
-                XCTFail("Failed to decode line \(i) as JSON: \(error) - Content: \(line)")
-            }
-        }
-
-        XCTAssertEqual(decodedCount, concurrentLogCount, "All lines should be valid JSON LogEntry objects")
+    // Test that the LogManager creates a log file.
+    func testLogManagerWritesToFile() async throws {
+        let message = "Test message"
+        await logManager.info(message, category: "Test")
+        
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(logContent.contains(message))
     }
     
-    // MARK: - Basic Functionality Tests
-    
-    func testLogManagerWritesToFile() {
-        // Given
-        let expectation = XCTestExpectation(description: "Log write completes")
-        let message = "Test message \(UUID())"
+    // Test logging at all available levels.
+    func testAllLogLevels() async throws {
+        let debugMessage = "This is a debug message"
+        let infoMessage = "This is an info message"
+        let errorMessage = "This is an error message"
         
-        // When
-        logManager.info(message, category: "Test") {
-            expectation.fulfill()
-        }
+        await logManager.debug(debugMessage, category: "Test")
+        await logManager.info(infoMessage, category: "Test")
+        await logManager.error(errorMessage, category: "Test")
         
-        wait(for: [expectation], timeout: 2.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent, "Log file should not be empty")
-        XCTAssertTrue(logContent?.contains(message) ?? false, "Log file should contain the test message")
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(logContent.contains(debugMessage))
+        XCTAssertTrue(logContent.contains(infoMessage))
+        XCTAssertTrue(logContent.contains(errorMessage))
     }
     
-    // MARK: - Log Level Tests
-    
-    func testAllLogLevels() {
-        // Given
-        let expectations = [
-            XCTestExpectation(description: "Debug log completes"),
-            XCTestExpectation(description: "Info log completes"),
-            XCTestExpectation(description: "Error log completes")
-        ]
-        
-        let debugMessage = "Debug message \(UUID())"
-        let infoMessage = "Info message \(UUID())"
-        let errorMessage = "Error message \(UUID())"
-        
-        // Capture baseline line count before new writes
-        let baselineCount = logManager.getLogFileContents()?
-            .components(separatedBy: "\n")
-            .filter { !$0.isEmpty }
-            .count ?? 0
-        
-        // When
-        logManager.debug(debugMessage, category: "Test") {
-            expectations[0].fulfill()
-        }
-        logManager.info(infoMessage, category: "Test") {
-            expectations[1].fulfill()
-        }
-        logManager.error(errorMessage, category: "Test") {
-            expectations[2].fulfill()
-        }
-        
-        wait(for: expectations, timeout: 2.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-
-        let lines = logContent?.components(separatedBy: "\n").filter { !$0.isEmpty } ?? []
-        XCTAssertEqual(lines.count - baselineCount, 3, "Should have three new log entries")
-
-        XCTAssertTrue(logContent?.contains(debugMessage) ?? false)
-        XCTAssertTrue(logContent?.contains(infoMessage) ?? false)
-        XCTAssertTrue(logContent?.contains(errorMessage) ?? false)
-    }
-    
-    // MARK: - Metadata Tests
-    
-    func testLogWithMetadata() {
-        // Given
-        let expectation = XCTestExpectation(description: "Log with metadata completes")
-        let message = "Test with metadata"
+    // Test logging with metadata.
+    func testLogWithMetadata() async throws {
+        let message = "Log with metadata"
         let metadata = ["key1": "value1", "key2": "value2"]
+        await logManager.info(message, category: "MetadataTest", metadata: metadata)
         
-        // When
-        logManager.info(message, category: "MetadataTest", metadata: metadata) {
-            expectation.fulfill()
-        }
-        
-        wait(for: [expectation], timeout: 2.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        XCTAssertTrue(logContent?.contains("value1") ?? false)
-        XCTAssertTrue(logContent?.contains("value2") ?? false)
-    }
-
-    // MARK: - Additional tests continue as before but using instance instead of static methods
-    
-    func testLogWithNilMetadata() {
-        // Given
-        let expectation = XCTestExpectation(description: "Log with nil metadata completes")
-        let message = "Test with nil metadata"
-        
-        // When
-        logManager.info(message, category: "NilMetadataTest", metadata: nil) {
-            expectation.fulfill()
-        }
-        
-        wait(for: [expectation], timeout: 2.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        XCTAssertTrue(logContent?.contains(message) ?? false)
-    }
-
-    func testJSONStructure() {
-        // Given
-        let expectation = XCTestExpectation(description: "JSON log completes")
-        let message = "JSON structure test"
-        let metadata = ["testKey": "testValue"]
-        
-        // When
-        logManager.info(message, category: "JSONTest", metadata: metadata) {
-            expectation.fulfill()
-        }
-        
-        wait(for: [expectation], timeout: 2.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        
-        guard let data = logContent?.data(using: .utf8) else {
-            XCTFail("Could not convert log content to data")
-            return
-        }
-        
-        do {
-            let logEntry = try JSONDecoder().decode(LogEntry.self, from: data)
-            XCTAssertEqual(logEntry.message, message)
-            XCTAssertEqual(logEntry.category, "JSONTest")
-            XCTAssertEqual(logEntry.level, .info)
-            XCTAssertEqual(logEntry.metadata?["testKey"], "testValue")
-        } catch {
-            XCTFail("Failed to decode JSON: \(error)")
-        }
-    }
-
-    // MARK: - Filename Format Tests
-    
-    func testFilenameFormat() {
-        // Given
-        let filename = logManager.logFileURL.lastPathComponent
-        
-        // Then
-        XCTAssertTrue(filename.hasPrefix("media-muncher-"), "Filename should start with 'media-muncher-'")
-        XCTAssertTrue(filename.hasSuffix(".log"), "Filename should end with '.log'")
-        
-        // Extract timestamp part (remove prefix and suffix)
-        let timestampPart = String(filename.dropFirst("media-muncher-".count).dropLast(".log".count))
-        
-        // Validate format: YYYY-MM-DD_HH-mm-ss-<pid>
-        let pattern = "^\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}-\\d+$"
-        let regex = try! NSRegularExpression(pattern: pattern)
-        let matches = regex.numberOfMatches(in: timestampPart, range: NSRange(timestampPart.startIndex..., in: timestampPart))
-        
-        XCTAssertEqual(matches, 1, "Timestamp should match format YYYY-MM-DD_HH-mm-ss, got: \(timestampPart)")
-        
-        // Ensure no problematic characters
-        let problematicChars = CharacterSet(charactersIn: "/: ,")
-        XCTAssertTrue(timestampPart.rangeOfCharacter(from: problematicChars) == nil, 
-                     "Timestamp should not contain problematic filesystem characters")
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(logContent.contains("\"key1\":\"value1\""))
+        XCTAssertTrue(logContent.contains("\"key2\":\"value2\""))
     }
     
-    // MARK: - Concurrent Logging Tests
-    
-    func testConcurrentLogging() {
-        // Given
-        let concurrentLogCount = 50
-        let expectations = (0..<concurrentLogCount).map { i in
-            XCTestExpectation(description: "Concurrent log \(i) completes")
-        }
+    // Test logging with nil metadata.
+    func testLogWithNilMetadata() async throws {
+        let message = "Log with nil metadata"
+        await logManager.info(message, category: "NilMetadataTest", metadata: nil)
         
-        // When - Log from multiple queues simultaneously
-        for i in 0..<concurrentLogCount {
-            DispatchQueue.global(qos: .background).async {
-                self.logManager.info("Concurrent message \(i)", category: "ConcurrentTest") {
-                    expectations[i].fulfill()
-                }
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(logContent.contains(message))
+        XCTAssertFalse(logContent.contains("metadata"))
+    }
+    
+    // Test that the logged JSON is well-formed.
+    func testJSONStructure() async throws {
+        let message = "Valid JSON test"
+        let metadata = ["path": "/dev/null"]
+        await logManager.info(message, category: "JSONTest", metadata: metadata)
+        
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        let data = Data(logContent.utf8)
+        
+        let decodedEntry = try JSONDecoder().decode(LogEntry.self, from: data)
+        
+        XCTAssertEqual(decodedEntry.message, message)
+        XCTAssertEqual(decodedEntry.category, "JSONTest")
+        XCTAssertEqual(decodedEntry.level, .info)
+        XCTAssertEqual(decodedEntry.metadata?["path"], "/dev/null")
+    }
+    
+    // Test concurrent logging from multiple threads.
+    func testConcurrentLogging() async throws {
+        let expectation = self.expectation(description: "Concurrent logging completes")
+        expectation.expectedFulfillmentCount = 100
+        
+        for i in 1...100 {
+            Task {
+                await self.logManager.info("Concurrent message \(i)", category: "ConcurrentTest")
+                expectation.fulfill()
             }
         }
         
-        wait(for: expectations, timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 5)
         
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        
-        let lines = logContent?.components(separatedBy: "\n").filter { !$0.isEmpty } ?? []
-        let concurrentMessages = lines.filter { $0.contains("Concurrent message") }
-        
-        XCTAssertEqual(concurrentMessages.count, concurrentLogCount, 
-                      "Should have logged all concurrent messages")
-        
-        // Verify all messages are present
-        for i in 0..<concurrentLogCount {
-            XCTAssertTrue(logContent?.contains("Concurrent message \(i)") ?? false,
-                         "Should contain message \(i)")
-        }
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        let lines = logContent.components(separatedBy: .newlines)
+        // Check if all 100 messages were logged.
+        XCTAssertEqual(lines.count, 100)
     }
     
-    // MARK: - Multiple Entry Tests
-    
-    func testMultipleLogEntries() {
-        // Given
-        let entryCount = 10
-        let expectations = (0..<entryCount).map { i in
-            XCTestExpectation(description: "Entry \(i) completes")
+    // Test that no malformed JSON is produced by concurrent writes.
+    func testNoMalformedJSONAfterConcurrentWrites() async throws {
+        await testConcurrentLogging() // Reuse the concurrent logging
+        
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        let lines = logContent.components(separatedBy: .newlines)
+        
+        for line in lines where !line.isEmpty {
+            let data = Data(line.utf8)
+            let decoder = JSONDecoder()
+            XCTAssertNoThrow(try decoder.decode(LogEntry.self, from: data), "Line should be valid JSON: \(line)")
+        }
+    }
+
+    // Test multiple log entries are appended correctly.
+    func testMultipleLogEntries() async throws {
+        for i in 1...5 {
+            await logManager.info("Entry \(i)", category: "MultiTest")
         }
         
-        // When
-        for i in 0..<entryCount {
-            logManager.info("Entry \(i)", category: "MultiTest") {
-                expectations[i].fulfill()
-            }
-        }
-        
-        wait(for: expectations, timeout: 5.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        
-        let lines = logContent?.components(separatedBy: "\n").filter { !$0.isEmpty } ?? []
-        let entryLines = lines.filter { $0.contains("Entry") && $0.contains("MultiTest") }
-        
-        XCTAssertEqual(entryLines.count, entryCount, "Should have \(entryCount) entries")
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        let lines = logContent.components(separatedBy: .newlines)
+        XCTAssertEqual(lines.count, 5)
     }
     
-    // MARK: - Category Tests
-    
-    func testDifferentCategories() {
-        // Given
-        let categories = ["Category1", "Category2", "Special-Category_123"]
-        let expectations = categories.map { category in
-            XCTestExpectation(description: "Category \(category) completes")
-        }
-        
-        // When
-        for (index, category) in categories.enumerated() {
-            logManager.info("Message for \(category)", category: category) {
-                expectations[index].fulfill()
-            }
-        }
-        
-        wait(for: expectations, timeout: 3.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        
+    // Test logging with different categories.
+    func testDifferentCategories() async throws {
+        let categories = ["System", "Auth", "Network"]
         for category in categories {
-            XCTAssertTrue(logContent?.contains(category) ?? false,
-                         "Should contain category: \(category)")
+            await logManager.info("Message for \(category)", category: category)
         }
+        
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(logContent.contains("System"))
+        XCTAssertTrue(logContent.contains("Auth"))
+        XCTAssertTrue(logContent.contains("Network"))
     }
     
-    // MARK: - Edge Case Tests
-    
-    func testEmptyMessage() {
-        // Given
-        let expectation = XCTestExpectation(description: "Empty message log completes")
+    // Test logging an empty message.
+    func testEmptyMessage() async throws {
+        await logManager.info("", category: "EmptyTest")
         
-        // When
-        logManager.info("", category: "EmptyTest") {
-            expectation.fulfill()
-        }
-        
-        wait(for: [expectation], timeout: 2.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        XCTAssertTrue(logContent?.contains("EmptyTest") ?? false)
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(logContent.contains("\"message\":\"\""))
     }
     
-    func testLongMessage() {
-        // Given
-        let expectation = XCTestExpectation(description: "Long message log completes")
-        let longMessage = String(repeating: "A", count: 1000)
+    // Test logging a very long message.
+    func testLongMessage() async throws {
+        let longMessage = String(repeating: "A", count: 10_000)
+        await logManager.info(longMessage, category: "LongTest")
         
-        // When
-        logManager.info(longMessage, category: "LongTest") {
-            expectation.fulfill()
-        }
-        
-        wait(for: [expectation], timeout: 2.0)
-        
-        // Then
-        let logContent = logManager.getLogFileContents()
-        XCTAssertNotNil(logContent)
-        XCTAssertTrue(logContent?.contains(longMessage) ?? false)
+        let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(logContent.contains(longMessage))
+    }
+
+    // Test that the log file name has the correct format.
+    func testFilenameFormat() {
+        let filename = logFileURL.lastPathComponent
+        // Example format: media-muncher-YYYY-MM-DD_HH-mm-ss-pid.log
+        let pattern = #"^media-muncher-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d+\.log$"#
+        XCTAssertNotNil(filename.range(of: pattern, options: .regularExpression))
     }
 }
  

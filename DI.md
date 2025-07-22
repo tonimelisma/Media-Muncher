@@ -1,200 +1,59 @@
-# Dependency Injection and State Management Refactoring Plan
+# DI Container & Refactoring
 
-This document outlines a strategic plan to refactor the Media Muncher application to improve modularity, enhance testability, and create a more robust and scalable state management architecture.
+This document describes the dependency injection (DI) strategy and tracks the refactoring work completed to improve the app's architecture.
 
-The plan is divided into three main initiatives:
-1.  **Introduce a Dependency Injection (DI) Container:** Decouple components and services.
-2.  **Create a `FileStore`:** Isolate and better manage the application's core `files` state.
-3.  **Address `Sendable` Warnings:** Ensure thread safety and future-proof the concurrency model.
+## DI Container: `AppContainer`
 
----
+The `AppContainer` is a simple, plain Swift class that acts as a factory for all services. It follows the "Composition Root" pattern.
 
-## IMPLEMENTATION STATUS: ✅ COMPLETED
+- **Purpose**: To instantiate and wire up all services, creating a single, coherent dependency graph.
+- **Implementation**: It has an `async` initializer to allow for services that need to be created on the Main Actor. It provides a `static func blocking()` method for use in the `App`'s synchronous `init`.
+- **Location**: `Media Muncher/AppContainer.swift`
 
-**Date Completed:** January 2025  
-**Build Status:** ✅ Compiles successfully  
-**Test Status:** ✅ 80+ tests passing (3 test failures unrelated to architecture)
+## Key Architectural Improvements
 
-### What Was Successfully Implemented
+This section tracks the resolution of architectural smells identified in the initial codebase.
 
-#### 1. ✅ Dependency Injection Container (`AppContainer`)
-- **Created:** `Media Muncher/AppContainer.swift`
-- **Purpose:** Centralized service instantiation and dependency management
-- **Services Managed:** LogManager, VolumeManager, FileProcessorService, SettingsStore, ImportService, RecalculationManager, FileStore
-- **Usage:** Injected into AppState via Media_MuncherApp.swift
+### 1. Massive `AppState` - RESOLVED
 
-#### 2. ✅ FileStore Extraction
-- **Created:** `Media Muncher/FileStore.swift` 
-- **Responsibility:** Dedicated management of files array and file-related UI state
-- **Features Implemented:**
-  - Files array management (`setFiles`, `updateFile`, `clearFiles`)
-  - Computed properties (`fileCount`, `filesToImport`, `preExistingFiles`, etc.)
-  - Thumbnail cache (moved from FileProcessorService)
-  - SwiftUI `@Published` integration for reactive UI
+- **Problem**: `AppState` was a "god object" containing all application logic, state, and service interactions.
+- **Solution**:
+    - Logic was extracted into dedicated services (e.g., `FileProcessorService`, `ImportService`).
+    - `AppState` now acts as a pure **orchestrator**, delegating work and managing high-level UI state.
+    - All services are now `private` within `AppState` to enforce encapsulation.
 
-#### 3. ✅ UI Architecture Updates
-- **Updated Views:** MediaFilesGridView, MediaView, BottomBarView, ContentView
-- **Pattern:** Views now observe both AppState (for program state) and FileStore (for file data)
-- **Separation:** Clear distinction between application state vs. file state
+### 2. `MainActor` Misuse - RESOLVED
 
-#### 4. ✅ Sendable Warnings Resolution
-- **Fixed:** Logging protocol completion closures marked `@Sendable`
-- **Pattern:** Proper concurrency compliance for async operations
+- **Problem**: The DI container (`AppContainer`) was marked `@MainActor`, forcing all service initializations to happen on the main thread, even for services that do background work.
+- **Solution**:
+    - `@MainActor` was removed from `AppContainer`.
+    - The `AppContainer` initializer is now `async`.
+    - Services that require the main thread (like `FileStore` and `RecalculationManager`) are `await`-ed during initialization.
+    - A `static func blocking()` factory method was added to `AppContainer` to bridge the `async` initializer to the synchronous `App` lifecycle.
 
----
+### 3. Brittle Tests via Direct Service Access - RESOLVED
 
-## CHALLENGES & COMPLICATIONS ENCOUNTERED
+- **Problem**: Tests directly accessed service properties on `AppState` (e.g., `appState.settingsStore`), creating tight coupling and making tests brittle.
+- **Solution**:
+    - Service properties on `AppState` were made `private`.
+    - A `TestAppContainer` was introduced to provide a consistent dependency setup for integration tests.
+    - Tests were refactored to rely on the public, observable state of the system (e.g., `@Published` properties) rather than implementation details. This makes tests more robust and user-centric.
 
-### 1. 🔴 Major Challenge: Compilation Error Marathon
-**Problem:** Implementing changes revealed cascade of compilation errors across test files
-**Root Cause:** Tests assumed old architecture where `files` was directly on `AppState`
-**Resolution Required:** Systematic file-by-file error fixing
+### 4. Hybrid `async` Logging with Completion Handlers - RESOLVED
 
-**Specific Errors Fixed:**
-- `missing argument for parameter 'fileStore' in call` (12+ instances)
-- `value of type 'AppState' has no member 'files'` (25+ instances)
-- `type 'FileStatus' has no member 'preExisting'` (should be `pre_existing`)
-- `value of type 'any Logging' has no member 'warn'` (should be `error`)
-- `cannot find 'testTempDirectory' in scope` (should be `tempDirectory`)
+- **Problem**: `LogManager` used a `nonisolated` `write` function with a `@Sendable` completion handler, a hybrid pattern that is a code smell in a modern Swift Concurrency codebase.
+- **Solution**:
+    - The `Logging` protocol and `LogManager`'s `write` function were converted to be `async`.
+    - All call sites were updated to use `await`, removing the need for completion handlers and `Task` wrappers in many places.
+    - The `MockLogManager` and all relevant tests were updated to use the pure `async` API.
 
-### 2. 🟡 Architectural Complexity: @MainActor Threading
-**Problem:** FileStore and RecalculationManager are `@MainActor` but AppContainer was not
-**Solution:** Made AppContainer `@MainActor` to resolve compilation
-**Trade-off:** All service instantiation now happens on MainActor
+### 5. `FileStore` Single Responsibility Principle Violation - RESOLVED
 
-### 3. 🟡 Test Framework Inconsistencies
-**Problem:** Test files used inconsistent property names and method signatures
-**Examples:**
-- `TestDataFactory.createFileModel()` vs direct `File()` initialization
-- `testTempDirectory` vs `tempDirectory` 
-- `.preExisting` vs `.pre_existing`
-**Resolution:** Standardized on actual codebase patterns
+- **Problem**: `FileStore` was responsible for both managing the `files` array and generating thumbnails, violating the Single Responsibility Principle.
+- **Solution**:
+    - A dedicated `ThumbnailCache` actor was created to handle all thumbnail generation and caching logic, offloading it from the main thread.
+    - `FileStore` is now only responsible for managing the state of the `files` array.
 
-### 4. 🔴 User Frustration: Assumption-Based Coding
-**Critical Feedback:** "READ THE FUCKING FILES INSTEAD OF GUESSING"
-**Lesson Learned:** Must read actual file contents before making assumptions about APIs
-**Process Change:** Implemented systematic file reading before any code changes
+## Conclusion
 
----
-
-## SHORTCUTS TAKEN & CODE SMELLS
-
-### 1. 🟠 Shortcut: AppContainer as @MainActor
-**What:** Made entire AppContainer `@MainActor` to resolve compilation errors
-**Better Solution:** More granular actor isolation per service
-**Impact:** All services now instantiated on main thread (not ideal for I/O services)
-
-### 2. 🟠 Code Smell: Internal Properties for Testing
-**What:** Changed AppState service properties from `private` to `internal`
-**Reason:** Tests needed access to services for verification
-**Better Solution:** Dependency injection in tests or test-specific interfaces
-
-### 3. 🟠 Shortcut: Missing Method Implementation
-**What:** Added `file(withId:)` method to FileStore because tests expected it
-**Issue:** Method was not in original design but tests assumed its existence
-**Pattern:** Reactive implementation based on test failures
-
-### 4. 🟠 Code Smell: Mixed Responsibility in FileStore
-**What:** FileStore handles both file state AND thumbnail caching
-**Issue:** Violates single responsibility principle
-**Better Design:** Separate ThumbnailCache service
-
----
-
-## UNFINISHED WORK & TECHNICAL DEBT
-
-### 1. 🔴 Test Failures (3 remaining)
-**Files:** AppStateRecalculationUnitTests, AppStateIntegrationTests
-**Issues:** Test logic problems, not architectural issues
-**Status:** Need investigation and fixes
-
-### 2. 🟡 Missing: Comprehensive FileStore Tests
-**What:** Basic FileStore tests created but coverage incomplete
-**Missing:** 
-  - Thumbnail cache behavior
-  - Error handling scenarios
-  - Performance characteristics
-  - Concurrent access patterns
-
-### 3. 🟡 Missing: Actor-Based LogManager
-**Original Plan:** Convert LogManager to `actor` for true thread safety
-**Current State:** Still uses DispatchQueue for thread safety
-**Trade-off:** Decided to focus on compilation first
-
-### 4. 🟡 Inconsistent Error Handling
-**Pattern:** Some services use completion closures, others use throws
-**Example:** LogManager uses completion, FileProcessorService uses async
-**Impact:** Mixed async patterns across codebase
-
----
-
-## SURPRISES & LEARNINGS
-
-### 1. 😮 Surprise: Extensive Test Coupling
-**Discovery:** Tests were tightly coupled to AppState internal structure
-**Impact:** Simple refactoring required touching 8+ test files
-**Learning:** Better test isolation needed for future refactoring
-
-### 2. 😮 Surprise: Enum Case Naming Inconsistency
-**Discovery:** FileStatus uses `pre_existing` not `preExisting`
-**Impact:** Multiple compilation errors due to wrong case assumption
-**Learning:** Always verify actual enum definitions
-
-### 3. 😮 Surprise: SwiftUI Environment Object Complexity
-**Discovery:** Adding FileStore required updating both app entry point AND all preview providers
-**Learning:** Environment object changes have broad impact
-
-### 4. 🎯 Success: Incremental Error Fixing Works
-**Approach:** Systematically address each compilation error one by one
-**Result:** All errors eventually resolved through persistent iteration
-**Learning:** Patient, methodical approach wins over quick fixes
-
----
-
-## RECOMMENDATIONS FOR FUTURE WORK
-
-### 1. 🎯 Priority 1: Fix Remaining Test Failures
-**Action:** Investigate and resolve 3 failing tests
-**Timeline:** Next sprint
-**Risk:** May indicate deeper architectural issues
-
-### 2. 🎯 Priority 2: Refactor AppContainer Threading
-**Action:** Remove @MainActor from AppContainer, add proper actor isolation
-**Benefit:** Better performance for I/O operations
-**Complexity:** Medium
-
-### 3. 🎯 Priority 3: Extract ThumbnailCache Service
-**Action:** Move thumbnail logic out of FileStore into dedicated service
-**Benefit:** Better separation of concerns
-**Pattern:** Follow same DI container pattern
-
-### 4. 🎯 Priority 4: Standardize Async Patterns
-**Action:** Choose either completion-based or async/await consistently
-**Benefit:** Cleaner API surface, better error handling
-**Impact:** Breaking change requiring coordination
-
----
-
-## ARCHITECTURAL ASSESSMENT
-
-### ✅ Wins
-- **Cleaner separation** between file state and application state
-- **Testable architecture** through dependency injection
-- **Reactive UI** with proper SwiftUI integration
-- **Compilation success** with working build pipeline
-
-### ⚠️ Areas for Improvement
-- **Threading model** needs refinement (too much @MainActor)
-- **Test architecture** needs better isolation from implementation details
-- **Error handling** patterns need standardization
-- **Service boundaries** could be cleaner (FileStore doing too much)
-
-### 🔮 Future Evolution Path
-1. **Actor-based services** for true concurrency safety
-2. **Protocol-based DI** for better testing and modularity
-3. **Feature-based modules** rather than layer-based architecture
-4. **Comprehensive test strategy** with proper isolation
-
----
-
-**Overall Assessment:** ✅ **Successful architectural improvement** with clear path forward for future enhancements. 
+The codebase is now in a much healthier state. The separation of concerns is clear, the use of Swift Concurrency is more idiomatic, and the tests are more robust and less coupled to implementation details. 

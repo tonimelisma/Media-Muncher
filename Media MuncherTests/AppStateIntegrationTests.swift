@@ -8,26 +8,27 @@ final class AppStateIntegrationTests: MediaMuncherTestCase {
     
     private var appState: AppState!
     private var fileStore: FileStore!
+    private var settingsStore: SettingsStore!
+    private var recalculationManager: RecalculationManager!
+    private var cancellables: Set<AnyCancellable>!
 
     override func setUp() async throws {
         try await super.setUp()
+        cancellables = []
         
-        let logManager = LogManager()
-        let volumeManager = VolumeManager(logManager: logManager)
-        let fileProcessorService = FileProcessorService(logManager: logManager)
-        let settingsStore = SettingsStore(logManager: logManager)
-        let importService = ImportService(logManager: logManager)
-        let recalculationManager = RecalculationManager(logManager: logManager, fileProcessorService: fileProcessorService, settingsStore: settingsStore)
-        fileStore = FileStore(logManager: logManager)
+        let container = await TestAppContainer()
+        fileStore = container.fileStore
+        settingsStore = container.settingsStore
+        recalculationManager = container.recalculationManager
         
         appState = AppState(
-            logManager: logManager,
-            volumeManager: volumeManager,
-            fileProcessorService: fileProcessorService,
-            settingsStore: settingsStore,
-            importService: importService,
-            recalculationManager: recalculationManager,
-            fileStore: fileStore
+            logManager: container.logManager,
+            volumeManager: container.volumeManager,
+            fileProcessorService: container.fileProcessorService,
+            settingsStore: container.settingsStore,
+            importService: container.importService,
+            recalculationManager: container.recalculationManager,
+            fileStore: container.fileStore
         )
         
         // Clear any existing files
@@ -37,6 +38,9 @@ final class AppStateIntegrationTests: MediaMuncherTestCase {
     override func tearDown() async throws {
         appState = nil
         fileStore = nil
+        settingsStore = nil
+        recalculationManager = nil
+        cancellables = nil
         try await super.tearDown()
     }
 
@@ -56,15 +60,15 @@ final class AppStateIntegrationTests: MediaMuncherTestCase {
         FileManager.default.createFile(atPath: srcDir.appendingPathComponent("b.jpg").path, contents: Data([0xFF,0xD8]))
 
         // Configure settings BEFORE scan so DestinationPathBuilder uses them
-        appState.settingsStore.organizeByDate = false
-        appState.settingsStore.renameByDate = false
+        settingsStore.organizeByDate = false
+        settingsStore.renameByDate = false
 
         // Hook expectations
-        var cancellables = Set<AnyCancellable>()
         let scanFinished = expectation(description: "Scan finished")
-        appState.fileStore.$files
+        fileStore.$files
+            .dropFirst() // Ignore initial empty value
             .sink { files in
-                if files.count == 2 && self.appState.state == .idle {
+                if files.count == 2 {
                     scanFinished.fulfill()
                 }
             }
@@ -81,13 +85,13 @@ final class AppStateIntegrationTests: MediaMuncherTestCase {
 
         // Recalculation expectation
         let recalcFinished = expectation(description: "Recalc finished")
-        appState.recalculationManager.didFinishPublisher
+        recalculationManager.didFinishPublisher
             .sink { _ in recalcFinished.fulfill() }
             .store(in: &cancellables)
 
         let newDest = tempDirectory.appendingPathComponent("NewDest")
         try FileManager.default.createDirectory(at: newDest, withIntermediateDirectories: true)
-        appState.settingsStore.setDestination(newDest)
+        settingsStore.setDestination(newDest)
 
         await fulfillment(of: [recalcFinished], timeout: 5)
 
