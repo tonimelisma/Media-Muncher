@@ -4,60 +4,6 @@ This document tracks architectural and performance debt that should be addressed
 
 ## Architectural Debt
 
-### 1. Mixed Async Patterns ✅ ADDRESSED
-
-**Issue**: Inconsistent concurrency patterns across the codebase.
-- Some files use `Task` directly (AppState.swift:191)
-- Others use `AsyncThrowingStream` (ImportService.swift:65)
-- Publisher chains in AppState are complex (AppState.swift:105-145)
-
-**Impact**: 
-- Harder to reason about concurrency
-- Potential for subtle race conditions
-- Inconsistent error handling patterns
-
-**Resolution Applied**: 
-- ✅ Documented "Hybrid with Clear Boundaries" pattern guidelines in ARCHITECTURE.md
-- ✅ Added comprehensive async pattern documentation to all services
-- ✅ Simplified complex publisher chains in AppState with helper methods
-- ✅ Established clear patterns for each architectural layer
-
-### 2. Error Handling Inconsistency
-
-**Issue**: Multiple error reporting mechanisms in use.
-- Some places throw errors
-- Others set status fields on File objects
-- Others use completion handlers with error parameters
-- AppError enum not used consistently
-
-**Impact**:
-- Unclear error handling contracts
-- Potential for lost errors
-- Difficult to debug error flows
-
-**Recommendation**:
-- Standardize error handling strategy
-- Use Result types consistently
-- Ensure all errors bubble up to UI appropriately
-
-### 3. Hard-coded Constants ✅ ADDRESSED
-
-**Issue**: Magic numbers scattered throughout codebase.
-- Thumbnail cache limit: 2000 (FileProcessorService.swift:12)
-- Timestamp proximity: 60 seconds (FileProcessorService.swift:222)
-- Grid column width: 120px (MediaFilesGridView.swift:19)
-
-**Impact**:
-- Difficult to tune performance
-- Unclear business logic
-- Hard to maintain consistency
-
-**Resolution Applied**:
-- ✅ Created Constants.swift with all magic numbers consolidated
-- ✅ Added documentation explaining the choice of each value
-- ✅ Updated all references to use Constants instead of literals
-- ✅ Added helper functions for computed constants (grid layout)
-
 ### 4. Service Injection Pattern Incomplete
 
 **Issue**: LogManager dependency injection is applied inconsistently.
@@ -148,30 +94,6 @@ if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.fi
 
 ## Code Quality Debt
 
-### 1. Large Service Classes
-
-**Issue**: FileProcessorService and ImportService are becoming monolithic.
-- FileProcessorService: >500 lines
-- Multiple responsibilities in single class
-- Hard to unit test specific functionality
-
-**Recommendation**:
-- Split into focused services
-- Extract thumbnail management
-- Separate file discovery from processing
-
-### 2. Complex Method Signatures
-
-**Issue**: Some methods have too many parameters.
-- `fastEnumerate` takes 5 boolean parameters
-- `buildFinalDestinationUrl` has optional suffix parameter
-- Hard to call correctly
-
-**Recommendation**:
-- Use configuration objects
-- Create builder patterns where appropriate
-- Reduce parameter counts
-
 ### 3. Missing Documentation
 
 **Issue**: Some complex algorithms lack documentation.
@@ -183,32 +105,3 @@ if thumbnailOrder.count > thumbnailCacheLimit, let oldestKey = thumbnailOrder.fi
 - Add comprehensive doc comments
 - Document algorithm choices
 - Include examples in documentation
-
-## Priority Assessment
-
-### High Priority (Address Next Sprint)
-1. Thumbnail cache LRU implementation
-2. Async file enumeration with cancellation
-3. ✅ ~~Standardize error handling patterns~~ → **Partially addressed via async pattern documentation**
-
-### Medium Priority (Next Quarter)
-1. Service dependency injection
-2. ✅ ~~Constants consolidation~~ → **COMPLETED**
-3. Large class decomposition
-
-### Low Priority (Future)
-1. String operation optimization
-2. File system operation batching
-3. Documentation improvements
-
-## Success Metrics
-
-- Reduced memory usage during large imports
-- Faster file enumeration on large volumes
-- More consistent error handling
-- Improved test coverage on refactored components
-- Reduced cyclomatic complexity in large methods
-
----
-
-*This document should be updated as technical debt is addressed or new debt is identified.*
