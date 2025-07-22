@@ -77,9 +77,9 @@ private func loadThumbnail() {
 
 **Future Work**: Extract to shared utility function or computed property on File model.
 
-### 2.3 PNG Format Hardcoded
+### 2.3 PNG Format Hardcoded - REVERT REQUIRED
 **Location**: `ThumbnailCache.swift:45-50`  
-**Issue**: Hardcoded PNG format for thumbnail storage without configuration.
+**Issue**: Hardcoded PNG format for thumbnail storage is completely wrong approach.
 
 ```swift
 guard let tiffData = rep.nsImage.tiffRepresentation,
@@ -90,11 +90,12 @@ guard let tiffData = rep.nsImage.tiffRepresentation,
 ```
 
 **Impact**:
-- Larger file sizes compared to JPEG for photographic content
-- No compression quality control
-- Fixed format limits future optimization options
+- Massive memory waste - PNG uncompressed bitmap data
+- Wrong format for photographic thumbnails
+- Unnecessary encoding/decoding overhead
+- 10x larger memory footprint than needed
 
-**Future Work**: Add configurable format and quality settings.
+**Future Work**: **REVERT THIS APPROACH** - find different solution that doesn't require format conversion.
 
 ## 3. Mixed Testing and Production Code
 
@@ -122,19 +123,20 @@ return File(
 
 ## 4. Technical Debt Created
 
-### 4.1 Memory Usage Regression
+### 4.1 Memory Usage Regression - CRITICAL
 **Location**: `ThumbnailCache.swift`  
-**Issue**: Storing PNG data instead of compressed SwiftUI Images may increase memory usage.
+**Issue**: PNG approach is fundamentally flawed and must be reverted.
 
 **Analysis**:
-- PNG data is uncompressed bitmap data
-- SwiftUI Image may use more efficient internal representations
-- Cache memory footprint could be 2-4x larger
+- PNG stores raw bitmap data = ~262KB per 256x256 thumbnail
+- 2000 thumbnails = ~524MB memory usage
+- This is completely unacceptable
+- SwiftUI Images were likely much more memory efficient
 
 **Future Work**: 
-- Memory profiling to measure actual impact
-- Consider JPEG format for photographic thumbnails
-- Add cache memory limit in addition to entry count limit
+- **REVERT PNG approach entirely**
+- Find thread-safe solution that doesn't require data conversion
+- Consider NSImage storage with proper thread safety instead
 
 ### 4.2 Error Handling Gaps
 **Location**: Multiple locations  
@@ -193,20 +195,20 @@ return File(
 
 ## 7. Mitigation Strategies
 
-### 7.1 Short Term (Next Sprint)
-1. Fix critical test compilation errors to restore CI/CD
-2. Add error logging to Data→Image conversion paths
-3. Memory profile the new thumbnail cache approach
+### 7.1 Short Term (Next Sprint) - PRIORITY CHANGE
+1. **REVERT PNG approach** - this is causing massive memory waste
+2. Fix critical test compilation errors to restore CI/CD
+3. Research thread-safe thumbnail storage alternatives
 
 ### 7.2 Medium Term (Next Month)
-1. Implement UI-level thumbnail caching to reduce conversions
+1. Implement proper thread-safe thumbnail solution without PNG conversion
 2. Add comprehensive error handling for thumbnail operations
 3. Create migration guide for API changes
 
 ### 7.3 Long Term (Next Quarter)
 1. Remove legacy thumbnail APIs once migration complete
-2. Optimize thumbnail format based on content type (PNG vs JPEG)
-3. Refactor test suite for better isolation and maintainability
+2. Refactor test suite for better isolation and maintainability
+3. Performance optimization based on corrected approach
 
 ## 8. Risk Assessment
 
