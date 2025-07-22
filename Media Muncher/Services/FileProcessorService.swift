@@ -166,7 +166,7 @@ actor FileProcessorService {
         let (date, size) = await getFileMetadata(url: url, mediaType: newFile.mediaType)
         newFile.date = date
         newFile.size = size
-        newFile.thumbnail = await thumbnailCache.thumbnail(for: url)
+        newFile.thumbnailData = await thumbnailCache.thumbnailData(for: url)
 
         // 2. Source-to-source deduplication (same timestamp && size)
         for otherFile in allFiles where otherFile.status != .duplicate_in_source {

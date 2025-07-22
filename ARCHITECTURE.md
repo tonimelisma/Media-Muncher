@@ -44,12 +44,12 @@
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. Uses security-scoped resources for folder access when needed. | `SettingsStore` |
 | **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped resource access. Delegates all path calculation to `DestinationPathBuilder`. Handles sidecar files (THM, XMP, LRC) automatically. | `ImportService` |
-| **Services/ThumbnailCache.swift** | Actor-based thumbnail generation & LRU cache shared across FileProcessorService and UI. Keeps heavy QuickLook work off the MainActor. | `ThumbnailCache` |
+| **Services/ThumbnailCache.swift** | Actor-based thumbnail generation & LRU cache shared across FileProcessorService and UI. Stores PNG data for thread safety, generates SwiftUI Images on-demand. Keeps heavy QuickLook work off the MainActor. | `ThumbnailCache` |
 | **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationUrl(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
 | **LogEntry.swift** | JSON-encodable log entry model | `LogEntry`, `LogLevel` |
 | **Services/LogManager.swift** | Custom logging system with file persistence and rotation | `LogManager` |
 | **Models/VolumeModel.swift** | Immutable record for a removable drive | `Volume` |
-| **Models/FileModel.swift** | Immutable record for a media file & helpers | `File`, `MediaType`, `FileStatus`, `MediaType.from(filePath:)` |
+| **Models/FileModel.swift** | Immutable record for a media file & helpers. Thread-safe with `thumbnailData: Data?` instead of `Image` for Sendable compliance. | `File`, `MediaType`, `FileStatus`, `MediaType.from(filePath:)` |
 | **Models/AppError.swift**| Domain-specific error types. | `AppError` |
 | **ContentView.swift** | Arranges split-view, toolbar, Import button. | `ContentView` |
 | **VolumeView.swift** | Sidebar showing all volumes, eject button. Binds to `VolumeManager`. | `VolumeView` |

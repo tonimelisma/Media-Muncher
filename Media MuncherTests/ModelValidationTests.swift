@@ -64,7 +64,8 @@ final class ModelValidationTests: XCTestCase {
             size: 1024,
             destPath: "/dest/MyPhoto.JPEG",
             status: .waiting,
-            thumbnail: nil,
+            thumbnailData: nil,
+            thumbnailSize: nil,
             importError: nil
         )
         
@@ -84,7 +85,8 @@ final class ModelValidationTests: XCTestCase {
             size: 2048,
             destPath: nil,
             status: .waiting,
-            thumbnail: nil,
+            thumbnailData: nil,
+            thumbnailSize: nil,
             importError: nil
         )
         
@@ -192,7 +194,8 @@ final class ModelValidationTests: XCTestCase {
                     size: Int64(i * 1024),
                     destPath: nil,
                     status: .waiting,
-                    thumbnail: nil,
+                    thumbnailData: nil,
+                    thumbnailSize: nil,
                     importError: nil
                 )
             }

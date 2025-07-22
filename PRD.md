@@ -178,6 +178,12 @@ The specific file extensions for each category in **ST-5** are:
 - `AppContainer` no longer runs heavy service instantiation on MainActor; services injected via DI.
 - Updated tests and documentation accordingly.
 
+### 2025-07-22 – Critical Data Race Fix
+- **SECURITY FIX**: Eliminated critical data race in File model by replacing unsafe `nonisolated(unsafe) var thumbnail: Image?` with thread-safe `thumbnailData: Data?` property
+- Updated ThumbnailCache to store PNG data instead of SwiftUI Image objects for proper Sendable compliance
+- Modified UI layer to safely convert thumbnail data to Images on MainActor
+- Resolved Swift Concurrency safety violations that could cause runtime crashes when File structs pass between actors
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  

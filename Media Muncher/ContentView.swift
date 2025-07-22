@@ -37,10 +37,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    // Create container on MainActor for preview
-    let container = MainActor.assumeIsolated {
-        AppContainer()
-    }
+    // Create container synchronously for preview
+    let container = AppContainer.blocking()
 
     return ContentView()
         .environmentObject(AppState(

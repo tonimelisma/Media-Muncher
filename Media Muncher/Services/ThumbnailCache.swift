@@ -12,7 +12,7 @@ import QuickLookThumbnailing
 /// Actor-based thumbnail cache with LRU eviction.
 /// All heavy QuickLook work happens inside the actor, keeping the UI thread smooth.
 actor ThumbnailCache {
-    private var cache: [String: Image] = [:]
+    private var cache: [String: Data] = [:]
     private var order: [String] = []   // Least-recently-used order
     private let limit: Int
 
@@ -20,12 +20,12 @@ actor ThumbnailCache {
         self.limit = limit
     }
 
-    /// Returns a cached thumbnail for the url or generates one on demand.
+    /// Returns cached thumbnail data for the url or generates it on demand.
     /// - Parameters:
     ///   - url: File url to create thumbnail for.
     ///   - size: Pixel size (defaults 256×256).
-    /// - Returns: SwiftUI Image or nil if generation failed.
-    func thumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
+    /// - Returns: PNG image data or nil if generation failed.
+    func thumbnailData(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Data? {
         let key = url.path
         if let cached = cache[key] {
             // Move key to most-recent position.
@@ -41,15 +41,30 @@ actor ThumbnailCache {
         guard let rep = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
             return nil
         }
-        let img = Image(nsImage: rep.nsImage)
-        cache[key] = img
+        
+        // Convert NSImage to PNG data for thread-safe storage
+        guard let tiffData = rep.nsImage.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            return nil
+        }
+        
+        cache[key] = pngData
         order.append(key)
         // Evict if necessary
         if order.count > limit, let oldest = order.first {
             order.removeFirst()
             cache.removeValue(forKey: oldest)
         }
-        return img
+        return pngData
+    }
+
+    /// Legacy method for backwards compatibility - converts data to Image
+    func thumbnail(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Image? {
+        guard let data = await thumbnailData(for: url, size: size) else {
+            return nil
+        }
+        return NSImage(data: data).map(Image.init)
     }
 
     /// Purges the entire cache (testing / memory-pressure).

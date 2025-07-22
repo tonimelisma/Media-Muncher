@@ -68,7 +68,8 @@ struct File: Identifiable, Sendable {
     var size: Int64?
     var destPath: String?
     var status: FileStatus
-    nonisolated(unsafe) var thumbnail: Image?
+    var thumbnailData: Data?
+    var thumbnailSize: CGSize?
     var importError: String?
     var duplicateOf: String? // ID of the file this one is a duplicate of
     var sidecarPaths: [String] = []

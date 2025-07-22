@@ -3,11 +3,12 @@ import SwiftUI
 struct MediaFileCellView: View {
     let file: File
     @State private var showingErrorAlert = false
+    @State private var displayThumbnail: Image?
 
     var body: some View {
         VStack {
             ZStack {
-                if let thumbnail = file.thumbnail {
+                if let thumbnail = displayThumbnail {
                     thumbnail
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -66,12 +67,26 @@ struct MediaFileCellView: View {
                 .font(.caption)
                 .frame(width: 100)
         }
+        .onAppear {
+            loadThumbnail()
+        }
+        .onChange(of: file.id) { _ in
+            loadThumbnail()
+        }
         .alert(isPresented: $showingErrorAlert) {
             Alert(
                 title: Text("Import Failed"),
                 message: Text(file.importError ?? "An unknown error occurred."),
                 dismissButton: .default(Text("OK"))
             )
+        }
+    }
+    
+    private func loadThumbnail() {
+        if let thumbnailData = file.thumbnailData {
+            displayThumbnail = NSImage(data: thumbnailData).map(Image.init)
+        } else {
+            displayThumbnail = nil
         }
     }
 } 

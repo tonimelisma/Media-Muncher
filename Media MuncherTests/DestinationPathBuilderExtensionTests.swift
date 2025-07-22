@@ -14,7 +14,8 @@ final class DestinationPathBuilderExtensionTests: XCTestCase {
             size: 1024,
             destPath: nil,
             status: .waiting,
-            thumbnail: nil,
+            thumbnailData: nil,
+            thumbnailSize: nil,
             importError: nil
         )
     }

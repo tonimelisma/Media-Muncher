@@ -23,7 +23,8 @@ struct TestDataFactory {
             size: size,
             destPath: nil,
             status: .waiting,
-            thumbnail: nil,
+            thumbnailData: nil,
+            thumbnailSize: nil,
             importError: nil
         )
     }
