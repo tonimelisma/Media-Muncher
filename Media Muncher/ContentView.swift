@@ -49,6 +49,7 @@ struct ContentView: View {
                     .environmentObject(container.volumeManager)
                     .environmentObject(container.settingsStore)
                     .environmentObject(container.fileStore)
+                    .environment(\.thumbnailCache, container.thumbnailCache)
             } else {
                 ProgressView()
                     .task {

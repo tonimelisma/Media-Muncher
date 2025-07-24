@@ -4,6 +4,7 @@ struct MediaFileCellView: View {
     let file: File
     @State private var showingErrorAlert = false
     @State private var displayThumbnail: Image?
+    @Environment(\.thumbnailCache) private var thumbnailCache
 
     var body: some View {
         VStack {
@@ -83,10 +84,9 @@ struct MediaFileCellView: View {
     }
     
     private func loadThumbnail() {
-        if let thumbnailData = file.thumbnailData {
-            displayThumbnail = NSImage(data: thumbnailData).map(Image.init)
-        } else {
-            displayThumbnail = nil
+        Task {
+            let url = URL(fileURLWithPath: file.sourcePath)
+            displayThumbnail = await thumbnailCache.thumbnailImage(for: url)
         }
     }
 } 

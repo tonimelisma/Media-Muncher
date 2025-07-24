@@ -1,5 +1,46 @@
 # Changelog
 
+## [2025-07-23] - Thumbnail Cache Optimization
+
+### Added
+- **NEW**: Dual caching system in ThumbnailCache actor storing both JPEG data and SwiftUI Images
+- **NEW**: `thumbnailImage(for:)` method providing direct SwiftUI Image access from ThumbnailCache
+- **NEW**: Environment injection for ThumbnailCache enabling direct UI access
+- **NEW**: Unified LRU eviction managing both data and image caches with single limit
+
+### Removed
+- **BREAKING**: Removed legacy `thumbnail(for:)` method from ThumbnailCache
+- **PERFORMANCE**: Eliminated all Data→Image conversions from UI layer (MediaFileCellView)
+
+### Changed
+- **ARCHITECTURE**: MediaFileCellView now uses ThumbnailCache directly via environment injection
+- **PERFORMANCE**: ThumbnailCache generates Images off-main-thread, eliminating UI blocking
+- **MEMORY**: Optimized cache eviction to manage both data and image storage efficiently
+
+### Technical Implementation
+- Enhanced ThumbnailCache with dual storage: `dataCache` and `imageCache` with unified LRU
+- Added SwiftUI environment key for ThumbnailCache dependency injection
+- Updated MediaFileCellView to use `thumbnailImage(for:)` directly in async Task
+- Maintained JPEG compression (80% quality) for efficient data storage
+- Added comprehensive tests for dual caching behavior and performance
+
+### Files Changed
+- ThumbnailCache.swift: Added dual caching, environment key, removed legacy API
+- MediaFileCellView.swift: Direct ThumbnailCache usage, removed Data→Image conversion
+- Media_MuncherApp.swift: Added ThumbnailCache environment injection
+- ContentView.swift: Added ThumbnailCache to preview environment
+- ThumbnailCacheTests.swift: Updated all tests to use thumbnailImage API, added dual cache tests
+
+### Performance Impact
+- **ELIMINATED**: Redundant Data→Image conversions in UI layer
+- **IMPROVED**: Thumbnail access speed through direct Image caching
+- **MAINTAINED**: Memory efficiency through unified LRU eviction
+- **ENHANCED**: UI responsiveness by moving Image conversion off MainActor
+
+### Breaking Changes
+- Tests using `cache.thumbnail(for:)` must migrate to `cache.thumbnailImage(for:)`
+- ThumbnailCache no longer provides legacy Image conversion method
+
 ## [2025-07-22] - Data Race Fix
 
 ### Fixed

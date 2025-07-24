@@ -24,6 +24,7 @@ struct Media_MuncherApp: App {
                     .environmentObject(container.volumeManager)
                     .environmentObject(container.settingsStore)
                     .environmentObject(container.fileStore)
+                    .environment(\.thumbnailCache, container.thumbnailCache)
             } else {
                 // While the container is nil, show a loading spinner.
                 ProgressView()
