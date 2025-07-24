@@ -56,7 +56,10 @@ class RecalculationManager: ObservableObject {
         self.logManager = logManager
         self.fileProcessorService = fileProcessorService
         self.settingsStore = settingsStore
-        Task {
+
+        Task.detached {
+            let message = "RecalculationManager.init() called - thread: \(Thread.current) - is main thread: \(Thread.isMainThread)"
+            await logManager.debug(message, category: "RecalculationManager")
             await logManager.debug("Initialized", category: "RecalculationManager")
         }
     }

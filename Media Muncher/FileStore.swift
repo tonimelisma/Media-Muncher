@@ -55,7 +55,11 @@ final class FileStore: ObservableObject {
     
     init(logManager: Logging) {
         self.logManager = logManager
-        Task {
+        // We are on the MainActor. We can't await here, but we can fire-and-forget
+        // a detached task to ensure this log is captured without blocking.
+        Task.detached {
+            let message = "FileStore.init() called - thread: \(Thread.current) - is main thread: \(Thread.isMainThread)"
+            await logManager.debug(message, category: "FileStore")
             await logManager.debug("FileStore initialized", category: "FileStore")
         }
     }

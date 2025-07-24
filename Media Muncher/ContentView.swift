@@ -40,7 +40,7 @@ struct ContentView: View {
     // Create container synchronously for preview
     let container = AppContainer.blocking()
 
-    return ContentView()
+    ContentView()
         .environmentObject(AppState(
             logManager: container.logManager,
             volumeManager: container.volumeManager,

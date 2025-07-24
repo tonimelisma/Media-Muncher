@@ -12,6 +12,7 @@ final class AppStateRecalculationTests: XCTestCase {
     var fileProcessorService: FileProcessorService!
     var importService: ImportService!
     var volumeManager: VolumeManager!
+    var fileStore: FileStore!
     var appState: AppState!
     private var cancellables: Set<AnyCancellable>!
     private var logManager: LogManager!
@@ -48,7 +49,7 @@ final class AppStateRecalculationTests: XCTestCase {
             settingsStore: settingsStore
         )
 
-        let fileStore = FileStore(logManager: logManager)
+        fileStore = FileStore(logManager: logManager)
         
         appState = AppState(
             logManager: logManager,
@@ -67,7 +68,7 @@ final class AppStateRecalculationTests: XCTestCase {
         appState.cancelImport()
         
         // Clear state
-        appState.fileStore.clearFiles()
+        fileStore.clearFiles()
         appState.state = .idle
         appState.error = nil
         
@@ -98,10 +99,10 @@ final class AppStateRecalculationTests: XCTestCase {
     
 
     func testRecalculationIsProperlyGatedByFilePresence() {
-        XCTAssertTrue(appState.fileStore.files.isEmpty, "Should start with no files")
+        XCTAssertTrue(fileStore.files.isEmpty, "Should start with no files")
 
         var filesChangedCount = 0
-        appState.fileStore.$files
+        fileStore.$files
             .dropFirst()
             .sink { _ in filesChangedCount += 1 }
             .store(in: &cancellables)
@@ -111,7 +112,7 @@ final class AppStateRecalculationTests: XCTestCase {
         settingsStore.setDestination(destA_URL)
 
         XCTAssertEqual(filesChangedCount, 0, "Files array should not change when no files are loaded")
-        XCTAssertTrue(appState.fileStore.files.isEmpty, "Files should remain empty")
+        XCTAssertTrue(fileStore.files.isEmpty, "Files should remain empty")
     }
 
     func testRecalculationHandlesRapidDestinationChanges() async throws {
@@ -133,13 +134,13 @@ final class AppStateRecalculationTests: XCTestCase {
         
         // Wait for initial scan to complete (this is the real integration test)
         try await waitForCondition(timeout: 5.0, description: "Initial scan") {
-            self.appState.fileStore.files.count >= 1 && self.appState.state == .idle
+            self.fileStore.files.count >= 1 && self.appState.state == .idle
         }
         
         // Verify initial scan worked correctly
-        XCTAssertEqual(appState.fileStore.files.count, 1, "Should have scanned one test file")
-        XCTAssertEqual(appState.fileStore.files.first?.status, .waiting, "File should be in waiting status")
-        XCTAssertTrue(appState.fileStore.files.first?.destPath?.contains(destA_URL.lastPathComponent) ?? false, "File should have destA path")
+        XCTAssertEqual(fileStore.files.count, 1, "Should have scanned one test file")
+        XCTAssertEqual(fileStore.files.first?.status, .waiting, "File should be in waiting status")
+        XCTAssertTrue(fileStore.files.first?.destPath?.contains(destA_URL.lastPathComponent) ?? false, "File should have destA path")
         
         // Act: Change destination (this should trigger RecalculationManager)
         settingsStore.setDestination(destB_URL)
@@ -147,14 +148,14 @@ final class AppStateRecalculationTests: XCTestCase {
         // Wait for recalculation to complete
         try await waitForCondition(timeout: 5.0, description: "Recalculation") {
             !self.appState.isRecalculating && 
-            (self.appState.fileStore.files.first?.destPath?.contains(self.destB_URL.lastPathComponent) ?? false)
+            (self.fileStore.files.first?.destPath?.contains(self.destB_URL.lastPathComponent) ?? false)
         }
         
         // Assert: Verify the complete integration worked
-        XCTAssertEqual(appState.fileStore.files.count, 1, "File count should remain stable")
+        XCTAssertEqual(fileStore.files.count, 1, "File count should remain stable")
         XCTAssertFalse(appState.isRecalculating, "Should not be recalculating after completion")
-        XCTAssertEqual(appState.fileStore.files.first?.status, .waiting, "File should still be waiting")
-        XCTAssertTrue(appState.fileStore.files.first?.destPath?.contains(destB_URL.lastPathComponent) ?? false, "File should have destB path")
+        XCTAssertEqual(fileStore.files.first?.status, .waiting, "File should still be waiting")
+        XCTAssertTrue(fileStore.files.first?.destPath?.contains(destB_URL.lastPathComponent) ?? false, "File should have destB path")
         XCTAssertEqual(settingsStore.destinationURL, destB_URL, "SettingsStore should reflect new destination")
     }
     
@@ -174,7 +175,7 @@ final class AppStateRecalculationTests: XCTestCase {
         // Create a pre-existing file in destA
         try fileManager.copyItem(at: preExistingFile, to: destA_URL.appendingPathComponent("existing.jpg"))
         
-        logManager.debug("--- Starting testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
+        await logManager.debug("--- Starting testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
         
         // Set initial destination and trigger scan
         settingsStore.setDestination(destA_URL)
@@ -184,10 +185,10 @@ final class AppStateRecalculationTests: XCTestCase {
         
         // Wait for initial scan to complete
         try await waitForCondition(timeout: 5.0, description: "Initial scan") {
-            self.appState.fileStore.files.count >= 3 && self.appState.state == .idle
+            self.fileStore.files.count >= 3 && self.appState.state == .idle
         }
         
-        logManager.debug("Initial files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.fileStore.files.map { $0.sourceName }.joined(separator: ", ")])
+        await logManager.debug("Initial files", category: "AppStateRecalculationTests", metadata: ["files": self.fileStore.files.map { $0.sourceName }.joined(separator: ", ")])
         
         // Act: Change destination (should trigger recalculation)
         settingsStore.setDestination(destB_URL)
@@ -195,17 +196,17 @@ final class AppStateRecalculationTests: XCTestCase {
         // Wait for recalculation to complete
         try await waitForCondition(timeout: 5.0, description: "Recalculation") {
             !self.appState.isRecalculating && 
-            self.appState.fileStore.files.allSatisfy { $0.destPath?.contains(self.destB_URL.lastPathComponent) ?? false }
+            self.fileStore.files.allSatisfy { $0.destPath?.contains(self.destB_URL.lastPathComponent) ?? false }
         }
         
-        logManager.debug("Recalculated files", category: "AppStateRecalculationTests", metadata: ["files": self.appState.fileStore.files.map { $0.sourceName }.joined(separator: ", ")])
-        logManager.debug("--- Ending testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
+        await logManager.debug("Recalculated files", category: "AppStateRecalculationTests", metadata: ["files": self.fileStore.files.map { $0.sourceName }.joined(separator: ", ")])
+        await logManager.debug("--- Ending testRecalculationWithComplexFileStatuses ---", category: "AppStateRecalculationTests")
         
         // Assert: Verify files after automatic recalculation
-        XCTAssertEqual(appState.fileStore.files.count, 3, "File count should remain stable after recalculation")
+        XCTAssertEqual(fileStore.files.count, 3, "File count should remain stable after recalculation")
         XCTAssertFalse(appState.isRecalculating, "Should not be recalculating after completion")
-        XCTAssertTrue(appState.fileStore.files.allSatisfy { $0.status == .waiting }, "All files should be .waiting after destination change (unless duplicate_in_source)")
-        XCTAssertFalse(appState.fileStore.files.first { $0.sourceName == "video.mov" }!.sidecarPaths.isEmpty, "Sidecar paths should be preserved after recalculation")
+        XCTAssertTrue(fileStore.files.allSatisfy { $0.status == .waiting }, "All files should be .waiting after destination change (unless duplicate_in_source)")
+        XCTAssertFalse(fileStore.files.first { $0.sourceName == "video.mov" }!.sidecarPaths.isEmpty, "Sidecar paths should be preserved after recalculation")
     }
 
     func testDestinationChangeTriggersRecalculation() async throws {
@@ -219,13 +220,13 @@ final class AppStateRecalculationTests: XCTestCase {
 
         // Wait for initial scan to complete
         try await waitForCondition(timeout: 5.0, description: "Initial scan") {
-            self.appState.fileStore.files.count >= 1 && self.appState.state == .idle
+            self.fileStore.files.count >= 1 && self.appState.state == .idle
         }
         
         // Verify initial state
-        XCTAssertEqual(appState.fileStore.files.count, 1)
-        XCTAssertEqual(appState.fileStore.files.first?.status, .waiting)
-        XCTAssertTrue(appState.fileStore.files.first?.destPath?.contains(destA_URL.lastPathComponent) ?? false)
+        XCTAssertEqual(fileStore.files.count, 1)
+        XCTAssertEqual(fileStore.files.first?.status, .waiting)
+        XCTAssertTrue(fileStore.files.first?.destPath?.contains(destA_URL.lastPathComponent) ?? false)
 
         // Act: Change destination (should trigger recalculation)
         settingsStore.setDestination(destB_URL)
@@ -233,13 +234,13 @@ final class AppStateRecalculationTests: XCTestCase {
         // Wait for recalculation to complete
         try await waitForCondition(timeout: 5.0, description: "Recalculation") {
             !self.appState.isRecalculating && 
-            (self.appState.fileStore.files.first?.destPath?.contains(self.destB_URL.lastPathComponent) ?? false)
+            (self.fileStore.files.first?.destPath?.contains(self.destB_URL.lastPathComponent) ?? false)
         }
 
         // Assert: Verify automatic recalculation
-        XCTAssertEqual(appState.fileStore.files.count, 1)
+        XCTAssertEqual(fileStore.files.count, 1)
         XCTAssertFalse(appState.isRecalculating, "Should not be recalculating after completion")
-        XCTAssertEqual(appState.fileStore.files.first?.status, .waiting) // Should still be waiting
-        XCTAssertTrue(appState.fileStore.files.first?.destPath?.contains(destB_URL.lastPathComponent) ?? false)
+        XCTAssertEqual(fileStore.files.first?.status, .waiting) // Should still be waiting
+        XCTAssertTrue(fileStore.files.first?.destPath?.contains(destB_URL.lastPathComponent) ?? false)
     }
 }

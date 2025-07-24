@@ -24,7 +24,7 @@ actor ThumbnailCache {
     /// - Parameters:
     ///   - url: File url to create thumbnail for.
     ///   - size: Pixel size (defaults 256×256).
-    /// - Returns: PNG image data or nil if generation failed.
+    /// - Returns: JPEG image data (80% quality) or nil if generation failed.
     func thumbnailData(for url: URL, size: CGSize = CGSize(width: 256, height: 256)) async -> Data? {
         let key = url.path
         if let cached = cache[key] {
@@ -42,21 +42,21 @@ actor ThumbnailCache {
             return nil
         }
         
-        // Convert NSImage to PNG data for thread-safe storage
+        // Convert NSImage to JPEG data for thread-safe storage with efficient compression
         guard let tiffData = rep.nsImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
-              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.8]) else {
             return nil
         }
         
-        cache[key] = pngData
+        cache[key] = jpegData
         order.append(key)
         // Evict if necessary
         if order.count > limit, let oldest = order.first {
             order.removeFirst()
             cache.removeValue(forKey: oldest)
         }
-        return pngData
+        return jpegData
     }
 
     /// Legacy method for backwards compatibility - converts data to Image

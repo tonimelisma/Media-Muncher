@@ -5,9 +5,10 @@ import XCTest
 
 final class VolumeManagerFilteringTests: XCTestCase {
 
-    func testLoadVolumes_ReturnsOnlyRemovable() {
+    func testLoadVolumes_ReturnsOnlyRemovable() async {
         let vm = VolumeManager()
-        for v in vm.volumes {
+        let volumes = await vm.loadVolumes()
+        for v in volumes {
             let url = URL(fileURLWithPath: v.devicePath)
             if let isRemovable = try? url.resourceValues(forKeys: [.volumeIsRemovableKey]).volumeIsRemovable {
                 XCTAssertEqual(isRemovable, true, "Volume \(v.name) is not marked removable")

@@ -59,28 +59,49 @@ final class AppContainer {
     /// Creates a new container with all services properly initialized and wired together.
     /// Services are created in dependency order to ensure proper initialization.
     init() async {
-        // Initialize core services first (no dependencies)
+        // Can't log before LogManager is created, so we use print here.
+        print("DEBUG: AppContainer.init() starting - thread: \(Thread.current) - is main thread: \(Thread.isMainThread)")
+        
         self.logManager = LogManager()
+        await logManager.debug("AppContainer.init() started", category: "AppContainer")
+
+        await logManager.debug("Creating VolumeManager...", category: "AppContainer")
         self.volumeManager = VolumeManager(logManager: logManager)
+        await logManager.debug("VolumeManager created", category: "AppContainer")
+
+        await logManager.debug("Creating ThumbnailCache...", category: "AppContainer")
         self.thumbnailCache = ThumbnailCache()
+        await logManager.debug("ThumbnailCache created", category: "AppContainer")
+
+        await logManager.debug("Creating FileProcessorService...", category: "AppContainer")
         self.fileProcessorService = FileProcessorService(logManager: logManager, thumbnailCache: thumbnailCache)
+        await logManager.debug("FileProcessorService created", category: "AppContainer")
+
+        await logManager.debug("Creating SettingsStore...", category: "AppContainer")
         self.settingsStore = SettingsStore(logManager: logManager)
+        await logManager.debug("SettingsStore created", category: "AppContainer")
+
+        await logManager.debug("Creating ImportService...", category: "AppContainer")
         self.importService = ImportService(logManager: logManager)
+        await logManager.debug("ImportService created", category: "AppContainer")
         
         // These services are @MainActor, so their initialization must be awaited
         // from a non-MainActor context.
+        await logManager.debug("Creating FileStore (MainActor)... About to await.", category: "AppContainer")
         self.fileStore = await FileStore(logManager: logManager)
+        await logManager.debug("FileStore (MainActor) created successfully. Await finished.", category: "AppContainer")
         
         // Initialize services with dependencies last
+        await logManager.debug("Creating RecalculationManager (MainActor)... About to await.", category: "AppContainer")
         self.recalculationManager = await RecalculationManager(
             logManager: logManager,
             fileProcessorService: fileProcessorService,
             settingsStore: settingsStore
         )
+        await logManager.debug("RecalculationManager (MainActor) created successfully. Await finished.", category: "AppContainer")
         
-        await logManager.info("AppContainer initialized", category: "AppContainer", metadata: [
-            "services": "7 services instantiated"
-        ])
+        await logManager.info("AppContainer initialized successfully", category: "AppContainer")
+        print("DEBUG: AppContainer.init() completed")
     }
 }
 
@@ -105,13 +126,22 @@ extension AppContainer {
     /// A temporary synchronous wrapper for the async initializer.
     /// To be removed when SwiftUI's App protocol supports async initialization.
     static func blocking() -> AppContainer {
+        // Can't use LogManager here as it hasn't been created yet.
+        print("DEBUG: AppContainer.blocking() called - thread: \(Thread.current) - is main thread: \(Thread.isMainThread)")
         let semaphore = DispatchSemaphore(value: 0)
         var container: AppContainer!
+        
+        print("DEBUG: AppContainer.blocking() creating Task...")
         Task {
+            print("DEBUG: AppContainer.blocking() Task started - thread: \(Thread.current) - is main thread: \(Thread.isMainThread)")
             container = await AppContainer()
+            print("DEBUG: AppContainer.blocking() Task finished, container created. Signaling semaphore.")
             semaphore.signal()
         }
+        
+        print("DEBUG: AppContainer.blocking() waiting for semaphore...")
         semaphore.wait()
+        print("DEBUG: AppContainer.blocking() semaphore signaled. Returning container.")
         return container
     }
 }

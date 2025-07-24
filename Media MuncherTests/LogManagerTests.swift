@@ -6,17 +6,13 @@ import XCTest
 extension LogManager {
     /// Writes an entry and awaits its completion (used only in unit tests)
     func writeSync(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil) async {
-        await withCheckedContinuation { cont in
-            self.write(level: level, category: category, message: message, metadata: metadata) {
-                cont.resume()
-            }
-        }
+        await self.write(level: level, category: category, message: message, metadata: metadata)
     }
 }
 
 // A mock implementation of the Logging protocol for testing purposes.
 // This mock does not write to a file but stores log entries in memory.
-class TestLogManager: Logging {
+final class TestLogManager: @unchecked Sendable, Logging {
     func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String : String]?) async {
         // For unit testing LogManager, we don't need a complex mock.
         // The real LogManager is tested against the file system.
@@ -129,7 +125,7 @@ final class LogManagerTests: XCTestCase {
     
     // Test that no malformed JSON is produced by concurrent writes.
     func testNoMalformedJSONAfterConcurrentWrites() async throws {
-        await testConcurrentLogging() // Reuse the concurrent logging
+        try await testConcurrentLogging() // Reuse the concurrent logging
         
         let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
         let lines = logContent.components(separatedBy: .newlines)

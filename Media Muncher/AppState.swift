@@ -53,7 +53,6 @@ class AppState: ObservableObject {
         recalculationManager: RecalculationManager,
         fileStore: FileStore
     ) {
-        
         self.logManager = logManager
         self.volumeManager = volumeManager
         self.fileProcessorService = fileProcessorService
@@ -63,16 +62,18 @@ class AppState: ObservableObject {
         self.fileStore = fileStore
         
         Task {
-            // Example of using the injected logger
-            await self.logManager.info("AppState initialized")
+            await self.logManager.info("AppState.init() started", category: "AppState")
         }
         
         // Subscribe to volume changes
+        Task {
+            await self.logManager.debug("Subscribing to volumeManager.$volumes", category: "AppState")
+        }
         volumeManager.$volumes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newVolumes in
                 Task { [weak self] in
-                    await self?.logManager.debug("Volume changes received", category: "AppState", metadata: ["volumes": "\(newVolumes.map { $0.name })"])
+                    await self?.logManager.debug("Received volume changes from publisher", category: "AppState", metadata: ["count": "\(newVolumes.count)"])
                     self?.volumes = newVolumes
                     self?.ensureVolumeSelection()
                 }
@@ -80,24 +81,34 @@ class AppState: ObservableObject {
             .store(in: &cancellables)
             
         // Subscribe to selection changes
+        Task {
+            await self.logManager.debug("Subscribing to self.$selectedVolumeID", category: "AppState")
+        }
         self.$selectedVolumeID
             .receive(on: DispatchQueue.main)
             .sink { [weak self] volumeID in
                 Task { [weak self] in
-                    await self?.logManager.debug("selectedVolumeID changed", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
+                    await self?.logManager.debug("Received selectedVolumeID change from publisher", category: "AppState", metadata: ["volumeID": volumeID ?? "nil"])
                     self?.startScan(for: volumeID)
                 }
             }
             .store(in: &cancellables)
 
         // Subscribe to destination changes and setup recalculation chain
+        Task {
+            await self.logManager.debug("Setting up destination change handling", category: "AppState")
+        }
         setupDestinationChangeHandling()
         setupRecalculationManagerBindings()
 
         // Initial state
+        Task {
+            await self.logManager.debug("Setting initial volumes from volumeManager", category: "AppState")
+        }
         self.volumes = volumeManager.volumes
         Task {
-            await self.logManager.debug("Initial volumes", category: "AppState", metadata: ["volumes": "\(self.volumes.map { $0.name })"])
+            await self.logManager.debug("Initial volumes set", category: "AppState", metadata: ["count": "\(self.volumes.count)"])
+            await self.logManager.info("AppState initialized successfully", category: "AppState")
         }
         ensureVolumeSelection()
     }

@@ -73,6 +73,65 @@ struct File: Identifiable, Sendable {
     var importError: String?
     var duplicateOf: String? // ID of the file this one is a duplicate of
     var sidecarPaths: [String] = []
+    
+    // MARK: - Convenience Initializers
+    
+    /// Basic initializer for test files with minimal required parameters
+    init(sourcePath: String, mediaType: MediaType, status: FileStatus = .waiting) {
+        self.sourcePath = sourcePath
+        self.mediaType = mediaType
+        self.status = status
+        self.date = nil
+        self.size = nil
+        self.destPath = nil
+        self.thumbnailData = nil
+        self.thumbnailSize = nil
+        self.importError = nil
+        self.duplicateOf = nil
+        self.sidecarPaths = []
+    }
+    
+    /// Intermediate initializer including size for realistic test scenarios
+    init(sourcePath: String, mediaType: MediaType, size: Int64, status: FileStatus = .waiting) {
+        self.sourcePath = sourcePath
+        self.mediaType = mediaType
+        self.size = size
+        self.status = status
+        self.date = nil
+        self.destPath = nil
+        self.thumbnailData = nil
+        self.thumbnailSize = nil
+        self.importError = nil
+        self.duplicateOf = nil
+        self.sidecarPaths = []
+    }
+    
+    /// Complete initializer for full control (preserves all current functionality)
+    init(
+        sourcePath: String,
+        mediaType: MediaType,
+        date: Date? = nil,
+        size: Int64? = nil,
+        destPath: String? = nil,
+        status: FileStatus = .waiting,
+        thumbnailData: Data? = nil,
+        thumbnailSize: CGSize? = nil,
+        importError: String? = nil,
+        duplicateOf: String? = nil,
+        sidecarPaths: [String] = []
+    ) {
+        self.sourcePath = sourcePath
+        self.mediaType = mediaType
+        self.date = date
+        self.size = size
+        self.destPath = destPath
+        self.status = status
+        self.thumbnailData = thumbnailData
+        self.thumbnailSize = thumbnailSize
+        self.importError = importError
+        self.duplicateOf = duplicateOf
+        self.sidecarPaths = sidecarPaths
+    }
 }
 
 extension MediaType {
