@@ -184,6 +184,12 @@ The specific file extensions for each category in **ST-5** are:
 - Modified UI layer to safely convert thumbnail data to Images on MainActor
 - Resolved Swift Concurrency safety violations that could cause runtime crashes when File structs pass between actors
 
+### 2025-07-23 – Dependency Injection Deadlock Resolution
+- **CRITICAL FIX**: Resolved startup deadlock in dependency injection system that prevented application and test launches
+- Fixed incorrect async/await usage in TestAppContainer that created thread coordination issues
+- Aligned test container initialization patterns with production AppContainer for consistency
+- Eliminated all thread deadlocks during service initialization, restoring normal application startup
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  

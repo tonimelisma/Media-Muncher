@@ -19,7 +19,7 @@ final class TestAppContainer {
     let recalculationManager: RecalculationManager
     let thumbnailCache: ThumbnailCache
 
-    init(userDefaults: UserDefaults = .init(suiteName: "TestDefaults-")!) async {
+    init(userDefaults: UserDefaults = .init(suiteName: "TestDefaults-")!) {
         let mockLog = MockLogManager()
         self.logManager = mockLog
         self.volumeManager = VolumeManager(logManager: mockLog)
@@ -28,8 +28,8 @@ final class TestAppContainer {
         self.settingsStore = SettingsStore(logManager: mockLog, userDefaults: userDefaults)
         self.importService = ImportService(logManager: mockLog)
         
-        // These services are @MainActor, so their initialization must be awaited
-        self.fileStore = await FileStore(logManager: mockLog)
-        self.recalculationManager = await RecalculationManager(logManager: mockLog, fileProcessorService: fileProcessorService, settingsStore: settingsStore)
+        // These services are @MainActor and initialize synchronously
+        self.fileStore = FileStore(logManager: mockLog)
+        self.recalculationManager = RecalculationManager(logManager: mockLog, fileProcessorService: fileProcessorService, settingsStore: settingsStore)
     }
 } 

@@ -16,7 +16,7 @@ final class AppStateIntegrationTests: MediaMuncherTestCase {
         try await super.setUp()
         cancellables = []
         
-        let container = await TestAppContainer()
+        let container = TestAppContainer()
         fileStore = container.fileStore
         settingsStore = container.settingsStore
         recalculationManager = container.recalculationManager

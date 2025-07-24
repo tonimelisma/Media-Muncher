@@ -241,5 +241,32 @@ jq -r '.category' ~/Library/Logs/Media\ Muncher/media-muncher-*.log | sort | uni
 - **Thread-safe**: Concurrent logging from multiple threads supported via actor serialization
 
 ---
-## 12. Build & Run (developers)
+---
+## 12. Dependency Injection & Testing
+
+Media Muncher uses a simple, manual dependency injection pattern centered around two container classes:
+
+### Production Container
+- **AppContainer.swift**: @MainActor-isolated, synchronous initialization
+- Creates all services in dependency order
+- Used by Media_MuncherApp.swift for production builds
+
+### Test Container  
+- **TestAppContainer.swift**: @MainActor-isolated, synchronous initialization
+- Uses MockLogManager and isolated UserDefaults for testing
+- Mirrors production patterns for consistency
+
+### Key Design Principles
+1. **Synchronous initialization**: All services, including @MainActor services, initialize synchronously
+2. **Constructor injection**: Services receive dependencies via their initializers
+3. **No async coordination**: Avoids deadlocks by keeping container creation simple
+4. **Pattern consistency**: Test and production containers follow identical initialization patterns
+
+### Recent Improvements (2025-07-23)
+- **Resolved startup deadlock**: Fixed incorrect async/await usage in TestAppContainer
+- **Improved consistency**: Aligned test container patterns with production
+- **Enhanced reliability**: Eliminated thread coordination issues during startup
+
+---
+## 13. Build & Run (developers)
 ```

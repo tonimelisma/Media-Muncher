@@ -1,7 +1,6 @@
 import XCTest
 import SwiftUI
 @testable import Media_Muncher
-import OrderedCollections
 
 @MainActor
 final class ThumbnailCacheTests: XCTestCase {

@@ -128,7 +128,7 @@ final class AppStateRecalculationUnitTests: XCTestCase {
     func testFileStoreDeallocation() async {
         weak var weakStore: FileStore?
         
-        let container = await TestAppContainer()
+        let container = TestAppContainer()
         
         autoreleasepool {
             weakStore = container.fileStore

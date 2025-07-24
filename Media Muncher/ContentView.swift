@@ -37,20 +37,25 @@ struct ContentView: View {
 }
 
 #Preview {
-    // Create container synchronously for preview
-    let container = AppContainer.blocking()
+    // Previews now need a container to be created first.
+    // We can use a simple struct to manage the async setup.
+    struct PreviewWrapper: View {
+        @State private var container: AppContainer?
 
-    ContentView()
-        .environmentObject(AppState(
-            logManager: container.logManager,
-            volumeManager: container.volumeManager,
-            fileProcessorService: container.fileProcessorService,
-            settingsStore: container.settingsStore,
-            importService: container.importService,
-            recalculationManager: container.recalculationManager,
-            fileStore: container.fileStore
-        ))
-        .environmentObject(container.volumeManager) // Keep this line for VolumeView
-        .environmentObject(container.settingsStore) // Keep this line for SettingsView
-        .environmentObject(container.fileStore) // Add FileStore to environment
+        var body: some View {
+            if let container = container {
+                ContentView()
+                    .environmentObject(container.appState)
+                    .environmentObject(container.volumeManager)
+                    .environmentObject(container.settingsStore)
+                    .environmentObject(container.fileStore)
+            } else {
+                ProgressView()
+                    .task {
+                        self.container = AppContainer()
+                    }
+            }
+        }
+    }
+    return PreviewWrapper()
 }
