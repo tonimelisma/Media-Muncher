@@ -78,6 +78,77 @@ actor FileProcessorService {
         await logManager.debug("processFiles completed", category: "FileProcessor", metadata: ["count": "\(processedFiles.count)"])
         return processedFiles
     }
+    
+    /// Streaming version of processFiles that yields batches of files as they're processed
+    /// This enables progressive UI updates during file scanning to prevent UI jank
+    func processFilesStream(
+        from sourceURL: URL,
+        destinationURL: URL?,
+        settings: SettingsStore,
+        batchSize: Int = 50
+    ) -> AsyncStream<[File]> {
+        return AsyncStream { continuation in
+            Task {
+                await logManager.debug("processFilesStream called", category: "FileProcessor", metadata: [
+                    "sourceURL": sourceURL.path,
+                    "destinationURL": destinationURL?.path ?? "nil",
+                    "batchSize": "\(batchSize)"
+                ])
+                
+                let discoveredFilesUnsorted = fastEnumerate(
+                    at: sourceURL,
+                    filterImages: settings.filterImages,
+                    filterVideos: settings.filterVideos,
+                    filterAudio: settings.filterAudio,
+                    filterRaw: settings.filterRaw
+                )
+                
+                await logManager.debug("fastEnumerate found files for stream", category: "FileProcessor", metadata: ["count": "\(discoveredFilesUnsorted.count)"])
+                
+                // Ensure deterministic processing order
+                let discoveredFiles = discoveredFilesUnsorted.sorted { $0.sourcePath < $1.sourcePath }
+                
+                var processedFiles: [File] = []
+                var batch: [File] = []
+                
+                for file in discoveredFiles {
+                    do {
+                        try Task.checkCancellation()
+                        
+                        await logManager.debug("Processing file in stream", category: "FileProcessor", metadata: ["sourcePath": file.sourcePath])
+                        let processedFile = await processFile(
+                            file,
+                            allFiles: processedFiles,
+                            destinationURL: destinationURL,
+                            settings: settings
+                        )
+                        
+                        processedFiles.append(processedFile)
+                        batch.append(processedFile)
+                        
+                        // Yield batch when it reaches the specified size
+                        if batch.count >= batchSize {
+                            continuation.yield(batch)
+                            batch.removeAll()
+                        }
+                    } catch {
+                        // Task was cancelled, clean up and finish
+                        await logManager.debug("processFilesStream cancelled", category: "FileProcessor")
+                        continuation.finish()
+                        return
+                    }
+                }
+                
+                // Yield any remaining files in the final batch
+                if !batch.isEmpty {
+                    continuation.yield(batch)
+                }
+                
+                await logManager.debug("processFilesStream completed", category: "FileProcessor", metadata: ["totalCount": "\(processedFiles.count)"])
+                continuation.finish()
+            }
+        }
+    }
 
     private func fastEnumerate(
         at rootURL: URL,

@@ -101,4 +101,61 @@ final class FileStoreTests: XCTestCase {
         let notFoundFile = fileStore.file(withId: "nonexistent")
         XCTAssertNil(notFoundFile)
     }
+    
+    func testAppendFiles() {
+        // Arrange: start with some files
+        let initialFiles = [
+            File(sourcePath: "/test/file1.jpg", mediaType: .image, size: 100, status: .waiting),
+            File(sourcePath: "/test/file2.jpg", mediaType: .image, size: 200, status: .waiting)
+        ]
+        fileStore.setFiles(initialFiles)
+        
+        // Act: append more files
+        let appendedFiles = [
+            File(sourcePath: "/test/file3.jpg", mediaType: .image, size: 300, status: .waiting),
+            File(sourcePath: "/test/file4.jpg", mediaType: .image, size: 400, status: .waiting)
+        ]
+        fileStore.appendFiles(appendedFiles)
+        
+        // Assert: all files should be present
+        XCTAssertEqual(fileStore.files.count, 4)
+        XCTAssertEqual(fileStore.fileCount, 4)
+        XCTAssertEqual(fileStore.filesToImport.count, 4)
+        
+        // Verify order is preserved (initial files first, then appended)
+        XCTAssertEqual(fileStore.files[0].sourcePath, "/test/file1.jpg")
+        XCTAssertEqual(fileStore.files[1].sourcePath, "/test/file2.jpg")
+        XCTAssertEqual(fileStore.files[2].sourcePath, "/test/file3.jpg")
+        XCTAssertEqual(fileStore.files[3].sourcePath, "/test/file4.jpg")
+    }
+    
+    func testAppendFilesToEmptyStore() {
+        // Arrange: empty store
+        XCTAssertTrue(fileStore.files.isEmpty)
+        
+        // Act: append files to empty store
+        let files = [
+            File(sourcePath: "/test/file1.jpg", mediaType: .image, size: 100, status: .waiting)
+        ]
+        fileStore.appendFiles(files)
+        
+        // Assert: files should be present
+        XCTAssertEqual(fileStore.files.count, 1)
+        XCTAssertEqual(fileStore.files.first?.sourcePath, "/test/file1.jpg")
+    }
+    
+    func testAppendEmptyArray() {
+        // Arrange: store with files
+        let initialFiles = [
+            File(sourcePath: "/test/file1.jpg", mediaType: .image, size: 100, status: .waiting)
+        ]
+        fileStore.setFiles(initialFiles)
+        
+        // Act: append empty array
+        fileStore.appendFiles([])
+        
+        // Assert: original files should remain unchanged
+        XCTAssertEqual(fileStore.files.count, 1)
+        XCTAssertEqual(fileStore.files.first?.sourcePath, "/test/file1.jpg")
+    }
 } 

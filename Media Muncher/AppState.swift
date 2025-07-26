@@ -147,8 +147,6 @@ class AppState: ObservableObject {
         
         scanTask?.cancel()
         
-        fileStore.clearFiles()
-        self.filesScanned = 0
         self.state = .idle
         self.error = nil
 
@@ -170,19 +168,52 @@ class AppState: ObservableObject {
         
         self.scanTask = Task {
             await self.logManager.debug("Scan task started", category: "AppState")
-            let processedFiles = await fileProcessorService.processFiles(
+            
+            fileStore.clearFiles()
+            self.filesScanned = 0
+            
+            let stream = await fileProcessorService.processFilesStream(
                 from: url,
                 destinationURL: settingsStore.destinationURL,
-                settings: settingsStore
+                settings: settingsStore,
+                batchSize: 50
             )
-            await self.logManager.debug("Scan task completed", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
+            
+            // Define batching strategy
+            var buffer: [File] = []
+            let fileUpdateBatchSize = 50
+            
+            // Implement the core logic with batching
+            for await fileBatch in stream {
+                // Add the newly found files to our temporary buffer
+                buffer.append(contentsOf: fileBatch)
+                
+                // Check if the buffer is full enough to trigger a UI update
+                if buffer.count >= fileUpdateBatchSize {
+                    // IMPORTANT: This must be on the main thread!
+                    await MainActor.run {
+                        self.fileStore.appendFiles(buffer)
+                        self.filesScanned = self.fileStore.files.count
+                    }
+                    // Clear the buffer so we can start filling it again
+                    buffer.removeAll()
+                }
+            }
+            
+            // Handle the leftovers - after the loop, handle any remaining files
+            if !buffer.isEmpty {
+                await MainActor.run {
+                    self.fileStore.appendFiles(buffer)
+                    self.filesScanned = self.fileStore.files.count
+                }
+            }
+            
+            await self.logManager.debug("Scan task completed", category: "AppState", metadata: ["totalCount": "\(self.fileStore.files.count)"])
 
             await MainActor.run {
-                self.fileStore.setFiles(processedFiles)
-                self.filesScanned = processedFiles.count
                 self.state = .idle
                 Task {
-                    await self.logManager.debug("Updated UI", category: "AppState", metadata: ["count": "\(processedFiles.count)"])
+                    await self.logManager.debug("Updated UI to idle state", category: "AppState", metadata: ["finalCount": "\(self.fileStore.files.count)"])
                 }
             }
         }

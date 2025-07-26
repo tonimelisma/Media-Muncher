@@ -109,6 +109,14 @@ final class FileStore: ObservableObject {
         files = newFiles
     }
     
+    /// Appends files to the existing files array (used for batched UI updates)
+    func appendFiles(_ newFiles: [File]) {
+        Task {
+            await logManager.debug("Appending files", category: "FileStore", metadata: ["count": "\(newFiles.count)", "totalAfter": "\(files.count + newFiles.count)"])
+        }
+        files.append(contentsOf: newFiles)
+    }
+    
     /// Updates a single file in the array
     func updateFile(_ updatedFile: File) {
         if let index = files.firstIndex(where: { $0.id == updatedFile.id }) {

@@ -1,5 +1,36 @@
 # Changelog
 
+## [2025-07-25] - UI Performance: Count-Based Batching
+
+### Added
+- **NEW**: Count-based batching for file discovery UI updates to eliminate jank during scanning
+- **NEW**: `processFilesStream()` method in FileProcessorService providing AsyncStream<[File]> interface
+- **NEW**: `appendFiles()` method in FileStore for batched file additions
+- **NEW**: Configurable batch size (default: 50 files) for UI update frequency control
+
+### Changed
+- **PERFORMANCE**: File scanning now batches UI updates in groups of 50 files instead of updating per-file
+- **ARCHITECTURE**: AppState.startScan() now uses streaming interface with count-based buffering
+- **UI**: Dramatically reduced UI update frequency from hundreds/second to ~1 update per 50 files
+- **TESTING**: Updated integration tests to handle new batching behavior with appropriate timeouts
+
+### Technical Implementation
+- Implemented buffer-based batching in AppState.startScan() following JANK.md specifications
+- Added AsyncStream support to FileProcessorService for streaming file processing results
+- Enhanced FileStore with append operation for incremental file list building
+- Maintained proper MainActor threading for all UI updates via batched MainActor.run blocks
+
+### Performance Impact
+- **UI Responsiveness**: Eliminated freezing during large volume scans (tested with 484+ files)
+- **Trade-off**: Small volumes (<50 files) now update only when scan completes (accepted design decision)
+- **Memory**: Minimal additional memory usage (50-file buffer vs. immediate processing)
+
+### Files Changed
+- AppState.swift: Implemented count-based batching logic with 50-file buffer
+- FileProcessorService.swift: Added processFilesStream() method returning AsyncStream<[File]>
+- FileStore.swift: Added appendFiles() method for batched file additions
+- AppStateIntegrationTests.swift: Updated tests for new batching behavior and timing
+
 ## [2025-07-23] - Thumbnail Cache Optimization
 
 ### Added

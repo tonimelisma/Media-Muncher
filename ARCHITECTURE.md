@@ -40,7 +40,7 @@
 | **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. Manages the UI state machine. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
-| **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread, maintains an **in-memory thumbnail cache (2,000 entry limit)**, and detects pre-existing files in the destination. | `FileProcessorService` |
+| **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread with **count-based batching (50-file groups)** for UI performance, maintains an **in-memory thumbnail cache (2,000 entry limit)**, and detects pre-existing files in the destination. Provides both legacy and streaming interfaces via `AsyncStream<[File]>`. | `FileProcessorService` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. Uses security-scoped resources for folder access when needed. | `SettingsStore` |
 | **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped resource access. Delegates all path calculation to `DestinationPathBuilder`. Handles sidecar files (THM, XMP, LRC) automatically. | `ImportService` |
@@ -71,9 +71,9 @@
 2. `VolumeManager` uses `NSWorkspace` to discover and publish an array of `Volume`s.
 3. `AppState` subscribes to `VolumeManager`'s volumes and automatically selects the first one.
 4. The volume selection change is published by `AppState`.
-5. On observing the change, `AppState` asks the `FileProcessorService` actor to begin scanning the selected volume.
-6. `FileProcessorService` traverses the volume on a background task, batching results and progress into `AsyncStream`s.
-7. `AppState` collects these stream results and updates its `@Published` `files` and `filesScanned` properties on the **MainActor**.
+5. On observing the change, `AppState` asks the `FileProcessorService` actor to begin scanning the selected volume using the streaming interface.
+6. `FileProcessorService` traverses the volume on a background task, **batching results in groups of 50 files** before emitting via `AsyncStream<[File]>` to prevent UI jank.
+7. `AppState` collects these batched stream results, buffers them further, and updates its `@Published` `files` and `filesScanned` properties on the **MainActor** only when the buffer reaches capacity or scanning completes.
 8. `MediaFilesGridView` and `ContentView` observe `AppState` and display the new files and progress as they arrive.
 9. When **Import** is clicked, `AppState` calls the `ImportService` to copy the scanned files to the destination set in `SettingsStore`.
 10. When the destination changes in `SettingsStore`, `AppState` delegates to `RecalculationManager` to recalculate file paths and statuses.
