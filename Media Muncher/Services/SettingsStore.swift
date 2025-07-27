@@ -117,9 +117,6 @@ class SettingsStore: ObservableObject {
     init(logManager: Logging = LogManager(), userDefaults: UserDefaults = .standard) {
         self.logManager = logManager
         self.userDefaults = userDefaults
-        Task {
-            await logManager.debug("Initializing SettingsStore", category: "SettingsStore")
-        }
         
         self.settingDeleteOriginals = userDefaults.bool(forKey: "settingDeleteOriginals")
         self.organizeByDate = userDefaults.bool(forKey: "organizeByDate")
@@ -132,46 +129,35 @@ class SettingsStore: ObservableObject {
         self.filterAudio = userDefaults.object(forKey: "filterAudio") as? Bool ?? true
         self.filterRaw = userDefaults.object(forKey: "filterRaw") as? Bool ?? true
 
-        self.destinationURL = nil
+        // Set destination synchronously - no async operations in constructor
+        self.destinationURL = Self.computeDefaultDestination()
+        
+        // Log initialization asynchronously (fire-and-forget)
         Task {
-            await logManager.debug("Initial destinationURL set to nil", category: "SettingsStore")
-        }
-
-        // If no bookmark is stored, default to the Pictures directory.
-        if destinationURL == nil {
-            setDefaults()
+            await logManager.debug("SettingsStore initialized", category: "SettingsStore", 
+                                  metadata: ["destinationURL": destinationURL?.path ?? "nil"])
         }
     }
 
-    private func setDefaults() {
-        Task {
-            await logManager.debug("Setting default values", category: "SettingsStore")
+
+    // MARK: - Default Destination Computation
+    
+    /// Computes the default destination directory synchronously
+    /// Checks Pictures folder first, then Documents, returns nil if neither exists
+    private static func computeDefaultDestination() -> URL? {
+        let homeDirectory = NSHomeDirectory()
+        let picturesURL = URL(fileURLWithPath: homeDirectory).appendingPathComponent("Pictures")
+        
+        if FileManager.default.fileExists(atPath: picturesURL.path) {
+            return picturesURL
         }
         
-        // Set default destination to user's Pictures folder (not sandboxed)
-        let userPicturesURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Pictures")
-        Task {
-            await logManager.debug("Default destination set to", category: "SettingsStore", metadata: ["path": userPicturesURL.path])
+        let documentsURL = URL(fileURLWithPath: homeDirectory).appendingPathComponent("Documents")
+        if FileManager.default.fileExists(atPath: documentsURL.path) {
+            return documentsURL
         }
         
-        if FileManager.default.fileExists(atPath: userPicturesURL.path) {
-            Task {
-                await logManager.debug("User Pictures folder exists, setting as destination", category: "SettingsStore")
-            }
-            setDestination(userPicturesURL)
-        } else {
-            Task {
-                await logManager.debug("User Pictures folder doesn't exist, trying Documents", category: "SettingsStore")
-            }
-            let userDocumentsURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Documents")
-            if FileManager.default.fileExists(atPath: userDocumentsURL.path) {
-                setDestination(userDocumentsURL)
-            } else {
-                Task {
-                    await logManager.debug("Neither Pictures nor Documents exist, leaving destination as nil", category: "SettingsStore")
-                }
-            }
-        }
+        return nil
     }
 
     // MARK: - Preset Folder Helpers

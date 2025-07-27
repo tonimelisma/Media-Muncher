@@ -53,20 +53,20 @@ final class AppStateRecalculationUnitTests: XCTestCase {
 
     func testSettingsStoreBindingExistsCorrectly() {
         setupAppState()
-        let expectation = XCTestExpectation(description: "Wait for default destination to be set")
         
-        settingsStore.$destinationURL
-            .sink { url in
-                if url != nil {
-                    expectation.fulfill()
-                }
-            }
-            .store(in: &cancellables)
-
-        wait(for: [expectation], timeout: 15.0)
-        
-        XCTAssertNotNil(settingsStore.destinationURL)
+        // With synchronous initialization, destinationURL should be immediately available
+        XCTAssertNotNil(settingsStore.destinationURL, "SettingsStore destinationURL should be set immediately after initialization")
         XCTAssertFalse(settingsStore.settingDeleteOriginals)
+        
+        // Verify the destination is a reasonable default (Pictures or Documents)
+        let destination = settingsStore.destinationURL!
+        let homeDir = NSHomeDirectory()
+        let expectedPaths = [
+            URL(fileURLWithPath: homeDir).appendingPathComponent("Pictures").path,
+            URL(fileURLWithPath: homeDir).appendingPathComponent("Documents").path
+        ]
+        XCTAssertTrue(expectedPaths.contains(destination.path), 
+                     "Destination should be Pictures or Documents folder, got: \(destination.path)")
     }
 
     func testRecalculationManagerBindingExistsCorrectly() {
