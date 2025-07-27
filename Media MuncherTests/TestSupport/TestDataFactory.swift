@@ -100,7 +100,7 @@ struct TestDataFactory {
 
 extension XCTestCase {
     
-    /// Waits for a condition to become true with a timeout
+    /// Waits for a condition to become true with a timeout using cooperative multitasking
     func waitForCondition(
         timeout: TimeInterval = 5.0,
         description: String,
@@ -109,11 +109,17 @@ extension XCTestCase {
         let expectation = XCTestExpectation(description: description)
         
         Task {
-            while !condition() {
-                try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline && !condition() {
+                await Task.yield() // Cooperative multitasking instead of sleep
                 try Task.checkCancellation()
             }
-            expectation.fulfill()
+            
+            if condition() {
+                expectation.fulfill()
+            } else {
+                // Let the expectation timeout naturally
+            }
         }
         
         await fulfillment(of: [expectation], timeout: timeout)

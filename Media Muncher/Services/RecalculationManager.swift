@@ -86,7 +86,7 @@ class RecalculationManager: ObservableObject {
         // 1. Cancel any ongoing recalculation task to handle rapid changes.
         currentRecalculationTask?.cancel()
 
-        // 2. If there are no files to recalculate, just reset state and return.
+        // 2. If there are no files to recalculate, just reset state and emit completion.
         guard !currentFiles.isEmpty else {
             Task {
                 await logManager.debug("No files to recalculate, resetting state", category: "RecalculationManager")
@@ -94,6 +94,7 @@ class RecalculationManager: ObservableObject {
             self.files = [] // Ensure files are cleared if no files were passed in
             self.isRecalculating = false
             self.error = nil
+            self.didFinish.send() // CRITICAL: Always emit completion for test coordination
             return
         }
 

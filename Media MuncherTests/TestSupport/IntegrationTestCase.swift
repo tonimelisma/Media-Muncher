@@ -16,10 +16,7 @@ class IntegrationTestCase: MediaMuncherTestCase {
     
     /// Isolated settings store instance for testing
     var settingsStore: SettingsStore!
-    
-    /// Cancellables for Combine subscriptions in tests
-    var cancellables: Set<AnyCancellable>!
-    
+        
     // MARK: - Lifecycle
     
     override func setUpWithError() throws {
@@ -33,10 +30,9 @@ class IntegrationTestCase: MediaMuncherTestCase {
         
         // Initialize isolated settings store
         let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
-        settingsStore = SettingsStore(userDefaults: testDefaults)
+        settingsStore = SettingsStore(logManager: MockLogManager.shared, userDefaults: testDefaults)
         
-        // Initialize Combine cancellables
-        cancellables = []
+        // cancellables initialized in parent class
     }
     
     override func tearDownWithError() throws {
@@ -44,7 +40,7 @@ class IntegrationTestCase: MediaMuncherTestCase {
         sourceURL = nil
         destinationURL = nil
         settingsStore = nil
-        cancellables = nil
+        // cancellables cleaned up in parent class
         
         try super.tearDownWithError()
     }

@@ -47,9 +47,7 @@ class VolumeManager: ObservableObject {
     }
 
     deinit {
-        Task { [weak self] in
-            await self?.logManager.debug("Deinitializing VolumeManager", category: "VolumeManager")
-        }
+        // Don't use async logging in deinit - it can cause retain cycles
         removeVolumeObservers()
     }
     
@@ -169,16 +167,11 @@ class VolumeManager: ObservableObject {
 
     /// Removes volume observers.
     private func removeVolumeObservers() {
-        Task {
-            await logManager.debug("Removing volume observers", category: "VolumeManager")
-        }
+        // Don't use async logging during deallocation - it can cause retain cycles
         self.observers.forEach {
             workspace.notificationCenter.removeObserver($0)
         }
         self.observers.removeAll()
-        Task {
-            await logManager.debug("Volume observers removed", category: "VolumeManager")
-        }
     }
 
     /// Loads all removable volumes connected to the system.

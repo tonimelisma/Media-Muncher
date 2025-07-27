@@ -1,4 +1,4 @@
-Read @PRD.md @ARCHITECTURE.md @UI.md for context. Our intern attempted implementing @DI.md  but it didn't go on very well.
+Read @PRD.md @ARCHITECTURE.md @UI.md for context.
 
 0. What criteria would you use to evaluate the implementation?
 1. Read all the relevant code on disk to understand its current state

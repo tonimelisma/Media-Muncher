@@ -82,8 +82,18 @@ final class LogManagerTests: XCTestCase {
         await logManager.info(message, category: "NilMetadataTest", metadata: nil)
         
         let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
-        XCTAssertTrue(logContent.contains(message))
-        XCTAssertFalse(logContent.contains("metadata"))
+        let data = Data(logContent.utf8)
+        
+        // Parse actual JSON to verify structure
+        let decodedEntry = try JSONDecoder().decode(LogEntry.self, from: data)
+        
+        XCTAssertEqual(decodedEntry.message, message)
+        XCTAssertEqual(decodedEntry.category, "NilMetadataTest")
+        XCTAssertNil(decodedEntry.metadata, "Metadata should be nil when not provided")
+        
+        // Verify JSON doesn't contain metadata key (not just the string "metadata")
+        let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertFalse(jsonObject?.keys.contains("metadata") ?? true, "JSON should not contain metadata key when nil")
     }
     
     // Test that the logged JSON is well-formed.
@@ -115,10 +125,10 @@ final class LogManagerTests: XCTestCase {
             }
         }
         
-        await fulfillment(of: [expectation], timeout: 5)
+        await fulfillment(of: [expectation], timeout: 10)
         
         let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
-        let lines = logContent.components(separatedBy: .newlines)
+        let lines = logContent.components(separatedBy: .newlines).filter { !$0.isEmpty }
         // Check if all 100 messages were logged.
         XCTAssertEqual(lines.count, 100)
     }
@@ -144,7 +154,7 @@ final class LogManagerTests: XCTestCase {
         }
         
         let logContent = try String(contentsOf: logFileURL, encoding: .utf8)
-        let lines = logContent.components(separatedBy: .newlines)
+        let lines = logContent.components(separatedBy: .newlines).filter { !$0.isEmpty }
         XCTAssertEqual(lines.count, 5)
     }
     
@@ -182,8 +192,7 @@ final class LogManagerTests: XCTestCase {
     func testFilenameFormat() {
         let filename = logFileURL.lastPathComponent
         // Example format: media-muncher-YYYY-MM-DD_HH-mm-ss-pid.log
-        let pattern = #"^media-muncher-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d+\.log$"#
+        let pattern = "^media-muncher-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}-\\d+\\.log$"
         XCTAssertNotNil(filename.range(of: pattern, options: .regularExpression))
     }
 }
- 

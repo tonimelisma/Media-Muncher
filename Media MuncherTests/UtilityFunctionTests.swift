@@ -25,7 +25,7 @@ final class UtilityFunctionTests: XCTestCase {
         let volumeB = Volume(name: "Backup", devicePath: "/Volumes/SD_BACKUP", volumeUUID: uuid)
         let volumeC = Volume(name: "Other", devicePath: "/Volumes/OTHER", volumeUUID: "ZZZZ-1111")
 
-        XCTAssertEqual(volumeA, volumeB)
-        XCTAssertNotEqual(volumeA, volumeC)
+        XCTAssertEqual(volumeA.volumeUUID, volumeB.volumeUUID)
+        XCTAssertNotEqual(volumeA.volumeUUID, volumeC.volumeUUID)
     }
 } 

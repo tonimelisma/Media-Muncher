@@ -399,18 +399,47 @@ actor FileProcessorService {
 
 // MARK: - Recalculation Support
 
-/// Recalculates file destination paths and pre-existing status for a new destination.
+/// Recalculates file destination paths with unified collision resolution.
+/// Uses the same DRY collision resolution logic as initial processing.
 /// Preserves all expensive metadata (thumbnails, EXIF data, sidecars).
 func recalculateFileStatuses(
     for files: [File], 
     destinationURL: URL?, 
     settings: SettingsStore
 ) async -> [File] {
-    // Step 1: Sync path calculation (no file I/O)
-    let filesWithPaths = recalculatePathsOnly(for: files, destinationURL: destinationURL, settings: settings)
+    guard let destRootURL = destinationURL else {
+        // No destination - reset all files to waiting with no destPath
+        return files.map { file in
+            var newFile = file
+            if newFile.status != .duplicate_in_source {
+                newFile.destPath = nil
+                newFile.status = .waiting
+            }
+            return newFile
+        }
+    }
     
-    // Step 2: Async file existence checks
-    return await checkPreExistingStatus(for: filesWithPaths)
+    var processedFiles: [File] = []
+    
+    for file in files {
+        // Preserve duplicate_in_source files unchanged
+        guard file.status != .duplicate_in_source else {
+            processedFiles.append(file)
+            continue
+        }
+        
+        // Use shared collision resolution logic - DRY!
+        let fileWithPath = await calculateDestinationPathWithCollisionResolution(
+            for: file,
+            allFiles: processedFiles,
+            destinationURL: destRootURL,
+            settings: settings
+        )
+        
+        processedFiles.append(fileWithPath)
+    }
+    
+    return processedFiles
 }
 
 /// Synchronous path recalculation without any file I/O.
@@ -456,6 +485,7 @@ func recalculatePathsOnly(
 }
 
 /// Pure path calculation logic - no file I/O, completely synchronous.
+/// Only checks session collisions, used by recalculatePathsOnly for testing.
 private func calculateDestinationPath(
     for file: File,
     allFiles: [File],
@@ -505,36 +535,71 @@ private func calculateDestinationPath(
     return newFile
 }
 
-/// Async file existence checks - only does file I/O.
-private func checkPreExistingStatus(for files: [File]) async -> [File] {
-    var result: [File] = []
+// REMOVED: checkPreExistingStatus - now handled by unified resolveDestination
+
+/// Core unified collision resolution logic - DRY implementation used by all path resolution.
+/// Checks both session files and disk files in one pass to prevent suffix counter reset bug.
+private func calculateDestinationPathWithCollisionResolution(
+    for file: File,
+    allFiles: [File],
+    destinationURL: URL,
+    settings: SettingsStore
+) async -> File {
+    var newFile = file
+    newFile.sidecarPaths = file.sidecarPaths // Explicitly copy sidecarPaths
     
-    for file in files {
-        var updatedFile = file
+    await logManager.debug("Calculating destination path with unified collision resolution", category: "FileProcessor", metadata: [
+        "fileName": file.sourceName,
+        "sidecars": file.sidecarPaths.joined(separator: ", ")
+    ])
+    
+    // Reset destination-dependent fields
+    newFile.destPath = nil
+    newFile.status = .waiting
+    
+    var suffix = 0
+    var isUnique = false
+    
+    while !isUnique {
+        let candidatePath = DestinationPathBuilder.buildFinalDestinationUrl(
+            for: newFile,
+            in: destinationURL,
+            settings: settings,
+            suffix: suffix > 0 ? suffix : nil
+        )
         
-        // Only check files that have destination paths and aren't duplicates
-        if let destPath = file.destPath, file.status != .duplicate_in_source {
-            if fileManager.fileExists(atPath: destPath) {
-                let candidateURL = URL(fileURLWithPath: destPath)
-                if await isSameFile(sourceFile: file, destinationURL: candidateURL) {
-                    updatedFile.status = .pre_existing
-                } else {
-                    // Different file exists at destination, keep original status
-                    // In production this would trigger collision resolution
-                }
-            } else {
-                // File doesn't exist at destination, should be .waiting
-                updatedFile.status = .waiting
-            }
+        // Check both session files AND disk in one pass
+        let sessionCollision = allFiles.contains { otherFile in
+            guard otherFile.id != newFile.id else { return false }
+            return otherFile.destPath == candidatePath.path
         }
+        let diskCollision = fileManager.fileExists(atPath: candidatePath.path)
         
-        result.append(updatedFile)
+        if sessionCollision {
+            // Session collision - increment suffix and try again
+            suffix += 1
+        } else if diskCollision {
+            // Disk collision - check if it's the same file
+            if await isSameFile(sourceFile: file, destinationURL: candidatePath) {
+                newFile.status = .pre_existing
+                newFile.destPath = candidatePath.path
+                isUnique = true
+            } else {
+                // Different file exists, increment suffix and try again
+                suffix += 1
+            }
+        } else {
+            // No collision - path is free
+            newFile.destPath = candidatePath.path
+            newFile.status = .waiting
+            isUnique = true
+        }
     }
     
-    return result
+    return newFile
 }
 
-/// Shared destination resolution logic for initial processing.
+/// Wrapper for initial file processing - delegates to shared collision resolution logic.
 private func resolveDestination(
     for file: File,
     allFiles: [File],
@@ -545,49 +610,11 @@ private func resolveDestination(
         return file
     }
     
-    // First, calculate path synchronously
-    let fileWithPath = calculateDestinationPath(
+    return await calculateDestinationPathWithCollisionResolution(
         for: file,
         allFiles: allFiles,
         destinationURL: destRootURL,
         settings: settings
     )
-    
-    // Then check file existence asynchronously
-        guard fileWithPath.destPath != nil else {
-        return fileWithPath
-    }
-    
-    var finalFile = fileWithPath
-    
-    // Handle collision with existing files on disk
-    var suffix = 0
-    var isUnique = false
-    
-    while !isUnique {
-        let candidatePath = DestinationPathBuilder.buildFinalDestinationUrl(
-            for: file,
-            in: destRootURL,
-            settings: settings,
-            suffix: suffix > 0 ? suffix : nil
-        )
-        
-        if fileManager.fileExists(atPath: candidatePath.path) {
-            if await !isSameFile(sourceFile: file, destinationURL: candidatePath) {
-                suffix += 1 // Different file exists, try next suffix
-            } else {
-                // Same file exists, mark as pre-existing
-                finalFile.status = .pre_existing
-                finalFile.destPath = candidatePath.path
-                isUnique = true
-            }
-        } else {
-            // Path is free
-            finalFile.destPath = candidatePath.path
-            isUnique = true
-        }
-    }
-    
-    return finalFile
 }
 } 

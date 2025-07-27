@@ -68,23 +68,52 @@ final class ImportProgressTests: XCTestCase {
         XCTAssertNil(importProgress.importStartTime)
     }
 
-    func testComputedTimeProperties() async throws {
+    func testComputedTimeProperties() {
+        // Use fixed dates for deterministic testing
+        let startTime = Date(timeIntervalSince1970: 1000)
+        let currentTime = Date(timeIntervalSince1970: 1001) // 1 second later
+        
         let files = [File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 1000, status: .waiting)]
-        importProgress.start(with: files)
+        importProgress.startForTesting(with: files, startTime: startTime)
         
-        // Simulate progress
-        try await Task.sleep(for: .seconds(1))
-        
+        // Simulate progress: 500 bytes imported out of 1000 (50% complete)
         let importedFile = File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 500, status: .imported)
         importProgress.update(with: importedFile)
         
+        // Test explicit time calculations
+        let elapsedSeconds = importProgress.elapsedSecondsForTesting(currentTime: currentTime)
+        let remainingSeconds = importProgress.remainingSecondsForTesting(currentTime: currentTime)
+        
+        XCTAssertNotNil(elapsedSeconds)
+        XCTAssertNotNil(remainingSeconds)
+        
+        XCTAssertEqual(elapsedSeconds, 1.0, "Should have exactly 1 second elapsed")
+        XCTAssertEqual(remainingSeconds, 1.0, "Should estimate 1 second remaining (50% progress)")
+        
+        // Verify production methods still work (should be approximately the same if run immediately)
         XCTAssertNotNil(importProgress.elapsedSeconds)
         XCTAssertNotNil(importProgress.remainingSeconds)
+    }
+    
+    func testTestingMethodsProvideConsistentResults() {
+        // Verify testing methods produce same results as production methods when using current time
+        let files = [File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 1000, status: .waiting)]
+        let startTime = Date()
         
-        XCTAssertGreaterThan(importProgress.elapsedSeconds ?? 0, 0.9)
-        XCTAssertLessThan(importProgress.elapsedSeconds ?? 0, 1.1)
+        importProgress.startForTesting(with: files, startTime: startTime)
+        let importedFile = File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 500, status: .imported)
+        importProgress.update(with: importedFile)
         
-        XCTAssertGreaterThan(importProgress.remainingSeconds ?? 0, 0.9)
-        XCTAssertLessThan(importProgress.remainingSeconds ?? 0, 1.1)
+        let currentTime = Date()
+        
+        let testingElapsed = importProgress.elapsedSecondsForTesting(currentTime: currentTime)
+        let testingRemaining = importProgress.remainingSecondsForTesting(currentTime: currentTime)
+        
+        XCTAssertNotNil(testingElapsed)
+        XCTAssertNotNil(testingRemaining)
+        
+        // Testing methods should produce valid results
+        XCTAssertGreaterThan(testingElapsed!, 0)
+        XCTAssertGreaterThan(testingRemaining!, 0)
     }
 } 

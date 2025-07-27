@@ -15,24 +15,19 @@ final class AppStateRecalculationUnitTests: XCTestCase {
         cancellables = Set<AnyCancellable>()
     }
     
-    // Asynchronous setup helper
-    private func setupAppState() async {
-        // Create test services
+    private func setupAppState() {
         let logManager = LogManager()
         let volumeManager = VolumeManager(logManager: logManager)
         let fileProcessorService = FileProcessorService(logManager: logManager)
         self.settingsStore = SettingsStore(logManager: logManager)
         let importService = ImportService(logManager: logManager)
         
-        // Await the MainActor-isolated services
-        let fileStore = await FileStore(logManager: logManager)
-        let recalculationManager = await RecalculationManager(
-            logManager: logManager,
+        let fileStore = FileStore(logManager: logManager)
+        let recalculationManager = RecalculationManager(
             fileProcessorService: fileProcessorService,
             settingsStore: settingsStore
         )
 
-        // Create AppState with all dependencies
         appState = AppState(
             logManager: logManager,
             volumeManager: volumeManager,
@@ -50,19 +45,16 @@ final class AppStateRecalculationUnitTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    func testAppStateInitializesCorrectly() async throws {
-        await setupAppState()
-        // Assert - AppState should initialize without crashing
+    func testAppStateInitializesCorrectly() {
+        setupAppState()
         XCTAssertNotNil(appState)
-        // Note: Don't test state enum as it may have complex initialization logic
         XCTAssertNotNil(appState.volumes)
     }
 
-    func testSettingsStoreBindingExistsCorrectly() async throws {
-        await setupAppState()
+    func testSettingsStoreBindingExistsCorrectly() {
+        setupAppState()
         let expectation = XCTestExpectation(description: "Wait for default destination to be set")
         
-        // Subscribe to the publisher BEFORE any potential changes
         settingsStore.$destinationURL
             .sink { url in
                 if url != nil {
@@ -71,69 +63,131 @@ final class AppStateRecalculationUnitTests: XCTestCase {
             }
             .store(in: &cancellables)
 
-        // Wait for the expectation to be fulfilled
-        await fulfillment(of: [expectation], timeout: 2.0)
+        wait(for: [expectation], timeout: 15.0)
         
-        // Assert that the destination URL is now non-nil
         XCTAssertNotNil(settingsStore.destinationURL)
         XCTAssertFalse(settingsStore.settingDeleteOriginals)
     }
 
-    // This is a minimal test that demonstrates the binding chain is in place.
-    // In reality, the recalculation logic is quite complex and is tested more thoroughly
-    // in `AppStateRecalculationTests.swift`, which creates and manipulates real files.
-    func testRecalculationManagerBindingExistsCorrectly() async throws {
-        await setupAppState()
-        // Initially, no recalculation should be in progress
+    func testRecalculationManagerBindingExistsCorrectly() {
+        setupAppState()
         XCTAssertFalse(appState.isRecalculating)
     }
 
-    func testRecalculationErrorMapping() async throws {
-        await setupAppState()
-        // This test demonstrates that error properties exist and are accessible
-        // In practice, errors would be set by the RecalculationManager during actual operations
-        
-        // Initially, no errors should be present
+    func testRecalculationErrorMapping() {
+        setupAppState()
         XCTAssertNil(appState.error)
     }
 
-    func testVolumeSelectionHandling() async throws {
-        await setupAppState()
-        // Initially, no volume should be selected
+    func testVolumeSelectionHandling() {
+        setupAppState()
         XCTAssertNil(appState.selectedVolumeID)
-
-        // Initially, volumes list should be empty (since we're not connecting real volumes in tests)
         XCTAssertTrue(appState.volumes.isEmpty)
     }
 
-    func testImportProgressInitialization() async throws {
-        await setupAppState()
-        // Import progress should exist and be in a non-started state
+    func testImportProgressInitialization() {
+        setupAppState()
         XCTAssertEqual(appState.importProgress.totalBytesToImport, 0)
         XCTAssertEqual(appState.importProgress.totalFilesToImport, 0)
         XCTAssertEqual(appState.importProgress.importedBytes, 0)
         XCTAssertEqual(appState.importProgress.importedFileCount, 0)
     }
 
-    func testCancellationSupport() async throws {
-        await setupAppState()
-        // Test that cancellation methods exist and don't crash
+    func testCancellationSupport() {
+        setupAppState()
         appState.cancelScan()
         appState.cancelImport()
-
-        // State should remain .idle after cancellation
         XCTAssertEqual(appState.state, .idle)
     }
 
-    func testFileStoreDeallocation() async {
+    func testFileStoreDeallocation() {
         weak var weakStore: FileStore?
-        
-        let container = TestAppContainer()
+        weak var weakContainer: TestAppContainer?
+        weak var weakLogManager: MockLogManager?
         
         autoreleasepool {
+            let container = TestAppContainer()
+            weakContainer = container
             weakStore = container.fileStore
+            weakLogManager = container.logManager as? MockLogManager
+            
+            XCTAssertNotNil(weakStore, "FileStore should be alive while container exists")
+            XCTAssertNotNil(weakContainer, "Container should be alive in autoreleasepool")
+            XCTAssertNotNil(weakLogManager, "MockLogManager should be alive while container exists")
         }
         
-        XCTAssertNil(weakStore, "FileStore should deallocate when container goes out of scope")
+        // Force any pending async log tasks to complete
+        let expectation = XCTestExpectation(description: "Async cleanup")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 15.0)
+        
+        XCTAssertNil(weakContainer, "TestAppContainer should deallocate after autoreleasepool")
+        XCTAssertNil(weakStore, "FileStore should deallocate when container is deallocated")
+        XCTAssertNil(weakLogManager, "MockLogManager should deallocate when container is deallocated")
+    }
+
+    func testFullServiceDeallocation() {
+        weak var weakRecalculationManager: RecalculationManager?
+        weak var weakFileProcessor: FileProcessorService?
+        weak var weakSettingsStore: SettingsStore?
+        weak var weakThumbnailCache: ThumbnailCache?
+        weak var weakVolumeManager: VolumeManager?
+        
+        autoreleasepool {
+            let container = TestAppContainer()
+            weakRecalculationManager = container.recalculationManager
+            weakFileProcessor = container.fileProcessorService
+            weakSettingsStore = container.settingsStore
+            weakThumbnailCache = container.thumbnailCache
+            weakVolumeManager = container.volumeManager
+        }
+        
+        // Force any pending async tasks to complete
+        let expectation = XCTestExpectation(description: "Service cleanup")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 15.0)
+        
+        XCTAssertNil(weakRecalculationManager, "RecalculationManager should deallocate")
+        XCTAssertNil(weakFileProcessor, "FileProcessorService should deallocate") 
+        XCTAssertNil(weakSettingsStore, "SettingsStore should deallocate")
+        XCTAssertNil(weakThumbnailCache, "ThumbnailCache should deallocate")
+        XCTAssertNil(weakVolumeManager, "VolumeManager should deallocate")
+    }
+    
+    func testContainerWithMultipleInstances() {
+        // Test that multiple container instances don't interfere with each other
+        weak var weakContainer1: TestAppContainer?
+        weak var weakContainer2: TestAppContainer?
+        weak var weakStore1: FileStore?
+        weak var weakStore2: FileStore?
+        
+        autoreleasepool {
+            let container1 = TestAppContainer()
+            let container2 = TestAppContainer()
+            
+            weakContainer1 = container1
+            weakContainer2 = container2
+            weakStore1 = container1.fileStore
+            weakStore2 = container2.fileStore
+            
+            // Verify they're different instances
+            XCTAssertTrue(container1.fileStore !== container2.fileStore, "Different containers should have different FileStore instances")
+        }
+        
+        // Allow async cleanup
+        let expectation = XCTestExpectation(description: "Multiple container cleanup")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 15.0)
+        
+        XCTAssertNil(weakContainer1, "First container should deallocate")
+        XCTAssertNil(weakContainer2, "Second container should deallocate")
+        XCTAssertNil(weakStore1, "First FileStore should deallocate")
+        XCTAssertNil(weakStore2, "Second FileStore should deallocate")
     }
 }

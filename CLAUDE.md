@@ -137,7 +137,7 @@ Media MuncherTests/
 
 **Unit Tests (Targeted)**: Used only for pure business logic like `DestinationPathBuilder` that doesn't touch the file system. Now includes synchronous path calculation tests using `recalculatePathsOnly()` for fast, deterministic testing.
 
-**Test Coverage**: Currently >90% on core logic (exceeds 70% requirement from PRD). All tests are now free of `Task.sleep()` operations for improved reliability.
+**Test Coverage**: Currently >90% on core logic (exceeds 70% requirement from PRD). All tests are confirmed free of `Task.sleep()` operations for improved reliability and deterministic execution.
 
 ## Key Implementation Details
 

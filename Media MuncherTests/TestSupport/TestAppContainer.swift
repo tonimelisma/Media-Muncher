@@ -8,6 +8,7 @@ import Foundation
 @testable import Media_Muncher
 
 /// A minimal dependency container for tests. Uses MockLogManager and in-memory defaults.
+/// Fixed to prevent retain cycles that block proper service deallocation.
 @MainActor
 final class TestAppContainer {
     let logManager: Logging
@@ -19,17 +20,26 @@ final class TestAppContainer {
     let recalculationManager: RecalculationManager
     let thumbnailCache: ThumbnailCache
 
-    init(userDefaults: UserDefaults = .init(suiteName: "TestDefaults-")!) {
+    init(userDefaults: UserDefaults = .init(suiteName: "TestDefaults-\(UUID().uuidString)")!) {
         let mockLog = MockLogManager()
         self.logManager = mockLog
+        
+        // Create thumbnail cache with smaller limit for tests
+        self.thumbnailCache = ThumbnailCache(limit: 32)
+        
+        // Create services in dependency order to avoid retain cycles
         self.volumeManager = VolumeManager(logManager: mockLog)
-        self.thumbnailCache = ThumbnailCache(limit: 128)
         self.fileProcessorService = FileProcessorService(logManager: mockLog, thumbnailCache: thumbnailCache)
         self.settingsStore = SettingsStore(logManager: mockLog, userDefaults: userDefaults)
         self.importService = ImportService(logManager: mockLog)
-        
-        // These services are @MainActor and initialize synchronously
         self.fileStore = FileStore(logManager: mockLog)
-        self.recalculationManager = RecalculationManager(logManager: mockLog, fileProcessorService: fileProcessorService, settingsStore: settingsStore)
+        
+        // RecalculationManager depends on fileProcessorService and settingsStore
+        // but doesn't create circular references as it only calls methods on them
+        self.recalculationManager = RecalculationManager(
+            logManager: mockLog, 
+            fileProcessorService: fileProcessorService, 
+            settingsStore: settingsStore
+        )
     }
 } 

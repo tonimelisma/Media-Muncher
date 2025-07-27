@@ -38,7 +38,7 @@ actor LogManager: Logging, @unchecked Sendable {
     
     func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String: String]? = nil) async {
         let entry = LogEntry(timestamp: Date(), level: level, category: category, message: message, metadata: metadata)
-        await self.internalWrite(entry)
+        self.internalWrite(entry)
     }
 
     // MARK: – Actor-isolated implementation
@@ -56,6 +56,7 @@ actor LogManager: Logging, @unchecked Sendable {
                 try? fileHandle.close()
             }
         } else {
+            // For first write, don't add leading newline
             try? data.write(to: logFileURL, options: .atomic)
         }
     }
