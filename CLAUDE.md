@@ -174,9 +174,8 @@ Media MuncherTests/
 ## Important Constraints
 
 ### Security Model
-- Application is not sandboxed for simplified file access
-- Security-scoped resources used defensively for removable volumes and user folders
-- Direct file system access with write-permission validation
+- Application is **not sandboxed** for simplified file access.
+- **Security-scoped resources** are used defensively for removable volumes and user-selected destination folders. This means the app only ever gains access to the specific folders you choose, and nothing else.
 
 ### Performance Requirements  
 - Import throughput ≥200 MB/s (hardware limited)

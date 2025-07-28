@@ -24,7 +24,7 @@ Media Muncher is a lightweight macOS utility that automatically imports photogra
 * Import throughput ≥ 200 MB/s (limited by storage hardware).
 * UI remains responsive while scanning/copying (async, batching).
 * Compatible with macOS 13+ (Swift 5.9, SwiftUI).
-* Minimal permissions – App Sandbox with Removable-Drives & user-selected folders.
+* Minimal permissions – The application is not sandboxed, but uses security-scoped bookmarks to access removable volumes and user-selected folders, ensuring that it only has access to the locations explicitly granted by the user.
 * Unit-test coverage ≥ 70 % on core logic.
 
 ## 6. Epics & User Stories

@@ -1,5 +1,10 @@
 # Changelog
 
+## [2025-07-27] - Documentation Cleanup
+
+### Fixed
+- **Inconsistent security model documentation**: Updated `PRD.md`, `ARCHITECTURE.md`, and `CLAUDE.md` to accurately reflect that the application is not sandboxed but uses security-scoped resources for file access.
+
 ## [2025-07-27] - Code Cleanup
 
 ### Fixed

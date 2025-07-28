@@ -154,7 +154,7 @@ Media Muncher follows a **"Hybrid with Clear Boundaries"** approach to async pro
 
 ---
 ## 8. Security & Permissions
-* **Application is not sandboxed** but uses security-scoped resources defensively for removable volumes and user-selected folders.
+* **Application is not sandboxed**. It uses security-scoped resources defensively for removable volumes and user-selected folders to ensure it only has access to locations explicitly granted by the user.
 * SecurityScopedURLAccessWrapper provides fallback access when standard file system permissions are insufficient.
 * Write-access validation is performed before setting destination folders.
 * Destination folder paths are stored as standard file paths, with security-scoped resource access acquired as needed.
