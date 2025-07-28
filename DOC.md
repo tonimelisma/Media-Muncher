@@ -7,24 +7,24 @@ This document outlines the recommended improvement tasks for the Media Muncher p
 
 ### 1. Resolve Duplicate Source Files
 
-**Issue:** There are multiple source files with the same name but different content in different subdirectories. This indicates an incomplete refactoring and can lead to confusion and bugs.
+**Status: Completed**
+
+**Issue:** There were multiple source files with the same name but different content in different subdirectories. This indicated an incomplete refactoring and could lead to confusion and bugs.
 
 **Action:**
-- Identify the correct and current versions of the following files:
-    - `Media Muncher/FileModel.swift` vs. `Media Muncher/Models/FileModel.swift`
-    - `Media Muncher/VolumeModel.swift` vs. `Media Muncher/Models/VolumeModel.swift`
-    - `Media Muncher/ContentView.swift` vs. `Media Muncher/Views/ContentView.swift`
-    - `Media Muncher/Protocols/Logging.swift` vs. the `Logging` protocol in `Media Muncher/Services/LogManager.swift`
-- Delete the obsolete files.
-- Ensure the Xcode project references only the correct files.
+- Identified the correct and current versions of the files.
+- Deleted the obsolete files and directories (`/Media Muncher/Models`, `/Media Muncher/Views`).
+- Verified the Xcode project builds and all tests pass.
 
 ### 2. Unify Security Model Documentation
 
-**Issue:** The documentation contains conflicting information about the application's sandboxing status.
+**Status: Completed**
+
+**Issue:** The documentation contained conflicting information about the application's sandboxing status.
 
 **Action:**
-- Update `PRD.md` and `ARCHITECTURE.md` to consistently state that the application is **not sandboxed** but uses **security-scoped bookmarks** for accessing removable volumes and user-selected folders.
-- Verify that the implementation in `ImportService.swift` and `SettingsStore.swift` aligns with this security model.
+- Updated `PRD.md`, `ARCHITECTURE.md`, and `CLAUDE.md` to consistently state that the application is **not sandboxed** but uses **security-scoped bookmarks** for accessing removable volumes and user-selected folders.
+- Verified that the implementation in `ImportService.swift` and `SettingsStore.swift` aligns with this security model.
 
 ## Medium Priority
 
@@ -46,11 +46,3 @@ This document outlines the recommended improvement tasks for the Media Muncher p
 - Add a link to `ARCHITECTURE.md` for architecture-related information.
 - Correct the log file path to `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log`.
 
-## Low Priority
-
-### 5. Refactor `DestinationFolderPicker`
-
-**Issue:** The `DestinationFolderPicker` uses `NSViewRepresentable`, which is a valid approach but not a pure SwiftUI solution.
-
-**Action:**
-- Consider refactoring `DestinationFolderPicker` to use a native SwiftUI `Menu` for a more modern implementation. This is a "nice-to-have" improvement.

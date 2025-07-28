@@ -1,5 +1,14 @@
 # Changelog
 
+## [2025-07-28] - Documentation Updates
+
+### Fixed
+- **ARCHITECTURE.md Source-Code Map**: Added missing `FileStore.swift` entry to accurately reflect current codebase structure
+- **Log file format inconsistency**: Updated ARCHITECTURE.md to use correct format `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log` 
+
+### Changed
+- **CLAUDE.md streamlining**: Removed redundant "Architecture Overview" and "File Organization" sections that duplicated content from ARCHITECTURE.md, replaced with link to ARCHITECTURE.md for better maintainability
+
 ## [2025-07-27] - Documentation Cleanup
 
 ### Fixed

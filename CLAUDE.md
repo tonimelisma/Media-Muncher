@@ -81,55 +81,7 @@ cat logs/media-muncher-2025-07-20_21-55-06-19965.log
 tail -f logs/media-muncher-*.log
 ```
 
-## Architecture Overview
-
-Media Muncher is a macOS SwiftUI app that automatically imports media files from removable storage. The architecture follows a service-oriented pattern with clear separation of concerns:
-
-### Core Services (All Actors/ObservableObjects)
-- **VolumeManager**: Discovers and monitors removable volumes using NSWorkspace
-- **FileProcessorService**: Actor that scans volumes for media files, generates thumbnails, and detects pre-existing files in destination
-- **ImportService**: Actor that handles file copying, collision resolution, and deletion of originals  
-- **SettingsStore**: Manages user preferences via UserDefaults with security-scoped resource access
-- **RecalculationManager**: Dedicated state machine for handling destination path recalculations
-- **AppState**: Main orchestrator that coordinates services and exposes unified state to SwiftUI views
-
-### Key Architectural Patterns
-- **Actor-based concurrency**: File processing and import operations run on background actors to keep UI responsive
-- **Combine publishers**: Services expose state changes via `@Published` properties
-- **Security-scoped resources**: Used defensively for removable volume and folder access
-- **Centralized path building**: `DestinationPathBuilder` handles all file naming logic to ensure consistency
-
-### Data Flow
-1. VolumeManager publishes available volumes → AppState
-2. User selects volume → AppState triggers FileProcessorService scan
-3. FileProcessorService streams discovered files → AppState updates UI
-4. User clicks Import → AppState coordinates ImportService
-5. ImportService copies files and reports progress → AppState updates UI
-
-## File Organization
-
-```
-Media Muncher/
-├── Media_MuncherApp.swift          # App entry point, service injection
-├── AppState.swift                  # Main orchestrator, UI state machine
-├── LogEntry.swift                  # JSON-encodable log entry model
-├── Services/
-│   ├── VolumeManager.swift         # Volume discovery and monitoring
-│   ├── FileProcessorService.swift  # Media scanning, thumbnail caching (2000 entries)
-│   ├── ImportService.swift         # File copying and collision handling
-│   ├── LogManager.swift            # Custom JSON logging system with file rotation
-│   └── SettingsStore.swift         # User preferences persistence
-├── Helpers/
-│   └── DestinationPathBuilder.swift # Pure path generation logic
-├── Views/                          # SwiftUI views
-└── Models/                         # Value types (Volume, File, AppError)
-
-Media MuncherTests/
-├── Fixtures/                       # Sample media files for testing
-├── *IntegrationTests.swift          # End-to-end tests on real file system
-├── LogManagerTests.swift            # LogManager system unit tests
-└── *Tests.swift                     # Unit tests for pure logic
-```
+For detailed architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Testing Strategy
 
