@@ -1,5 +1,22 @@
 # Changelog
 
+## [2025-07-27] - Code Cleanup
+
+### Fixed
+- **Duplicate source files**: Removed obsolete source files from the project, which were left over from a previous refactoring. This improves maintainability and reduces confusion.
+
+### Changed
+- **Project structure**: The project now has a cleaner and more organized file structure.
+
+### Technical Details
+- **Files Removed**:
+  - `Media Muncher/Models/FileModel.swift`
+  - `Media Muncher/Models/VolumeModel.swift`
+  - `Media Muncher/Views/ContentView.swift`
+  - `Media Muncher/Views/MediaGridView.swift`
+  - `Media Muncher/Views/MediaFileCellView.swift`
+  - `Media Muncher/Views/VolumeListView.swift`
+
 ## [2025-01-26] - SettingsStore Race Condition Fix
 
 ### Fixed
