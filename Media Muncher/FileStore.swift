@@ -2,7 +2,7 @@
 //  FileStore.swift
 //  Media Muncher
 //
-//  Dedicated state manager for file-related data and operations
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation

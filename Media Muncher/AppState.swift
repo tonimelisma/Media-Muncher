@@ -1,13 +1,14 @@
-import Foundation
-import SwiftUI
-import Combine
-import QuickLookThumbnailing
 //
 //  AppState.swift
 //  Media Muncher
 //
-//  Created by Toni Melisma on 2/15/25.
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
+
+import Foundation
+import SwiftUI
+import Combine
+import QuickLookThumbnailing
 
 enum ProgramState {
     case idle

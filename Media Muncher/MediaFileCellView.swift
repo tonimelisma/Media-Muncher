@@ -1,3 +1,10 @@
+//
+//  MediaFileCellView.swift
+//  Media Muncher
+//
+//  Copyright © 2025 Toni Melisma. All rights reserved.
+//
+
 import SwiftUI
 
 struct MediaFileCellView: View {
@@ -71,7 +78,7 @@ struct MediaFileCellView: View {
         .onAppear {
             loadThumbnail()
         }
-        .onChange(of: file.id) { _ in
+        .onChange(of: file.sourcePath) { _, _ in
             loadThumbnail()
         }
         .alert(isPresented: $showingErrorAlert) {

@@ -2,20 +2,75 @@
 //  AppError.swift
 //  Media Muncher
 //
-//  Created by Toni Melisma on 2/22/25.
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation
 
+/// Domain-specific error types for Media Muncher operations.
+///
+/// This enum provides typed error handling across all application services with
+/// contextual information for debugging and user-facing error messages.
+///
+/// ## Usage Examples
+/// ```swift
+/// // Service throwing errors
+/// func scanVolume() async throws -> [File] {
+///     guard volumeExists else {
+///         throw AppError.scanFailed(reason: "Volume no longer available")
+///     }
+/// }
+///
+/// // Error handling with user feedback
+/// do {
+///     try await importFiles()
+/// } catch let error as AppError {
+///     await MainActor.run {
+///         self.errorMessage = error.localizedDescription
+///     }
+/// }
+/// ```
+///
+/// ## Error Categories
+/// - **Scanning**: Volume access and file discovery errors
+/// - **Import**: File copying and verification failures  
+/// - **Recalculation**: Destination path update errors
+/// - **Configuration**: Missing or invalid settings
 enum AppError: Error, Identifiable, LocalizedError {
     var id: String { localizedDescription }
     
+    /// Volume scanning operation failed due to access or enumeration issues.
+    /// - Parameter reason: Detailed explanation of the failure for debugging
     case scanFailed(reason: String)
+    
+    /// User has not selected a destination folder in Settings.
+    /// This error prevents import operations from proceeding.
     case destinationNotSet
+    
+    /// File import operation failed completely.
+    /// - Parameter reason: Detailed explanation of the failure for debugging
     case importFailed(reason: String)
+    
+    /// Import completed successfully but source file deletion failed.
+    /// This typically occurs on read-only volumes or due to permission issues.
+    /// - Parameter reason: Detailed explanation of the deletion failure
     case importSucceededWithDeletionErrors(reason: String)
+    
+    /// Individual file copy operation failed.
+    /// - Parameters:
+    ///   - source: Source file path that failed to copy
+    ///   - reason: Detailed explanation of the copy failure
     case copyFailed(source: String, reason: String)
+    
+    /// Failed to create required directory structure in destination.
+    /// - Parameters:
+    ///   - path: Directory path that failed to be created
+    ///   - reason: Detailed explanation of the creation failure
     case directoryCreationFailed(path: String, reason: String)
+    
+    /// Destination path recalculation failed during settings changes.
+    /// This can occur when destination becomes unavailable or settings are invalid.
+    /// - Parameter reason: Detailed explanation of the recalculation failure
     case recalculationFailed(reason: String)
     
     var errorDescription: String? {

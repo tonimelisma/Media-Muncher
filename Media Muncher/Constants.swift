@@ -2,7 +2,7 @@
 //  Constants.swift
 //  Media Muncher
 //
-//  Created by Claude on 2025-07-21.
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation

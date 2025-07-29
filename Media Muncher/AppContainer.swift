@@ -2,7 +2,7 @@
 //  AppContainer.swift
 //  Media Muncher
 //
-//  Dependency injection container for centralized service management
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation

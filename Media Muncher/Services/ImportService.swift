@@ -2,7 +2,7 @@
 //  ImportService.swift
 //  Media Muncher
 //
-//  Created by Gemini on 3/8/25.
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation

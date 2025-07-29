@@ -2,7 +2,7 @@
 //  LogManager.swift
 //  Media Muncher
 //
-//  Custom JSON-based logging system with session-based file storage
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation

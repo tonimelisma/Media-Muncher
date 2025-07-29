@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  Media Muncher
 //
-//  Created by Toni Melisma on 2/13/25.
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import SwiftUI

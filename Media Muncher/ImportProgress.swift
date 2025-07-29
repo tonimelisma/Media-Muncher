@@ -1,3 +1,10 @@
+//
+//  ImportProgress.swift
+//  Media Muncher
+//
+//  Copyright © 2025 Toni Melisma. All rights reserved.
+//
+
 import Foundation
 
 @MainActor

@@ -2,7 +2,7 @@
 //  LogEntry.swift
 //  Media Muncher
 //
-//  Custom logging system model for structured JSON logging
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation

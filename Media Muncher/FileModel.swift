@@ -2,7 +2,7 @@
 //  FileModel.swift
 //  Media Muncher
 //
-//  Created by Toni Melisma on 2/17/25.
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation
@@ -11,8 +11,9 @@ import SwiftUI
 enum MediaType: String {
     case audio, video, image, raw, unknown
     
-    static func from(filePath: String) -> MediaType {
-        let validExtensions: [String: MediaType] = [
+    /// Pre-computed extension mapping for optimal performance on large file sets.
+    /// Cached as static constant to avoid repeated dictionary creation.
+    private static let extensionCache: [String: MediaType] = [
             // Audio (from PRD)
             "mp3": .audio, "wav": .audio, "aac": .audio,
 
@@ -40,8 +41,11 @@ enum MediaType: String {
             "pef": .raw, "raf": .raw, "raw": .raw, "rw2": .raw, "sr2": .raw, 
             "srf": .raw, "x3f": .raw,
         ]
-        let ext = (filePath as NSString).pathExtension.lowercased()
-        return validExtensions[ext] ?? .unknown
+    
+    static func from(filePath: String) -> MediaType {
+        let url = URL(fileURLWithPath: filePath)
+        let ext = url.pathExtension.lowercased()
+        return extensionCache[ext] ?? .unknown
     }
 }
 
@@ -55,13 +59,13 @@ struct File: Identifiable, Sendable {
     }
     let sourcePath: String
     var sourceName: String {
-        (sourcePath as NSString).lastPathComponent
+        URL(fileURLWithPath: sourcePath).lastPathComponent
     }
     var filenameWithoutExtension: String {
-        (sourceName as NSString).deletingPathExtension
+        URL(fileURLWithPath: sourcePath).deletingPathExtension().lastPathComponent
     }
     var fileExtension: String {
-        (sourceName as NSString).pathExtension
+        URL(fileURLWithPath: sourcePath).pathExtension
     }
     var mediaType: MediaType
     var date: Date?

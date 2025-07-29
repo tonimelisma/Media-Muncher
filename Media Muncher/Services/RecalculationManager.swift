@@ -2,7 +2,7 @@
 //  RecalculationManager.swift
 //  Media Muncher
 //
-//  Created by Claude on 2025-07-14.
+//  Copyright © 2025 Toni Melisma. All rights reserved.
 //
 
 import Foundation
