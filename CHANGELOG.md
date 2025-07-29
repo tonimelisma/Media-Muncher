@@ -1,5 +1,15 @@
 # Changelog
 
+## [2025-07-29] - Code Quality Cleanup
+
+### Fixed
+- **Issue 11: Debug print statements removed**: Removed two debug print statements from `AppContainer.swift` that violated production code standards. These statements provided no value in production and cluttered console output.
+
+### Technical Details
+- **Files Modified**: `Media Muncher/AppContainer.swift` - lines 69 and 99 removed
+- **Testing**: Added `AppContainerTests.swift` to verify container initialization continues to work correctly
+- **No functional changes**: The existing proper logging via LogManager remains intact
+
 ## [2025-07-28] - Documentation Updates
 
 ### Fixed

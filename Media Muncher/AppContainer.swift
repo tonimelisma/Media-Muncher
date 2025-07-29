@@ -66,7 +66,6 @@ final class AppContainer {
     /// Services are created in dependency order to ensure proper initialization.
     init() {
         // This initializer now runs on the Main Actor.
-        print("DEBUG: AppContainer.init() starting - thread: \(Thread.current) - is main thread: \(Thread.isMainThread)")
         
         // Core Services (no dependencies)
         self.logManager = LogManager()
@@ -96,6 +95,5 @@ final class AppContainer {
         )
         
         Task.detached { await self.logManager.info("AppContainer initialized successfully", category: "AppContainer") }
-        print("DEBUG: AppContainer.init() completed")
     }
 } 
