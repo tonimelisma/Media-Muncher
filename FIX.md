@@ -80,60 +80,6 @@ struct DestinationPathBuilder {
 
 ---
 
-## Issue 11: Debug Print Statements in Production Code
-
-**Problem:** `AppContainer.swift` contains `print()` statements (lines 68, 98)
-
-**Risk Level:** Medium
-- Violates production code standards
-- Debug output in production builds
-- Indicates incomplete cleanup
-
-**Solution:**
-Replace with proper logging or remove entirely:
-
-```swift
-// Current (problematic):
-print("DEBUG: AppContainer.init() starting - thread: \(Thread.current) - is main thread: \(Thread.isMainThread)")
-
-// Proposed fix:
-Task {
-    await logManager.debug("AppContainer.init() starting", category: "AppContainer", metadata: [
-        "thread": "\(Thread.current)",
-        "isMainThread": "\(Thread.isMainThread)"
-    ])
-}
-```
-
----
-
-## Issue 12: Test Sleep Usage
-
-**Problem:** Test files use `Task.sleep()` which violates test reliability standards
-
-**Examples:**
-- `ImportProgressTests.swift:75` uses `Task.sleep(for: .seconds(1))`
-- `TestDataFactory.swift:112` uses `Task.sleep(nanoseconds: 10_000_000)`
-
-**Risk Level:** Medium
-- Tests become brittle and slow
-- Sleep-based timing is unreliable
-- Violates testing best practices
-
-**Solution:**
-Replace with deterministic test patterns:
-
-```swift
-// Current (problematic):
-try await Task.sleep(for: .seconds(1))
-
-// Proposed fix - use XCTestExpectation or polling:
-let expectation = XCTestExpectation(description: "Progress updated")
-// Set up proper expectations instead of arbitrary delays
-```
-
----
-
 ## Issue 13: ThumbnailCache Test Isolation
 
 **Problem:** `ThumbnailCacheTests.swift` depends on real QuickLook framework instead of isolated unit tests
@@ -317,15 +263,15 @@ func resolveCollision(for file: File, existingFiles: [File], destinationURL: URL
 ## Success Metrics
 
 ### Code Quality
-- [ ] Zero print statements in production code
-- [ ] Zero Task.sleep() usage in tests
+- [x] Zero print statements in production code
+- [x] Zero Task.sleep() usage in tests
 - [ ] 100% API documentation coverage
 - [ ] Consistent file headers across codebase
 - [ ] No dead code or unused protocols
 
 ### Testing Quality
-- [ ] All tests use deterministic patterns
-- [ ] No arbitrary timing delays in tests
+- [x] All tests use deterministic patterns
+- [x] No arbitrary timing delays in tests
 - [ ] Fast, reliable test execution
 - [ ] ThumbnailCache tests use dependency injection
 - [ ] Integration tests cover thumbnail pipeline
