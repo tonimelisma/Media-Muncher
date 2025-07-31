@@ -23,7 +23,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
         
         thumbnailCache = ThumbnailCache(limit: 10)
         fileProcessorService = FileProcessorService(
-            logManager: MockLogManager(),
+            logManager: MockLogManager.shared,
             thumbnailCache: thumbnailCache
         )
     }
@@ -38,7 +38,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
     
     func testThumbnailPipelineForImageFiles() async throws {
         // Given: A test image file in the source directory
-        let imageFileName = "sample-photo.jpg"
+        let imageFileName = "exif_image.jpg"
         let imageURL = try setupSourceFile(named: imageFileName)
         
         // Verify the test file exists and is readable
@@ -78,7 +78,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
     
     func testThumbnailPipelineForVideoFiles() async throws {
         // Given: A test video file (if available in fixtures)
-        let videoFileName = "sample-video.mp4"
+        let videoFileName = "sidecar_video.mov"
         
         // Check if video fixture exists, skip test if not available
         guard Bundle(for: type(of: self)).url(forResource: videoFileName, withExtension: nil) != nil else {
@@ -109,7 +109,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
     
     func testThumbnailPipelineWithMultipleFiles() async throws {
         // Given: Multiple test files with different types
-        let fileNames = ["sample-photo.jpg"] // Add more if fixtures available
+        let fileNames = ["exif_image.jpg"] // Add more if fixtures available
         var setupURLs: [URL] = []
         
         for fileName in fileNames {
@@ -150,7 +150,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
     
     func testThumbnailCacheConsistencyAcrossProcessing() async throws {
         // Given: A test image file
-        let imageURL = try setupSourceFile(named: "sample-photo.jpg")
+        let imageURL = try setupSourceFile(named: "exif_image.jpg")
         
         // When: Processing file multiple times (simulating UI refresh)
         settingsStore.setDestination(destinationURL)
@@ -189,7 +189,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
         var testURLs: [URL] = []
         for i in 0..<5 {
             let fileName = "test-image-\(i).jpg"
-            let sourceFile = try setupSourceFile(named: "sample-photo.jpg")
+            let sourceFile = try setupSourceFile(named: "exif_image.jpg")
             let newURL = sourceURL.appendingPathComponent(fileName)
             try fileManager.copyItem(at: sourceFile, to: newURL)
             testURLs.append(newURL)
@@ -248,7 +248,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
     
     func testThumbnailPipelinePerformance() async throws {
         // Given: A test image file
-        let imageURL = try setupSourceFile(named: "sample-photo.jpg")
+        let imageURL = try setupSourceFile(named: "exif_image.jpg")
         
         // When: Measuring thumbnail generation performance
         let startTime = Date()

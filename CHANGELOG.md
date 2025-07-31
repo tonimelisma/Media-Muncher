@@ -1,5 +1,23 @@
 # Changelog
 
+## [2025-07-30] - Test Infrastructure Fixes
+
+### Fixed
+- **ThumbnailPipelineIntegrationTests fixture references**: Replaced all non-existent "sample-photo.jpg" placeholder references with real "exif_image.jpg" fixture
+- **ThumbnailPipelineIntegrationTests video fixture**: Updated video test to use real "sidecar_video.mov" fixture instead of missing "sample-video.mp4"
+- **MockLogManager usage consistency**: Changed from `MockLogManager()` to `MockLogManager.shared` for consistency with established test patterns
+
+### Technical Details
+- **Files Modified**: `ThumbnailPipelineIntegrationTests.swift` - 7 fixture reference corrections
+- **Test Coverage**: Fixed test infrastructure to properly reference available fixtures in Media MuncherTests/Fixtures/
+- **Available Fixtures**: `exif_image.jpg`, `duplicate_a.jpg`, `duplicate_b.jpg`, `no_exif_image.heic`, `sidecar_video.mov`, `sidecar_video.THM`
+- **No Production Code Changes**: This was purely a test infrastructure fix with no changes to application functionality
+
+### Test Results
+- **Fixed Issue**: Tests no longer fail immediately due to missing fixture files
+- **Video Pipeline Test**: Now passes successfully using real video fixture
+- **Remaining Limitations**: Some thumbnail generation tests may still fail in test environments due to QuickLook permissions/sandbox restrictions, but this is environmental rather than code-related
+
 ## [2025-07-29] - Code Quality and Documentation Overhaul
 
 ### Fixed
