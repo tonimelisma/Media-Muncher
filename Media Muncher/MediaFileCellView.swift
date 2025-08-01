@@ -78,7 +78,7 @@ struct MediaFileCellView: View {
         .onAppear {
             loadThumbnail()
         }
-        .onChange(of: file.sourcePath) { _, _ in
+        .onChange(of: file.thumbnailData) { _, _ in
             loadThumbnail()
         }
         .alert(isPresented: $showingErrorAlert) {
@@ -92,8 +92,15 @@ struct MediaFileCellView: View {
     
     private func loadThumbnail() {
         Task {
-            let url = URL(fileURLWithPath: file.sourcePath)
-            displayThumbnail = await thumbnailCache.thumbnailImage(for: url)
+            // If we already have thumbnail data, convert it directly to avoid cache lookup
+            if let thumbnailData = file.thumbnailData,
+               let nsImage = NSImage(data: thumbnailData) {
+                displayThumbnail = Image(nsImage: nsImage)
+            } else {
+                // Fall back to cache lookup for cases where data conversion fails or data is nil
+                let url = URL(fileURLWithPath: file.sourcePath)
+                displayThumbnail = await thumbnailCache.thumbnailImage(for: url)
+            }
         }
     }
 } 

@@ -102,6 +102,13 @@ This section details planned UI work required to meet all remaining requirements
 ### 2025-07-22
 * Internal performance update: thumbnail generation now handled by new actor `ThumbnailCache`, reducing MainActor load and improving grid scrolling smoothness. No visual changes.
 
+### 2025-08-01
+* **MediaFileCellView performance optimization**: Changed thumbnail loading trigger from `file.sourcePath` to `file.thumbnailData` - eliminates unnecessary reloads during rapid status updates (copying→verifying→imported)
+* **Smart thumbnail loading**: Added direct Data→Image conversion path when thumbnailData exists, avoiding redundant cache lookups while maintaining fallback robustness
+* **UI responsiveness improvement**: Eliminated thumbnail flickering and unnecessary QuickLook operations during import operations
+* **Test coverage**: Added comprehensive MediaFileCellViewPerformanceTests validating optimization behavior and edge cases
+* No visual changes to user interface - purely internal performance improvements that reduce UI stuttering
+
 ### 2025-07-23
 * **Performance optimization**: Eliminated all Data→Image conversions from UI layer through direct ThumbnailCache integration
 * **Architecture improvement**: MediaFileCellView now uses ThumbnailCache directly via SwiftUI environment injection

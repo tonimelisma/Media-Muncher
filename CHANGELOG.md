@@ -1,5 +1,29 @@
 # Changelog
 
+## [2025-08-01] - MediaFileCellView Performance Optimization (Issue 15)
+
+### Optimized
+- **MediaFileCellView thumbnail loading**: Changed onChange trigger from `file.sourcePath` to `file.thumbnailData` to reduce unnecessary reloads during status updates
+- **Direct data conversion**: Added direct Data→Image conversion path when thumbnailData exists, avoiding cache lookups for better performance
+- **UI responsiveness**: Eliminated thumbnail reloading during rapid file status changes (copying, verifying, imported, etc.)
+
+### Added
+- **MediaFileCellViewPerformanceTests**: Comprehensive test suite validating optimization behavior and edge cases
+- **Test coverage**: 7 test cases covering data change detection, status stability, direct conversion, fallback behavior, and backward compatibility
+
+### Technical Details
+- **Files Modified**:
+  - `MediaFileCellView.swift` - Changed `.onChange(of: file.sourcePath)` to `.onChange(of: file.thumbnailData)` and optimized `loadThumbnail()` method
+  - Added `MediaFileCellViewPerformanceTests.swift` - Full test coverage for optimization
+- **Performance Impact**: Reduced unnecessary QuickLook operations when File objects are replaced during status updates
+- **Backward Compatibility**: Maintains cache fallback when direct data conversion fails or thumbnailData is nil
+- **Memory Efficiency**: Direct conversion avoids duplicate cache lookups while preserving robustness
+
+### Implementation Strategy
+- **Smart Trigger**: Only reload thumbnails when actual thumbnail data changes, not on every File object replacement
+- **Dual Path Logic**: Prefer direct NSImage(data:) conversion, fall back to cache lookup for robustness  
+- **Thread Safety**: All image creation happens in Task context off main thread
+
 ## [2025-07-31] - Thumbnail Test Reliability and QuickLook Handling
 
 ### Fixed
