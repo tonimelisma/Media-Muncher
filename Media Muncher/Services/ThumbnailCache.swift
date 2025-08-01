@@ -181,21 +181,47 @@ actor ThumbnailCache {
     
     /// Generates thumbnail data using QuickLook framework
     private func generateThumbnailData(url: URL, size: CGSize) async -> Data? {
+        // Add debug logging for test troubleshooting
+        let logManager = LogManager()
+        await logManager.debug("🔧 generateThumbnailData called for: \(url.path)", category: "TestDebugging")
+        
+        // First check if file actually exists and is a regular file (not directory)
+        var isDirectory: ObjCBool = false
+        let fileExists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        let isRegularFile = fileExists && !isDirectory.boolValue
+        await logManager.debug("🔧 File exists: \(fileExists), isDirectory: \(isDirectory.boolValue), isRegularFile: \(isRegularFile)", category: "TestDebugging")
+        
+        guard isRegularFile else {
+            if !fileExists {
+                await logManager.debug("🔧 File does not exist, returning nil without calling QuickLook", category: "TestDebugging")
+            } else if isDirectory.boolValue {
+                await logManager.debug("🔧 Path is a directory, returning nil without calling QuickLook", category: "TestDebugging")
+            }
+            return nil
+        }
+        
         let request = QLThumbnailGenerator.Request(fileAt: url,
                                                    size: size,
                                                    scale: NSScreen.main?.backingScaleFactor ?? 1.0,
                                                    representationTypes: .all)
+        await logManager.debug("🔧 About to call QLThumbnailGenerator.generateBestRepresentation", category: "TestDebugging")
+        
         guard let rep = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
+            await logManager.debug("🔧 QLThumbnailGenerator returned nil", category: "TestDebugging")
             return nil
         }
+        
+        await logManager.debug("🔧 QLThumbnailGenerator succeeded, converting to JPEG", category: "TestDebugging")
         
         // Convert NSImage to JPEG data for thread-safe storage with efficient compression
         guard let tiffData = rep.nsImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
               let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.8]) else {
+            await logManager.debug("🔧 JPEG conversion failed", category: "TestDebugging")
             return nil
         }
         
+        await logManager.debug("🔧 Successfully generated \(jpegData.count) bytes of thumbnail data", category: "TestDebugging")
         return jpegData
     }
     
