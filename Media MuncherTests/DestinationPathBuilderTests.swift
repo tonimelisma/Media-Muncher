@@ -52,7 +52,7 @@ final class DestinationPathBuilderTests: MediaMuncherTestCase {
         XCTAssertEqual(rel, "2025/01/20250101_120000.mov")
     }
 
-    func testBuildFinalDestinationUrl_AppendsSuffix() {
+    func testBuildFinalDestinationURL_AppendsSuffix() {
         // Given
         var settings = SettingsStore()
         settings.organizeByDate = true
@@ -60,7 +60,7 @@ final class DestinationPathBuilderTests: MediaMuncherTestCase {
         let file = makeFile(name: "music.aac", mediaType: .audio)
 
         // When – ask builder to append suffix 2
-        let url = DestinationPathBuilder.buildFinalDestinationUrl(for: file, in: rootURL, settings: settings, suffix: 2)
+        let url = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings, suffix: 2)
 
         // Then
         XCTAssertEqual(url.path, "/Library/Destination/2025/01/20250101_120000_2.aac")

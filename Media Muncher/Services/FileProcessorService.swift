@@ -557,7 +557,7 @@ private func calculateDestinationPath(
     var isUnique = false
     
     while !isUnique {
-        let candidatePath = DestinationPathBuilder.buildFinalDestinationUrl(
+        let candidatePath = DestinationPathBuilder.buildFinalDestinationURL(
             for: newFile,
             in: destinationURL,
             settings: settings,
@@ -642,7 +642,7 @@ private func calculateDestinationPathWithCollisionResolution(
     var isUnique = false
     
     while !isUnique {
-        let candidatePath = DestinationPathBuilder.buildFinalDestinationUrl(
+        let candidatePath = DestinationPathBuilder.buildFinalDestinationURL(
             for: newFile,
             in: destinationURL,
             settings: settings,
