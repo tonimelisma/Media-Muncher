@@ -1,5 +1,18 @@
 # Changelog
 
+## [2025-08-05] - DestinationPathBuilder timestamp fallback
+
+### Fixed
+- **Path generation**: `DestinationPathBuilder` now uses the file's filesystem modification time when no capture date metadata is available, ensuring date-based organization works as documented.
+
+### Added
+- **Unit test** verifying modification-date fallback in `DestinationPathBuilderTests`.
+
+### Technical Details
+- **Files Modified**:
+  - `Media Muncher/Helpers/DestinationPathBuilder.swift`
+  - `Media MuncherTests/DestinationPathBuilderTests.swift`
+
 ## [2025-07-31] - Documentation and Code Verification
 
 ### Added

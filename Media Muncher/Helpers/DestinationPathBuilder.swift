@@ -13,7 +13,7 @@ import Foundation
 /// ## Algorithm Overview
 /// The path building process consists of three main phases:
 /// 1. **Directory Structure**: Creates date-based subdirectories (YYYY/MM/) when enabled
-/// 2. **Filename Generation**: Uses capture date or preserves original filename based on settings
+/// 2. **Filename Generation**: Uses capture date (falling back to modification time) or preserves original filename based on settings
 /// 3. **Extension Normalization**: Standardizes file extensions (e.g., jpeg → jpg)
 ///
 /// ## Usage Pattern
@@ -58,7 +58,8 @@ struct DestinationPathBuilder {
     /// 
     /// ## Algorithm Details
     /// 1. **Directory Structure**: When `organizeByDate` is true, creates YYYY/MM/ subdirectories
-    ///    using the file's capture date (from EXIF metadata) or modification time as fallback
+    ///    using the file's capture date (from EXIF metadata) or, if unavailable, the filesystem
+    ///    modification time
     /// 2. **Filename Generation**: When `renameByDate` is true, generates YYYYMMDD_HHMMSS format
     ///    using UTC timezone to prevent inconsistencies across different system timezones
     /// 3. **Extension Normalization**: Always applies extension normalization for consistency
@@ -67,9 +68,12 @@ struct DestinationPathBuilder {
     /// ```swift
     /// // Photo taken 2025-01-15 14:30:00 with organizeByDate=true, renameByDate=true
     /// // Returns: "2025/01/20250115_143000.jpg"
-    /// 
-    /// // Same photo with organizeByDate=false, renameByDate=false  
+    ///
+    /// // Same photo with organizeByDate=false, renameByDate=false
     /// // Returns: "IMG_0123.jpg" (preserves original filename)
+    ///
+    /// // Photo missing capture metadata but modification time 2025-01-15 14:30:00
+    /// // Returns: "2025/01/20250115_143000.jpg" (falls back to modification date)
     /// ```
     /// 
     /// - Parameters:
@@ -79,9 +83,16 @@ struct DestinationPathBuilder {
     /// - Returns: Relative path string without collision resolution suffixes
     /// - Note: This method is deterministic and used by both duplicate detection and import operations
     static func relativePath(for file: File, organizeByDate: Bool, renameByDate: Bool) -> String {
+        // Determine the effective timestamp, preferring embedded metadata and falling back to filesystem modification date
+        let effectiveDate: Date? = {
+            if let d = file.date { return d }
+            let attrs = try? FileManager.default.attributesOfItem(atPath: file.sourcePath)
+            return attrs?[.modificationDate] as? Date
+        }()
+
         // Decide directory component
         var directory = ""
-        if organizeByDate, let date = file.date ?? Date(timeIntervalSince1970: 0) as Date? {
+        if organizeByDate, let date = effectiveDate {
             var cal = Calendar(identifier: .gregorian)
             cal.timeZone = TimeZone(identifier: "UTC")!
             let comps = cal.dateComponents([.year, .month], from: date)
@@ -92,7 +103,7 @@ struct DestinationPathBuilder {
 
         // Decide base filename
         let base: String
-        if renameByDate, let date = file.date ?? Date(timeIntervalSince1970: 0) as Date? {
+        if renameByDate, let date = effectiveDate {
             var cal = Calendar(identifier: .gregorian)
             cal.timeZone = TimeZone(identifier: "UTC")!
             let c = cal.dateComponents([.year,.month,.day,.hour,.minute,.second], from: date)
