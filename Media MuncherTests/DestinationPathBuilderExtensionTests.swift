@@ -39,22 +39,22 @@ final class DestinationPathBuilderExtensionTests: XCTestCase {
         XCTAssertEqual(rel, "2025/01/IMG_1234.jpg") // ext normalised + directory added
     }
 
-    func testBuildFinalDestinationUrl_NoSuffix() {
+    func testBuildFinalDestinationURL_NoSuffix() {
         var settings = SettingsStore()
         settings.organizeByDate = true
         settings.renameByDate = true
         let file = makeFile(name: "clip.mp4", mediaType: .video)
-        let url = DestinationPathBuilder.buildFinalDestinationUrl(for: file, in: rootURL, settings: settings)
+        let url = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings)
         XCTAssertEqual(url.path, "/DestinationRoot/2025/01/20250101_120000.mp4")
     }
 
-    func testBuildFinalDestinationUrl_MultipleSuffixes() {
+    func testBuildFinalDestinationURL_MultipleSuffixes() {
         var settings = SettingsStore()
         settings.organizeByDate = true
         settings.renameByDate = true
         let file = makeFile(name: "sound.aac", mediaType: .audio)
-        let first = DestinationPathBuilder.buildFinalDestinationUrl(for: file, in: rootURL, settings: settings, suffix: 1)
-        let second = DestinationPathBuilder.buildFinalDestinationUrl(for: file, in: rootURL, settings: settings, suffix: 2)
+        let first = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings, suffix: 1)
+        let second = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings, suffix: 2)
         XCTAssertEqual(first.path, "/DestinationRoot/2025/01/20250101_120000_1.aac")
         XCTAssertEqual(second.path, "/DestinationRoot/2025/01/20250101_120000_2.aac")
     }

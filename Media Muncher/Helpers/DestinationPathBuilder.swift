@@ -22,7 +22,7 @@ import Foundation
 /// let path = DestinationPathBuilder.relativePath(for: file, organizeByDate: true, renameByDate: true)
 /// 
 /// // Generate complete destination URL with collision handling
-/// let url = DestinationPathBuilder.buildFinalDestinationUrl(for: file, in: rootURL, settings: settings)
+/// let url = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings)
 /// ```
 ///
 /// ## Thread Safety
@@ -129,7 +129,7 @@ struct DestinationPathBuilder {
     ///   - suffix: Optional numerical suffix for collision resolution (nil = no suffix)
     /// - Returns: Complete destination URL ready for file operations
     /// - Complexity: O(1) for path generation, collision detection handled by caller
-    static func buildFinalDestinationUrl(
+    static func buildFinalDestinationURL(
         for file: File,
         in rootURL: URL,
         settings: SettingsStore,
