@@ -190,6 +190,12 @@ The specific file extensions for each category in **ST-5** are:
 - Aligned test container initialization patterns with production AppContainer for consistency
 - Eliminated all thread deadlocks during service initialization, restoring normal application startup
 
+### 2025-08-05 – Code Quality: Swift Naming Convention Standardization
+- **Code quality improvement**: Renamed `buildFinalDestinationUrl` to `buildFinalDestinationURL` throughout codebase for Swift naming convention compliance
+- Updated function definition in DestinationPathBuilder.swift and all call sites in FileProcessorService.swift
+- Updated corresponding test methods in DestinationPathBuilderTests.swift and DestinationPathBuilderExtensionTests.swift
+- Enhanced code consistency and adherence to Swift API Design Guidelines for acronym capitalization
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  
