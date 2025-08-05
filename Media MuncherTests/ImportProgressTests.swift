@@ -58,6 +58,25 @@ final class ImportProgressTests: XCTestCase {
         XCTAssertEqual(importProgress.importedFileCount, 1)
         XCTAssertEqual(importProgress.importedBytes, 100)
     }
+    
+    func testUpdateWithMixedImportStatuses() {
+        // Test mixed import batch: some successful, some with deletion errors, some failed
+        let files = [
+            File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 100, status: .imported),
+            File(sourcePath: "/tmp/b.jpg", mediaType: .image, size: 200, status: .imported_with_deletion_error),
+            File(sourcePath: "/tmp/c.jpg", mediaType: .image, size: 150, status: .failed),
+            File(sourcePath: "/tmp/d.jpg", mediaType: .image, size: 75, status: .imported)
+        ]
+        
+        for file in files {
+            importProgress.update(with: file)
+        }
+        
+        // Should count both .imported and .imported_with_deletion_error (3 files, 375 bytes)
+        // Should NOT count .failed files
+        XCTAssertEqual(importProgress.importedFileCount, 3, "Should count imported and imported_with_deletion_error")
+        XCTAssertEqual(importProgress.importedBytes, 375, "Should sum bytes from successful imports only")
+    }
 
     func testUpdateWithNonImportedFile() {
         let file = File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 100, status: .waiting)
