@@ -37,7 +37,7 @@ class ImportProgress: ObservableObject {
     }
     
     func update(with completedFile: File) {
-        if completedFile.status == .imported {
+        if completedFile.status == .imported || completedFile.status == .imported_with_deletion_error {
             self.importedFileCount += 1
             self.importedBytes += completedFile.size ?? 0
         }

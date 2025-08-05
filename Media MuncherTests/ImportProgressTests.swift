@@ -43,9 +43,18 @@ final class ImportProgressTests: XCTestCase {
 
     func testUpdateWithImportedFile() {
         let file = File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 100, status: .imported)
-        
+
         importProgress.update(with: file)
-        
+
+        XCTAssertEqual(importProgress.importedFileCount, 1)
+        XCTAssertEqual(importProgress.importedBytes, 100)
+    }
+
+    func testUpdateWithImportedWithDeletionErrorFile() {
+        let file = File(sourcePath: "/tmp/a.jpg", mediaType: .image, size: 100, status: .imported_with_deletion_error)
+
+        importProgress.update(with: file)
+
         XCTAssertEqual(importProgress.importedFileCount, 1)
         XCTAssertEqual(importProgress.importedBytes, 100)
     }
