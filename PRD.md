@@ -208,6 +208,12 @@ The specific file extensions for each category in **ST-5** are:
 - Updated corresponding test methods in DestinationPathBuilderTests.swift and DestinationPathBuilderExtensionTests.swift
 - Enhanced code consistency and adherence to Swift API Design Guidelines for acronym capitalization
 
+### 2025-08-05 – DestinationPathBuilder Timestamp Fallback Enhancement
+- **Bug fix**: Fixed DestinationPathBuilder to use filesystem modification date as fallback when media metadata is unavailable
+- Replaced incorrect epoch date (1970-01-01) fallback with proper filesystem timestamp access
+- Enhanced date-based organization to work correctly for files without EXIF/metadata dates
+- Added comprehensive test coverage for modification date fallback behavior with filesystem interaction
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  
