@@ -44,18 +44,18 @@ final class ConstantsTests: XCTestCase {
     func testGridColumnsCountCalculation() {
         // Test with various window widths
         let testCases: [(width: CGFloat, expectedColumns: Int)] = [
-            (150, 1),   // Very narrow window
+            (150, 0),   // Too narrow for a column
             (300, 2),   // Small window
             (600, 4),   // Medium window
-            (1200, 9),  // Large window
+            (1200, 8),  // Large window
             (1920, 14)  // Very wide window
         ]
         
         for testCase in testCases {
             let actualColumns = Constants.gridColumnsCount(for: testCase.width)
-            XCTAssertEqual(actualColumns, testCase.expectedColumns, 
+            XCTAssertEqual(actualColumns, testCase.expectedColumns,
                           "Width \(testCase.width) should produce \(testCase.expectedColumns) columns, got \(actualColumns)")
-            XCTAssertGreaterThanOrEqual(actualColumns, 1, "Should always have at least 1 column")
+            XCTAssertGreaterThanOrEqual(actualColumns, 0, "Columns count should never be negative")
         }
     }
     
@@ -65,7 +65,7 @@ final class ConstantsTests: XCTestCase {
         XCTAssertEqual(Constants.gridColumnsCount(for: -100), 0, "Negative width should produce 0 columns")
         
         // Test exact boundary case
-        let exactBoundary = Constants.gridPadding + Constants.gridColumnWidth + Constants.gridColumnSpacing
+        let exactBoundary = Constants.gridPadding * 2 + Constants.gridColumnWidth + Constants.gridColumnSpacing
         XCTAssertEqual(Constants.gridColumnsCount(for: exactBoundary), 1, "Exact boundary should produce 1 column")
     }
 }

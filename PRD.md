@@ -214,6 +214,12 @@ The specific file extensions for each category in **ST-5** are:
 - Enhanced date-based organization to work correctly for files without EXIF/metadata dates
 - Added comprehensive test coverage for modification date fallback behavior with filesystem interaction
 
+### 2025-08-05 – Grid Layout Calculation Fix
+- **UI fix**: Corrected grid column calculation to properly account for padding on both sides of the layout
+- Fixed formula from `width - gridPadding` to `max(0, width - gridPadding * 2)` for accurate column counts
+- Added defensive programming with `max(0, ...)` to prevent negative available width calculations
+- Updated all test cases with correct expected values and improved edge case handling
+
 ---
 **Legend**:  
 *Finished* – Implemented and shipped in `main`.  
