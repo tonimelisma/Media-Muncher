@@ -36,8 +36,14 @@ class ImportProgress: ObservableObject {
         self.importStartTime = Date()
     }
     
+    /// Updates progress tracking with a completed file.
+    /// 
+    /// Files with status .imported or .imported_with_deletion_error are both counted
+    /// as successfully imported because the primary import goal (file in destination)
+    /// was achieved. Deletion errors are secondary failures that don't affect the
+    /// user's library.
     func update(with completedFile: File) {
-        if completedFile.status == .imported {
+        if completedFile.status == .imported || completedFile.status == .imported_with_deletion_error {
             self.importedFileCount += 1
             self.importedBytes += completedFile.size ?? 0
         }
