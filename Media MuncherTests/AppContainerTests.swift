@@ -32,17 +32,22 @@ final class AppContainerTests: XCTestCase {
     func testLogManagerLogsInitialization() async throws {
         // Given: A new AppContainer
         let container = AppContainer()
-        
+
         // When: Initialization completes
         // Give a moment for the async logging to complete
         try await Task.sleep(for: .milliseconds(100))
-        
-        // Then: LogManager should have logged the initialization
-        // Note: We can't easily test the log contents without exposing internal state,
-        // but we can verify the LogManager is working by calling it directly
         await container.logManager.info("Test log entry", category: "Test")
-        
-        // If we get here without crashing, the LogManager is working
-        XCTAssertTrue(true, "LogManager successfully handled initialization and test logging")
+
+        // Then: the log file should contain our test message. If it doesn't,
+        // logging is broken and the log manager isn't writing to disk.
+        guard let logManager = container.logManager as? LogManager else {
+            return XCTFail("AppContainer should provide a concrete LogManager for log inspection")
+        }
+        let logContents = logManager.getLogFileContents()
+
+        XCTAssertTrue(
+            logContents?.contains("Test log entry") == true,
+            "Expected 'Test log entry' to be written to the log file, but it was missing"
+        )
     }
 }
