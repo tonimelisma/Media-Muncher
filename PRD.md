@@ -190,6 +190,12 @@ The specific file extensions for each category in **ST-5** are:
 - Aligned test container initialization patterns with production AppContainer for consistency
 - Eliminated all thread deadlocks during service initialization, restoring normal application startup
 
+### 2025-08-05 – Progress Tracking Fix for Deletion Errors
+- **BUG FIX**: Fixed ImportProgress to correctly count files with `imported_with_deletion_error` status as successfully imported
+- Progress bars now accurately reflect files that reached the destination, regardless of deletion errors
+- Added comprehensive test coverage for mixed import scenarios (successful, deletion errors, failures)
+- Enhanced documentation to clarify business logic: files in destination = successful import
+
 ### 2025-08-05 – Enhanced LogManager Testing
 - **TEST IMPROVEMENT**: Replaced trivial assertion in AppContainerTests with actual log file verification
 - Test now validates LogManager writes entries to disk and can read them back
