@@ -32,17 +32,32 @@ final class AppContainerTests: XCTestCase {
     func testLogManagerLogsInitialization() async throws {
         // Given: A new AppContainer
         let container = AppContainer()
-        
-        // When: Initialization completes
-        // Give a moment for the async logging to complete
+
+        // When: We write a test log entry
+        // The LogManager actor ensures synchronizeFile() completes before await returns
         try await Task.sleep(for: .milliseconds(100))
+        await container.logManager.info("Test log entry", category: "AppContainerTest")
+
+        // Then: The log file should contain our test message
+        guard let logManager = container.logManager as? LogManager else {
+            return XCTFail("AppContainer should provide a concrete LogManager for log inspection")
+        }
         
-        // Then: LogManager should have logged the initialization
-        // Note: We can't easily test the log contents without exposing internal state,
-        // but we can verify the LogManager is working by calling it directly
-        await container.logManager.info("Test log entry", category: "Test")
+        let logContents = logManager.getLogFileContents()
+        XCTAssertNotNil(logContents, "Log file should exist and be readable")
         
-        // If we get here without crashing, the LogManager is working
-        XCTAssertTrue(true, "LogManager successfully handled initialization and test logging")
+        guard let contents = logContents else {
+            return XCTFail("Failed to read log file contents")
+        }
+        
+        XCTAssertTrue(
+            contents.contains("Test log entry"),
+            "Expected 'Test log entry' to be written to log file. Log contents: \(contents.prefix(500))"
+        )
+        
+        XCTAssertTrue(
+            contents.contains("AppContainerTest"),
+            "Expected category 'AppContainerTest' to be in log file. Log contents: \(contents.prefix(500))"
+        )
     }
 }
