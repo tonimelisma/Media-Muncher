@@ -55,6 +55,7 @@ enum Constants {
     /// - Parameter width: Available width for the grid
     /// - Returns: Number of columns that fit with proper spacing
     static func gridColumnsCount(for width: CGFloat) -> Int {
-        return Int((width - gridPadding) / (gridColumnWidth + gridColumnSpacing))
+        let availableWidth = max(0, width - gridPadding * 2)
+        return Int(availableWidth / (gridColumnWidth + gridColumnSpacing))
     }
 }
