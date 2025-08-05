@@ -33,21 +33,31 @@ final class AppContainerTests: XCTestCase {
         // Given: A new AppContainer
         let container = AppContainer()
 
-        // When: Initialization completes
-        // Give a moment for the async logging to complete
+        // When: We write a test log entry
+        // The LogManager actor ensures synchronizeFile() completes before await returns
         try await Task.sleep(for: .milliseconds(100))
-        await container.logManager.info("Test log entry", category: "Test")
+        await container.logManager.info("Test log entry", category: "AppContainerTest")
 
-        // Then: the log file should contain our test message. If it doesn't,
-        // logging is broken and the log manager isn't writing to disk.
+        // Then: The log file should contain our test message
         guard let logManager = container.logManager as? LogManager else {
             return XCTFail("AppContainer should provide a concrete LogManager for log inspection")
         }
+        
         let logContents = logManager.getLogFileContents()
-
+        XCTAssertNotNil(logContents, "Log file should exist and be readable")
+        
+        guard let contents = logContents else {
+            return XCTFail("Failed to read log file contents")
+        }
+        
         XCTAssertTrue(
-            logContents?.contains("Test log entry") == true,
-            "Expected 'Test log entry' to be written to the log file, but it was missing"
+            contents.contains("Test log entry"),
+            "Expected 'Test log entry' to be written to log file. Log contents: \(contents.prefix(500))"
+        )
+        
+        XCTAssertTrue(
+            contents.contains("AppContainerTest"),
+            "Expected category 'AppContainerTest' to be in log file. Log contents: \(contents.prefix(500))"
         )
     }
 }
