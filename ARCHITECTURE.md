@@ -155,10 +155,32 @@ Media Muncher follows a **"Hybrid with Clear Boundaries"** approach to async pro
 
 ---
 ## 8. Security & Permissions
-* **Application is not sandboxed**. It uses security-scoped resources defensively for removable volumes and user-selected folders to ensure it only has access to locations explicitly granted by the user.
-* SecurityScopedURLAccessWrapper provides fallback access when standard file system permissions are insufficient.
-* Write-access validation is performed before setting destination folders.
-* Destination folder paths are stored as standard file paths, with security-scoped resource access acquired as needed.
+
+### Security Model Overview
+**Media Muncher is intentionally not sandboxed** to provide simplified file system access for professional media workflows. However, it implements a defensive security architecture using security-scoped resources to ensure access is limited to user-granted locations only.
+
+### Security-Scoped Resource Implementation
+
+**Architecture:**
+- `SecurityScopedURLAccessWrapper` protocol provides abstraction for security-scoped resource management
+- Production implementation wraps `URL.startAccessingSecurityScopedResource()` and `URL.stopAccessingSecurityScopedResource()`  
+- Test implementations use `MockURLAccess` for deterministic testing
+
+**Usage Patterns:**
+- **Import Operations**: `ImportService` acquires security-scoped access to destination URLs before file operations
+- **Settings Validation**: `SettingsStore` uses security-scoped resources for write-access validation of destination folders
+- **Graceful Degradation**: Operations continue with standard file system permissions if security-scoped access fails
+
+**Access Control:**
+- Destination folder paths stored as standard file paths in `UserDefaults`
+- Security-scoped resource access acquired dynamically as needed for operations
+- Write-access validation performed before accepting destination folder changes
+- No permanent security-scoped bookmarks stored (simplified model)
+
+### Permission Validation
+- **Destination Folders**: Write-access tested before acceptance with helpful error messaging
+- **Removable Volumes**: Automatic detection and handling of read-only volumes
+- **Error Recovery**: Graceful handling of permission failures with user-friendly messages
 
 ---
 ## 9. Testing Strategy
