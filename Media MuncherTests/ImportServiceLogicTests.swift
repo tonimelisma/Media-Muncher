@@ -49,13 +49,13 @@ final class ImportServiceLogicTests: XCTestCase {
     func testImport_copiesFileSuccessfully() async throws {
         // Arrange
         _ = try copyFixture(named: "no_exif_image.heic")
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         var settings = SettingsStore()
         settings.renameByDate = false
         settings.organizeByDate = false
         settings.settingDeleteOriginals = false
         let files = await processor.processFiles(from: srcDir, destinationURL: destDir, settings: settings)
-        let importSvc = ImportService(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
+        let importSvc = ImportService.testInstance(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
         
         // Act
         let results = try await collect(importSvc.importFiles(files: files, to: destDir, settings: settings))
@@ -71,13 +71,13 @@ final class ImportServiceLogicTests: XCTestCase {
     func testImport_withDeleteOriginals_removesSource() async throws {
         // Arrange
         let sourceFile = try copyFixture(named: "no_exif_image.heic")
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         var settings = SettingsStore()
         settings.renameByDate = false
         settings.organizeByDate = false
         settings.settingDeleteOriginals = true
         let files = await processor.processFiles(from: srcDir, destinationURL: destDir, settings: settings)
-        let importSvc = ImportService(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
+        let importSvc = ImportService.testInstance(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
         
         // Act
         _ = try await collect(importSvc.importFiles(files: files, to: destDir, settings: settings))

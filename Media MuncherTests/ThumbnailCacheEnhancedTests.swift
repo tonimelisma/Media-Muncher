@@ -50,7 +50,7 @@ final class ThumbnailCacheEnhancedTests: XCTestCase {
         let logManager = LogManager()
         Task { await logManager.debug("🧪 Setting up ThumbnailCacheEnhancedTests", category: "TestDebugging") }
         mockGenerator = MockThumbnailGenerator()
-        cache = ThumbnailCache(limit: 3)
+        cache = ThumbnailCache.testInstance(limit: 3)
         Task { await logManager.debug("✅ ThumbnailCacheEnhancedTests setup complete", category: "TestDebugging") }
     }
 
@@ -174,8 +174,8 @@ final class ThumbnailCacheEnhancedTests: XCTestCase {
         
         // Given: Multiple cache instances (simulating test isolation)
         await logTestStep("Creating two separate cache instances")
-        let cache1 = ThumbnailCache(limit: 5)
-        let cache2 = ThumbnailCache(limit: 5) 
+        let cache1 = ThumbnailCache.testInstance(limit: 5)
+        let cache2 = ThumbnailCache.testInstance(limit: 5) 
         
         let url = URL(fileURLWithPath: "/test/performance.jpg")
         await logTestStep("Testing isolation with fake URL: \(url.path)")

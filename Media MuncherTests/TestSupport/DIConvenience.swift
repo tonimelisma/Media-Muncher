@@ -20,28 +20,28 @@ extension SettingsStore {
     }
 }
 
-// MARK: - ThumbnailCache
+// MARK: - ThumbnailCache (Test Factory)
 extension ThumbnailCache {
-    convenience init(limit: Int) {
-        self.init(limit: limit, logManager: MockLogManager())
+    static func testInstance(limit: Int) -> ThumbnailCache {
+        ThumbnailCache(limit: limit, logManager: MockLogManager())
     }
 }
 
-// MARK: - FileProcessorService
+// MARK: - FileProcessorService (Test Factory)
 extension FileProcessorService {
-    convenience init(logManager: Logging = MockLogManager()) {
+    static func testInstance(logManager: Logging = MockLogManager()) -> FileProcessorService {
         let cache = ThumbnailCache(limit: 16, logManager: logManager)
-        self.init(logManager: logManager, thumbnailCache: cache)
+        return FileProcessorService(logManager: logManager, thumbnailCache: cache)
     }
 }
 
-// MARK: - ImportService
+// MARK: - ImportService (Test Factory)
 extension ImportService {
-    convenience init(urlAccessWrapper: SecurityScopedURLAccessWrapperProtocol) {
-        self.init(logManager: MockLogManager(), urlAccessWrapper: urlAccessWrapper)
+    static func testInstance(urlAccessWrapper: SecurityScopedURLAccessWrapperProtocol) -> ImportService {
+        ImportService(logManager: MockLogManager(), urlAccessWrapper: urlAccessWrapper)
     }
-    convenience init() {
-        self.init(logManager: MockLogManager())
+    static func testInstance() -> ImportService {
+        ImportService(logManager: MockLogManager())
     }
 }
 

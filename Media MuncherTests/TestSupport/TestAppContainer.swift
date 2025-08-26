@@ -25,7 +25,7 @@ final class TestAppContainer {
         self.logManager = mockLog
         
         // Create thumbnail cache with smaller limit for tests
-        self.thumbnailCache = ThumbnailCache(limit: 32)
+        self.thumbnailCache = ThumbnailCache.testInstance(limit: 32)
         
         // Create services in dependency order to avoid retain cycles
         self.volumeManager = VolumeManager(logManager: mockLog)

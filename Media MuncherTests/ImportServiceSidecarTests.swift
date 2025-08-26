@@ -47,10 +47,10 @@ final class ImportServiceSidecarTests: XCTestCase {
         createFile(at: video)
         createFile(at: sidecar)
 
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         let files = await processor.processFiles(from: srcDir, destinationURL: destDir, settings: settings)
         
-        let importSvc = ImportService(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
+        let importSvc = ImportService.testInstance(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
 
         // Act
         try await collect(importSvc.importFiles(files: files, to: destDir, settings: settings))

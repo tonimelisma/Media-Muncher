@@ -25,7 +25,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
         let realLogManager = LogManager()
         Task { await realLogManager.debug("🧪 Setting up ThumbnailPipelineIntegrationTests", category: "TestDebugging") }
         
-        thumbnailCache = ThumbnailCache(limit: 10)
+        thumbnailCache = ThumbnailCache.testInstance(limit: 10)
         fileProcessorService = FileProcessorService(
             logManager: realLogManager,
             thumbnailCache: thumbnailCache
@@ -267,7 +267,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
         // Given: More files than cache limit to test eviction
         let cacheLimit = 3
         await logManager.debug("Creating test cache with limit: \(cacheLimit)", category: "TestDebugging")
-        let testCache = ThumbnailCache(limit: cacheLimit)
+        let testCache = ThumbnailCache.testInstance(limit: cacheLimit)
         
         // Verify source file exists and is valid first
         let originalSourceFile = try setupSourceFile(named: "exif_image.jpg")
@@ -326,7 +326,7 @@ final class ThumbnailPipelineIntegrationTests: IntegrationTestCase {
                 
                 // Try direct QuickLook test
                 await logManager.debug("Testing direct QuickLook for failed file \(index)", category: "TestDebugging")
-                let testCache2 = ThumbnailCache(limit: 10)
+                let testCache2 = ThumbnailCache.testInstance(limit: 10)
                 let retryData = await testCache2.thumbnailData(for: url)
                 await logManager.debug("Retry with new cache: \(retryData != nil ? "success (\(retryData!.count) bytes)" : "still failed")", category: "TestDebugging")
             }

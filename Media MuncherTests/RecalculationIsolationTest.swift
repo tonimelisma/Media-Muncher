@@ -23,7 +23,7 @@ final class RecalculationIsolationTest: XCTestCase {
         let testFile = tempDir.appendingPathComponent("test.jpg")
         fileManager.createFile(atPath: testFile.path, contents: Data([0x42]))
         
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         let settings = SettingsStore()
         
         // Initial scan

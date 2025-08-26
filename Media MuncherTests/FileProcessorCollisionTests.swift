@@ -47,7 +47,7 @@ final class FileProcessorCollisionTests: XCTestCase {
         try fileManager.setAttributes([.creationDate: referenceDate, .modificationDate: referenceDate], ofItemAtPath: file1.path)
         try fileManager.setAttributes([.creationDate: referenceDate, .modificationDate: referenceDate], ofItemAtPath: file2.path)
 
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
 
         // Act
         let processed = await processor.processFiles(from: tempSrcDir, destinationURL: nil, settings: settings)
@@ -68,7 +68,7 @@ final class FileProcessorCollisionTests: XCTestCase {
         let destFile = tempDestDir.appendingPathComponent("sample.jpg")
         try fileManager.copyItem(at: srcFile, to: destFile)
 
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
 
         // Act
         let processed = await processor.processFiles(from: tempSrcDir, destinationURL: tempDestDir, settings: settings)
@@ -89,7 +89,7 @@ final class FileProcessorCollisionTests: XCTestCase {
         let existing = tempDestDir.appendingPathComponent("clip.jpg")
         fileManager.createFile(atPath: existing.path, contents: Data(repeating: 0xBB, count: 20))
 
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
 
         // Act
         let processed = await processor.processFiles(from: tempSrcDir, destinationURL: tempDestDir, settings: settings)

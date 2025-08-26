@@ -29,7 +29,7 @@ final class FileProcessorServiceTests: XCTestCase {
         settings.filterImages = true
         settings.filterVideos = false // disable videos
         settings.filterAudio = true
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         
         // Act
         let files = await processor.processFiles(from: tempRoot, destinationURL: nil, settings: settings)
@@ -51,7 +51,7 @@ final class FileProcessorServiceTests: XCTestCase {
         settings.filterImages = true
         settings.filterVideos = false
         settings.filterAudio = false
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         
         // Act: process files with small batch size
         let stream = await processor.processFilesStream(
@@ -89,7 +89,7 @@ final class FileProcessorServiceTests: XCTestCase {
     func testProcessFilesStream_handlesEmptyDirectory() async {
         // Arrange: empty directory
         let settings = SettingsStore()
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         
         // Act
         let stream = await processor.processFilesStream(
@@ -117,7 +117,7 @@ final class FileProcessorServiceTests: XCTestCase {
         
         let settings = SettingsStore()
         settings.filterImages = true
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         
         // Act: start processing then cancel quickly
         let task = Task {

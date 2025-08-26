@@ -10,7 +10,7 @@ final class ThumbnailCacheTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Use a small limit for easier testing
-        cache = ThumbnailCache(limit: 3)
+        cache = ThumbnailCache.testInstance(limit: 3)
     }
 
     override func tearDown() {

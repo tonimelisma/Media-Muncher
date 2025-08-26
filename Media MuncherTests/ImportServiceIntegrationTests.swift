@@ -9,7 +9,7 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        importService = ImportService()
+        importService = ImportService.testInstance()
     }
 
     override func tearDownWithError() throws {
@@ -23,7 +23,7 @@ final class ImportServiceIntegrationTests: IntegrationTestCase {
     // - collectStreamResults(for:)
 
     private func processFiles(from volume: URL) async -> [File] {
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         let processedFiles = await processor.processFiles(
             from: volume,
             destinationURL: destinationURL,

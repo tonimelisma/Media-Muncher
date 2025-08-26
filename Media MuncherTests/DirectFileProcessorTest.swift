@@ -21,7 +21,7 @@ final class DirectFileProcessorTest: XCTestCase {
         XCTAssertEqual(contents, ["test.jpg"], "Directory should only contain test.jpg")
         
         // Directly call FileProcessorService
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         let settings = SettingsStore()
         
         let files = await processor.processFiles(

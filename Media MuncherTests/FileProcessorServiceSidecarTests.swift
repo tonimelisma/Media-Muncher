@@ -38,7 +38,7 @@ final class FileProcessorServiceSidecarTests: XCTestCase {
         createFile(at: video)
         createFile(at: sidecar)
 
-        let processor = FileProcessorService(logManager: logManager)
+        let processor = FileProcessorService(logManager: logManager, thumbnailCache: ThumbnailCache.testInstance(limit: 16))
 
         // Act
         let files = await processor.processFiles(from: rootDir, destinationURL: nil, settings: settings)

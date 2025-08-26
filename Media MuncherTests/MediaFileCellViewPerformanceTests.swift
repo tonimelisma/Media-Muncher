@@ -19,7 +19,7 @@ final class MediaFileCellViewPerformanceTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        thumbnailCache = ThumbnailCache(limit: 10)
+        thumbnailCache = ThumbnailCache.testInstance(limit: 10)
     }
     
     override func tearDown() {

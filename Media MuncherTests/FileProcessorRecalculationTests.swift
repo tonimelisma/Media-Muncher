@@ -23,7 +23,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         // Use isolated UserDefaults for test
         let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
         settings = SettingsStore(userDefaults: testDefaults)
-        processor = FileProcessorService()
+        processor = FileProcessorService.testInstance()
     }
 
     override func tearDownWithError() throws {

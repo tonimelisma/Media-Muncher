@@ -15,7 +15,7 @@ final class ImportServiceErrorTests: XCTestCase {
         destDir = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try fileManager.createDirectory(at: srcDir, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: destDir, withIntermediateDirectories: true)
-        processor = FileProcessorService()
+        processor = FileProcessorService.testInstance()
         settings = SettingsStore()
         settings.renameByDate = false
         settings.organizeByDate = false
@@ -56,7 +56,7 @@ final class ImportServiceErrorTests: XCTestCase {
         // Arrange – create single file to import
         _ = createSourceFile(named: "file.heic")
         let files = await processor.processFiles(from: srcDir, destinationURL: destDir, settings: settings)
-        let importSvc = ImportService(urlAccessWrapper: MockURLAccess(alwaysAllow: false))
+        let importSvc = ImportService.testInstance(urlAccessWrapper: MockURLAccess(alwaysAllow: false))
 
         // Use an unwritable path (root-owned) to force isWritableFile == false
         let unreachableDest = URL(fileURLWithPath: "/root/\(UUID().uuidString)")
@@ -83,7 +83,7 @@ final class ImportServiceErrorTests: XCTestCase {
         // Create conflicting file at destination path AFTER planning to force copy failure
         fileManager.createFile(atPath: destPath, contents: Data(repeating: 0x20, count: 20))
 
-        let importSvc = ImportService(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
+        let importSvc = ImportService.testInstance(urlAccessWrapper: MockURLAccess(alwaysAllow: true))
 
         // Act
         let results = try await collect(importSvc.importFiles(files: files, to: destDir, settings: settings))

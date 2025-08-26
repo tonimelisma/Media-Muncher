@@ -64,7 +64,7 @@ final class FileProcessorServicePreExistingRenameTests: XCTestCase {
         try fileManager.copyItem(at: sourceURL, to: destFileURL)
 
         // 5. Process files – should mark as .pre_existing instead of allocating “_1” suffix
-        let processor = FileProcessorService()
+        let processor = FileProcessorService.testInstance()
         let processed = await processor.processFiles(from: tempSrcDir, destinationURL: tempDestDir, settings: settings)
         guard let result = processed.first else {
             XCTFail("No file processed")
