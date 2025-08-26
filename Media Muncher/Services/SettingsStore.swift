@@ -38,6 +38,7 @@ import SwiftUI
 class SettingsStore: ObservableObject {
     private let userDefaults: UserDefaults
     private let logManager: Logging
+    private let bookmarkStore: BookmarkStore
     
     @Published var settingDeleteOriginals: Bool {
         didSet {
@@ -121,9 +122,10 @@ class SettingsStore: ObservableObject {
     }
 
 
-    init(logManager: Logging = LogManager(), userDefaults: UserDefaults = .standard) {
+    init(logManager: Logging, userDefaults: UserDefaults = .standard, bookmarkStore: BookmarkStore) {
         self.logManager = logManager
         self.userDefaults = userDefaults
+        self.bookmarkStore = bookmarkStore
         
         self.settingDeleteOriginals = userDefaults.bool(forKey: "settingDeleteOriginals")
         self.organizeByDate = userDefaults.bool(forKey: "organizeByDate")
@@ -136,8 +138,23 @@ class SettingsStore: ObservableObject {
         self.filterAudio = userDefaults.object(forKey: "filterAudio") as? Bool ?? true
         self.filterRaw = userDefaults.object(forKey: "filterRaw") as? Bool ?? true
 
-        // Set destination synchronously - no async operations in constructor
-        self.destinationURL = Self.computeDefaultDestination()
+        // Attempt to resolve previously stored bookmark; fall back to default destination.
+        if let bookmarkData = userDefaults.data(forKey: "destinationBookmark") {
+            let result = bookmarkStore.resolveBookmark(bookmarkData)
+            if let resolved = result.url {
+                self.destinationURL = resolved
+            } else {
+                // Stale or invalid bookmark: clear and fall back
+                userDefaults.removeObject(forKey: "destinationBookmark")
+                self.destinationURL = Self.computeDefaultDestination()
+                Task {
+                    await logManager.debug("Cleared stale/invalid destination bookmark; fell back to default",
+                                            category: "SettingsStore")
+                }
+            }
+        } else {
+            self.destinationURL = Self.computeDefaultDestination()
+        }
         
         // Log initialization asynchronously (fire-and-forget)
         Task {
@@ -209,7 +226,23 @@ class SettingsStore: ObservableObject {
             return false
         }
 
-        // All good – commit the new URL. This is the ONLY assignment to destinationURL now.
+        // Persist bookmark for non-preset folders
+        if !isPresetFolder(url) {
+            do {
+                let data = try bookmarkStore.createBookmark(for: url, securityScoped: true)
+                userDefaults.set(data, forKey: "destinationBookmark")
+                userDefaults.set(url.path, forKey: "destinationPath")
+            } catch {
+                Task { await logManager.error("Failed to create bookmark", category: "SettingsStore", metadata: ["error": error.localizedDescription]) }
+                // Still allow destination change; bookmark persistence failure isn't fatal.
+            }
+        } else {
+            // Clear bookmark if user switches to a preset folder
+            userDefaults.removeObject(forKey: "destinationBookmark")
+            userDefaults.set(url.path, forKey: "destinationPath")
+        }
+
+        // All good – commit the new URL.
         destinationURL = url
         return true
     }

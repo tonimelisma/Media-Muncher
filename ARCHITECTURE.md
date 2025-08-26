@@ -40,10 +40,10 @@
 | **Media_MuncherApp.swift** | App entry point, service instantiation | `Media_MuncherApp` |
 | **AppState.swift** | Orchestrates services and exposes unified state to the UI. Manages the UI state machine. | `AppState` |
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
-| **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread with **count-based batching (50-file groups)** for UI performance, maintains an **in-memory thumbnail cache (2,000 entry limit)**, and detects pre-existing files in the destination. Provides both legacy and streaming interfaces via `AsyncStream<[File]>`. | `FileProcessorService` |
+| **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread with **count-based batching (50-file groups)** for UI performance, detects pre-existing files, extracts metadata, and computes destination paths using `DestinationPathBuilder`. Provides streaming via `AsyncStream<[File]>`. Thumbnails are handled by `ThumbnailCache`. | `FileProcessorService` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. Uses security-scoped resources for folder access when needed. | `SettingsStore` |
 | **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
-| **Services/ImportService.swift**| Copies files to the destination using security-scoped resource access. Delegates all path calculation to `DestinationPathBuilder`. Handles sidecar files (THM, XMP, LRC) automatically. | `ImportService` |
+| **Services/ImportService.swift**| Copies files to the destination using security-scoped resource access. Uses the precomputed `destPath` from `FileProcessorService` (no path calculation). Deletes sidecar files (THM, XMP, LRC) from the source alongside the parent media when deletion is enabled. | `ImportService` |
 | **Services/ThumbnailCache.swift** | Actor-based thumbnail generation & dual LRU cache (Data + Image) shared across FileProcessorService and UI. Stores JPEG data for thread safety and SwiftUI Images for direct UI access. Keeps heavy QuickLook work off the MainActor. Available via SwiftUI environment injection. | `ThumbnailCache` |
 | **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationURL(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
 | **FileStore.swift** | Centralized state manager for file data and related UI operations. MainActor-isolated service that manages the files array and provides computed properties for UI bindings. | `FileStore` |
@@ -78,6 +78,16 @@
 8. `MediaFilesGridView` and `ContentView` observe `AppState` and display the new files and progress as they arrive.
 9. When **Import** is clicked, `AppState` calls the `ImportService` to copy the scanned files to the destination set in `SettingsStore`.
 10. When the destination changes in `SettingsStore`, `AppState` delegates to `RecalculationManager` to recalculate file paths and statuses.
+
+---
+## 3b. Destination Path Flow
+- `FileProcessorService` computes each `File.destPath` using `DestinationPathBuilder` based on current `SettingsStore` (organize/rename options) and collision resolution.
+- `ImportService` does not calculate paths; it requires `destPath` to be set and will skip/fail a file if missing.
+
+## 3c. Thumbnail Flow
+- UI requests thumbnails via `ThumbnailCache` (actor) injected in the SwiftUI environment.
+- `FileProcessorService` may prefetch thumbnails by asking `ThumbnailCache` for `thumbnailData` when processing a file.
+- `ThumbnailCache` logs through the shared `LogManager` and maintains an in‑memory LRU for data and images.
 
 ---
 ## 4. Architectural Principles
@@ -172,10 +182,10 @@ Media Muncher follows a **"Hybrid with Clear Boundaries"** approach to async pro
 - **Graceful Degradation**: Operations continue with standard file system permissions if security-scoped access fails
 
 **Access Control:**
-- Destination folder paths stored as standard file paths in `UserDefaults`
-- Security-scoped resource access acquired dynamically as needed for operations
+- Destination folder stored as a security-scoped bookmark in `UserDefaults` and resolved on app startup to restore access reliably
+- Security-scoped resource access is also acquired dynamically during import operations
 - Write-access validation performed before accepting destination folder changes
-- No permanent security-scoped bookmarks stored (simplified model)
+- Removable source volumes are not persisted as bookmarks (transient access only)
 
 ### Permission Validation
 - **Destination Folders**: Write-access tested before acceptance with helpful error messaging
@@ -215,7 +225,7 @@ tail -f logs/media-muncher-*.log # Real-time monitoring
 
 To prevent log-directory bloat the logger prunes any file older than **30 days** at start-up; no size-based rotation is required.
 
-Developers interact with the logger only through the `Logging` protocol injected into every service (`logManager: Logging = LogManager()`). A convenience extension provides `debug / info / error` helpers.
+Developers interact with the logger only through the `Logging` protocol injected explicitly into every service via `AppContainer` (no default initializer parameters). A convenience extension provides `debug / info / error` helpers.
 
 ### Log File Format
 **Location**: `~/Library/Logs/Media Muncher/`  
@@ -273,10 +283,11 @@ Media Muncher uses a simple, manual dependency injection pattern centered around
 ### Production Container
 - **AppContainer.swift**: @MainActor-isolated, synchronous initialization
 - Creates all services in dependency order
+- Constructs exactly one `LogManager` shared by all services (centralized logging)
 - Used by Media_MuncherApp.swift for production builds
 
 ### Test Container  
-- **TestAppContainer.swift**: @MainActor-isolated, synchronous initialization
+- **Media MuncherTests/TestSupport/TestAppContainer.swift**: @MainActor-isolated, synchronous initialization
 - Uses MockLogManager and isolated UserDefaults for testing
 - Mirrors production patterns for consistency
 

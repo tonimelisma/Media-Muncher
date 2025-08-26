@@ -1,0 +1,51 @@
+2025-08-24 23:09:23.866 xcodebuild[72610:53828136]  DVTFilePathFSEvents: Failed to start fs event stream.
+2025-08-24 23:09:23.977 xcodebuild[72610:53828133] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 "Input/output error". Using NSCachesDirectory instead.
+2025-08-24 23:09:24.244 xcodebuild[72610:53828135] CoreSimulatorService connection became invalid.  Simulator services will no longer be available.
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -target "Media MuncherTests" -configuration Debug build
+
+2025-08-24 23:09:24.296 xcodebuild[72610:53828133] [MT] DVTAssertions: Warning in DVTFrameworks/DVTFoundation/FileTypes/DVTFileDataTypeDetection.m:75
+Details:  detectedTypeIdentifier (com.apple.binary-property-list) does not conform to matchedTypeIdentifier in MagicFileDataTypeDetector extenson com.apple.property-list.  When both are specified, this conformance is required. extension.identifier:Xcode.MagicFileDataTypeDetector.BinaryPlist
+Object:   <DVTFileDataTypeDetectionMagicCache: 0x600002e7df50>
+Method:   -initWithExtension:
+Thread:   <_NSMainThread: 0x600003728200>{number = 1, name = main}
+Please file a bug at https://feedbackassistant.apple.com with this warning message and any useful information you can provide.
+2025-08-24 23:09:24.298 xcodebuild[72610:53828133] [MT] DVTAssertions: Warning in DVTFrameworks/DVTFoundation/FileTypes/DVTFileDataTypeDetection.m:75
+Details:  detectedTypeIdentifier (com.apple.xml-property-list) does not conform to matchedTypeIdentifier in MagicFileDataTypeDetector extenson com.apple.property-list.  When both are specified, this conformance is required. extension.identifier:Xcode.MagicFileDataTypeDetector.XMLPlist
+Object:   <DVTFileDataTypeDetectionMagicCache: 0x600002e6ecd0>
+Method:   -initWithExtension:
+Thread:   <_NSMainThread: 0x600003728200>{number = 1, name = main}
+Please file a bug at https://feedbackassistant.apple.com with this warning message and any useful information you can provide.
+2025-08-24 23:09:24.348 xcodebuild[72610:53828135] Logging connecton invalid: <OS_xpc_error: <dictionary: 0x200066bf0> { count = 1, transaction: 0, voucher = 0x0, contents =
+	"XPCErrorDescription" => <string: 0x200066d38> { length = 18, contents = "Connection invalid" }
+}>
+2025-08-24 23:09:24.348 xcodebuild[72610:53828135] Error opening log file (/Users/tonimelisma/Library/Logs/CoreSimulator/CoreSimulator.com.apple.dt.xcodebuild.log): Operation not permitted
+[-[SimServiceContext initWithDeveloperDir:connectionType:error:]:450] WARN  : Unable to discover any Simulator runtimes. Developer Directory is /Applications/Xcode.app/Contents/Developer.
+[-[SimDiskImageManager _onQueue_checkConnection:]:239] ERROR : simdiskimaged returned error (invalid), marking disconnected.
+[-[SimDiskImageManager init]:175] ERROR : Could not kickstart simdiskimaged; SimDiskImageManager services will not be available: Error Domain=NSPOSIXErrorDomain Code=53 "Software caused connection abort" UserInfo={NSLocalizedDescription=Error returned in reply from CoreSimulatorService: Connection invalid}
+[-[SimServiceContext initWithDeveloperDir:connectionType:error:]_block_invoke:486] ERROR : Could not get list of trusted mount directories: Error Domain=com.apple.CoreSimulator.SimError Code=410 "The service used to manage runtime disk images (simdiskimaged) crashed or is not responding" UserInfo={NSLocalizedDescription=The service used to manage runtime disk images (simdiskimaged) crashed or is not responding}
+[-[SimDiskImageManager _onQueue_checkConnection:]:239] ERROR : simdiskimaged returned error (invalid), marking disconnected.
+[-[SimServiceContext sendRequest:reply:error:]:1763] ERROR : Unable to deliver request ({
+    request = "notification_subscription";
+    "set_path" = "~/Library/Developer/CoreSimulator/Devices";
+}) because we are not connected to CoreSimulatorService.
+2025-08-24 23:09:24.349 xcodebuild[72610:53828162] Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedDescription=CoreSimulatorService connection became invalid.  Simulator services will no longer be available.}
+[-[SimServiceContext sendRequest:reply:error:]:1763] ERROR : Unable to deliver request ({
+    request = "notification_subscription";
+    "set_path" = "~/Library/Developer/CoreSimulator/Devices";
+}) because we are not connected to CoreSimulatorService.
+2025-08-24 23:09:24.351 xcodebuild[72610:53828162]  iOSSimulator: [SimServiceContext defaultDeviceSetWithError:] returned nil (Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedFailureReason=Failed to subscribe to notifications from CoreSimulatorService., NSLocalizedDescription=Failed to initialize simulator device set., NSUnderlyingError=0x600002ee9830 {Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedDescription=CoreSimulatorService connection became invalid.  Simulator services will no longer be available.}}}). Simulator device support disabled.
+2025-08-24 23:09:24.351 xcodebuild[72610:53828136] Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedDescription=CoreSimulatorService connection became invalid.  Simulator services will no longer be available.}
+2025-08-24 23:09:24.351 xcodebuild[72610:53828136]  IDESimulatorAvailability: startObservingSimulatorUpdates() FAILED to register SimDeviceSet observer
+2025-08-24 23:09:24.440 xcodebuild[72610:53828162]  IDELogStore: Unable to remove item at path /Users/tonimelisma/Library/Developer/Xcode/DerivedData/Media_Muncher-aycbbxmhmvlzfedfyiwymprzawtu/Logs/Test/Test-Media Muncher-2025.08.24_23-02-28--0700.xcresult: Error Domain=NSCocoaErrorDomain Code=513 "“Test-Media Muncher-2025.08.24_23-02-28--0700.xcresult” couldn’t be removed because you don’t have permission to access it." UserInfo={NSUserStringVariant=(
+    Remove
+), NSFilePath=/Users/tonimelisma/Library/Developer/Xcode/DerivedData/Media_Muncher-aycbbxmhmvlzfedfyiwymprzawtu/Logs/Test/Test-Media Muncher-2025.08.24_23-02-28--0700.xcresult, NSURL=file:///Users/tonimelisma/Library/Developer/Xcode/DerivedData/Media_Muncher-aycbbxmhmvlzfedfyiwymprzawtu/Logs/Test/Test-Media%20Muncher-2025.08.24_23-02-28--0700.xcresult, NSUnderlyingError=0x600002e02e20 {Error Domain=NSPOSIXErrorDomain Code=1 "Operation not permitted"}}
+ComputePackagePrebuildTargetDependencyGraph
+error: Could not compute dependency graph: Error Domain=NSCocoaErrorDomain Code=513 "You don’t have permission to save the file “WORKSPACE@v11_hash=8bba011ebce113239e3fb777262b0189_subobjects=60b43584f106971c0153f9ed86d00f8f-json” in the folder “workspace”." UserInfo={NSUnderlyingError=0x60000058ef10 {Error Domain=NSPOSIXErrorDomain Code=1 "Operation not permitted"}, NSUserStringVariant=Folder, NSURL=file:///Users/tonimelisma/Library/Developer/Xcode/DerivedData/Media_Muncher-aycbbxmhmvlzfedfyiwymprzawtu/Build/Intermediates.noindex/XCBuildData/PIFCache/workspace/WORKSPACE@v11_hash=8bba011ebce113239e3fb777262b0189_subobjects=60b43584f106971c0153f9ed86d00f8f-json}
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	Compute target dependency graph for package preparation
+(1 failure)

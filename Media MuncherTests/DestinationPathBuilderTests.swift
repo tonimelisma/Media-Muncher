@@ -52,9 +52,6 @@ final class DestinationPathBuilderTests: MediaMuncherTestCase {
         XCTAssertEqual(rel, "2025/01/20250101_120000.mov")
     }
 
-<<<<<<< HEAD
-    func testBuildFinalDestinationURL_AppendsSuffix() {
-=======
     func testRelativePath_FallsBackToModificationDate() throws {
         // Given – a file with no metadata date but known modification time
         let fileURL = try createTestFile(named: "IMG_9999.JPG")

@@ -45,7 +45,7 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundColor(.secondary)
                         Toggle("Rename files by date and time", isOn: $settingsStore.renameByDate)
-                        Text("Renames files to 'YYYY-MM-DD at HH.MM.SS.ext'.")
+                        Text("Renames files to 'YYYYMMDD_HHMMSS.ext'.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }

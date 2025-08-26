@@ -69,8 +69,9 @@ final class AppContainer {
         
         // Core Services (no dependencies)
         self.logManager = LogManager()
-        self.thumbnailCache = ThumbnailCache()
-        self.settingsStore = SettingsStore(logManager: logManager)
+        self.thumbnailCache = ThumbnailCache(limit: Constants.thumbnailCacheLimit, logManager: logManager)
+        let bookmarkStore = BookmarkStore()
+        self.settingsStore = SettingsStore(logManager: logManager, userDefaults: .standard, bookmarkStore: bookmarkStore)
         self.importService = ImportService(logManager: logManager)
         self.volumeManager = VolumeManager(logManager: logManager)
         self.fileStore = FileStore(logManager: logManager)

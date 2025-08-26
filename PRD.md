@@ -24,7 +24,7 @@ Media Muncher is a lightweight macOS utility that automatically imports photogra
 * Import throughput ≥ 200 MB/s (limited by storage hardware).
 * UI remains responsive while scanning/copying (async, batching).
 * Compatible with macOS 13+ (Swift 5.9, SwiftUI).
-* Minimal permissions – The application is not sandboxed, but uses security-scoped bookmarks to access removable volumes and user-selected folders, ensuring that it only has access to the locations explicitly granted by the user.
+* Minimal permissions – The application is not sandboxed. It persists a security-scoped bookmark for the selected destination folder and resolves it on launch to restore access reliably. Transient security-scoped access is acquired during import operations. Removable source volumes are not persisted as bookmarks at this time.
 * Unit-test coverage ≥ 70 % on core logic.
 
 ## 6. Epics & User Stories
@@ -57,7 +57,7 @@ Statuses use: **Finished**, **Started**, **Not Started**, **Bug**.
 | IE-4 | If a destination file with the same name but different content exists, the newly imported file will be renamed by appending a numerical suffix (e.g., `IMG_0001_1.JPG`) to prevent overwriting data. | **Finished** |
 | IE-5 | As a user, I can enable a setting to delete original files from the source media after they are successfully copied. This also applies to source duplicates of files that already exist in the destination. | **Finished** |
 | IE-6 | After import I can eject the volume automatically (setting choosable by user). | **Finished** |
-| IE-9 | After successful copy, associated sidecar files (e.g., `.THM` thumbnails for videos) are also deleted from the source. | **Finished** |
+| IE-9 | After successful copy, associated sidecar files (e.g., `.THM` thumbnails for videos) are deleted from the source alongside the parent media when deletion is enabled. Sidecars are never copied to the destination. | **Finished** |
 | IE-10 | If destination file paths for two source files overlap, the app ensures unique filenames by appending numerical suffixes. | **Finished** |
 | IE-11 | I want copied files to use the most accurate timestamp available, trying media metadata (e.g., EXIF capture date) first and falling back to the filesystem's modification time only if no media timestamp exists, so that my library is sorted by when a photo was actually taken. | **Finished** |
 | IE-12 | As a user, if the same file exists in multiple folders on my source media, I want the application to import it only once to avoid creating redundant copies in my destination library. | **Finished** |
@@ -147,7 +147,7 @@ The specific file extensions for each category in **ST-5** are:
 * Replaced GCD queue in `LogManager` with **actor-isolated implementation** for full Swift Concurrency safety.
 * Log file name now includes the PID for guaranteed uniqueness per process: `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log`.
 * On initialization the logger automatically deletes log files older than **30 days**, keeping the log directory bounded without rotation logic.
-* All services receive the logger via `Logging` protocol with a default parameter (`logManager: Logging = LogManager()`), eliminating the old singleton.
+* All services receive the logger via the `Logging` protocol through explicit dependency injection; a single shared `LogManager` is constructed in `AppContainer` and passed to every service (no default initializer parameters).
 * Unit-tests updated: each test host process gets its own log file; concurrency tests now await the logger actor for deterministic results.
 
 ### 2025-07-14 – Recalculation Flow Re-architecture

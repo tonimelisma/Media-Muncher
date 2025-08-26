@@ -1,5 +1,18 @@
 # Changelog
 
+## [2025-08-25] - DI/Docs Sync and Bookmark Resilience
+
+### Changed
+- Docs: PRD and ARCHITECTURE updated to reflect explicit logger DI (single shared LogManager via AppContainer; no default initializer params)
+- Security: Document destination folder persistence via security-scoped bookmark; corrected architecture notes
+
+### Fixed
+- Settings: Clear stale/invalid destination bookmarks on startup and fall back to default destination
+- ThumbnailCache: Gate verbose test-oriented debug logs behind DEBUG builds
+
+### Added
+- Tests: Unit test for invalid/stale destination bookmark fallback and cleanup
+
 ## [2025-08-05] - DestinationPathBuilder timestamp fallback
 
 ### Fixed
@@ -352,3 +365,20 @@
 - Eliminated potential crashes from concurrent SwiftUI Image access
 - Removed Swift Concurrency safety violations
 - Maintained existing thumbnail caching performance and UI behavior
+## [2025-08-25] - Centralized Logging, Bookmarks, and Doc Alignment (Breaking)
+
+### Changed
+- Enforced explicit dependency injection of a single shared `LogManager` across all services (removed default `= LogManager()` params)
+- `ThumbnailCache` now requires an injected logger; removed internal `LogManager()` creation
+- `SettingsStore` persists and resolves a destination security-scoped bookmark; falls back to default destination if absent
+- `ImportService` now strictly relies on precomputed `destPath` from `FileProcessorService` (no path calculation)
+
+### Documentation
+- PRD.md: Clarified sidecar policy (delete-only, never copied), clarified non-sandbox security model and bookmark persistence
+- ARCHITECTURE.md: Updated module responsibilities; added Destination Path Flow and Thumbnail Flow; clarified test container path; noted centralized logging
+- CLAUDE.md: Corrected logging commands to `logs/media-muncher-*.log`; aligned status; clarified sidecar policy
+- UI.md: Corrected view naming to `DestinationFolderPicker` and rename format to `YYYYMMDD_HHMMSS.ext`
+
+### Migration Notes
+- Tests and any code constructing services must now inject a `Logging` instance and pass a logger to `ThumbnailCache`
+- Test target includes convenience inits under `Media MuncherTests/TestSupport/DIConvenience.swift` to ease migration

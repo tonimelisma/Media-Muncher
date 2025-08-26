@@ -30,8 +30,8 @@ flowchart LR
 | **MediaFileCellView.swift** | A small view that represents a single cell in the `MediaFilesGridView`, displaying the thumbnail and status overlays. | `Image`, `Text`, `Spacer` |
 | **BottomBarView.swift** | The view at the bottom of the window that shows scan progress, import progress, and action buttons. | `HStack`, `ProgressView`, `Button` |
 | **ErrorView.swift** | Tiny inline view for error banner (currently only "destination folder not writable"). | Conditional `if`, `Image`, `Text` |
-| **SettingsView.swift** | Sheet shown via **Settings** scene. Contains toggles, media type filters, and a folder picker. | `Form`, custom `FolderPickerView` |
-| **FolderPickerView** | Provides preset folder list + "Other…" path picker. | `Picker`, `HStack`, uses `NSOpenPanel` |
+| **SettingsView.swift** | Sheet shown via **Settings** scene. Contains toggles, media type filters, and a folder picker. | `Form`, custom `DestinationFolderPicker` |
+| **DestinationFolderPicker** | Provides preset folder list + "Other…" path picker. | `Picker`, `HStack`, uses `NSOpenPanel` |
 
 ---
 ## 3. UI Component Details
@@ -94,7 +94,7 @@ This section details planned UI work required to meet all remaining requirements
 * No visual changes. Backend improvements (duplicate detection, mtime preservation, side-car handling) are invisible to the UI but ensure more accurate status icons in the grid.
 
 ### 2025-01-15
-* No user-visible UI changes were made in this development cycle. All efforts focused on backend logging improvements. The `LogManager` system is designed for developer debugging and does not have a user-facing UI component. The `LogManager` was refactored to create a new log file for each application session, removing the in-memory cache and log clearing functionality for a simpler, more robust design.
+* No user-visible UI changes were made in this development cycle. All efforts focused on backend logging improvements. The `LogManager` system is designed for developer debugging and does not have a user-facing UI component. The `LogManager` writes one JSON log file per session.
 
 ### 2025-07-21
 * No user-visible UI changes were made in this development cycle. Grid layout performance was improved through constants consolidation - MediaFilesGridView now uses centralized Constants.swift values instead of hard-coded numbers. The grid calculation logic was enhanced with helper functions for better maintainability, but the visual appearance and behavior remain unchanged.

@@ -74,7 +74,7 @@ actor ImportService {
     var nowProvider: () -> Date = { Date() }
 
     init(
-        logManager: Logging = LogManager(),
+        logManager: Logging,
         urlAccessWrapper: SecurityScopedURLAccessWrapperProtocol = SecurityScopedURLAccessWrapper()
     ) {
         self.logManager = logManager

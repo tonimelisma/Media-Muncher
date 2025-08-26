@@ -37,26 +37,26 @@ Media Muncher uses a custom JSON-based logging system for structured debug outpu
 
 ```bash
 # View recent logs (recommended for debugging)
-tail -n 50 ~/Library/Logs/Media\ Muncher/app.log
+tail -n 50 logs/media-muncher-*.log
 
 # Follow logs in real-time during development
-tail -f ~/Library/Logs/Media\ Muncher/app.log
+tail -f logs/media-muncher-*.log
 
 # Filter by category using jq (install with: brew install jq)
-tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.category == "FileProcessor")'
+tail -n 100 logs/media-muncher-*.log | jq 'select(.category == "FileProcessor")'
 
 # Debug failing tests by running test then viewing logs
 xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/AppStateRecalculationTests/testRecalculationHandlesRapidDestinationChanges"
-tail -n 20 ~/Library/Logs/Media\ Muncher/app.log
+tail -n 20 logs/media-muncher-*.log
 
 # Filter by log level
-tail -n 100 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.level == "error")'
+tail -n 100 logs/media-muncher-*.log | jq 'select(.level == "ERROR")'
 
 # Search for specific terms
-grep "Processing file" ~/Library/Logs/Media\ Muncher/app.log
+grep -r "Processing file" logs/
 
 # Show logs from last hour with metadata
-tail -n 500 ~/Library/Logs/Media\ Muncher/app.log | jq 'select(.timestamp > "'$(date -u -v-1H +%Y-%m-%dT%H:%M:%S)'.000Z")'
+tail -n 500 logs/media-muncher-*.log | jq 'select(.timestamp > "'$(date -u -v-1H +%Y-%m-%dT%H:%M:%S)'.000Z")'
 ```
 
 **Log Categories Available:**
@@ -105,7 +105,7 @@ For detailed architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
 1. **Path calculation**: DestinationPathBuilder generates ideal destination paths
 2. **Collision resolution**: Numerical suffixes added before any copying begins
 3. **File copying**: Preserves modification and creation timestamps
-4. **Sidecar handling**: THM, XMP, LRC files are copied and deleted with parent media
+4. **Sidecar handling**: THM, XMP, LRC files are never copied to destination; they are deleted from source alongside the parent media when deletion is enabled
 5. **Source cleanup**: Original files deleted only after successful copy (if enabled)
 
 ### Supported File Types
@@ -150,4 +150,4 @@ For detailed architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Current Status (Per PRD)
 
-Core functionality is **Finished** including volume management, media discovery, import engine, and comprehensive testing. Remaining work includes logging infrastructure (Epic 8) and automation/launch agents (Epic 7).
+Core functionality is **Finished** including volume management, media discovery, import engine, and comprehensive testing. Logging infrastructure is complete. Automation/launch agents (Epic 7) remain **Not Started**.

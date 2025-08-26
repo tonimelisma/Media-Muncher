@@ -37,7 +37,7 @@ actor FileProcessorService {
     private let logManager: Logging
     private let thumbnailCache: ThumbnailCache
 
-    init(logManager: Logging = LogManager(), thumbnailCache: ThumbnailCache = ThumbnailCache()) {
+    init(logManager: Logging, thumbnailCache: ThumbnailCache) {
         self.logManager = logManager
         self.thumbnailCache = thumbnailCache
     }

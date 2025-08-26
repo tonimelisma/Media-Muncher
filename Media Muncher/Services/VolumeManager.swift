@@ -41,7 +41,7 @@ class VolumeManager: ObservableObject {
     private var observers: [NSObjectProtocol] = []
     private let logManager: Logging
 
-    init(logManager: Logging = LogManager()) {
+    init(logManager: Logging) {
         self.logManager = logManager
         Task {
             await logManager.debug("Initializing VolumeManager", category: "VolumeManager")

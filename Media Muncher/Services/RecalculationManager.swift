@@ -52,7 +52,7 @@ class RecalculationManager: ObservableObject {
 
     // MARK: - Initialization
 
-    init(logManager: Logging = LogManager(), fileProcessorService: FileProcessorService, settingsStore: SettingsStore) {
+    init(logManager: Logging, fileProcessorService: FileProcessorService, settingsStore: SettingsStore) {
         self.logManager = logManager
         self.fileProcessorService = fileProcessorService
         self.settingsStore = settingsStore

@@ -12,7 +12,10 @@ import QuickLookThumbnailing
 // MARK: - Environment Key
 
 private struct ThumbnailCacheKey: EnvironmentKey {
-    static let defaultValue: ThumbnailCache = ThumbnailCache()
+    private struct NoopLogger: Logging, @unchecked Sendable {
+        func write(level: LogEntry.LogLevel, category: String, message: String, metadata: [String : String]?) async {}
+    }
+    static let defaultValue: ThumbnailCache = ThumbnailCache(limit: Constants.thumbnailCacheLimit, logManager: NoopLogger())
 }
 
 extension EnvironmentValues {
@@ -55,9 +58,11 @@ actor ThumbnailCache {
     private var imageCache: [String: Image] = [:]
     private var accessOrder: [String] = []   // Unified LRU order for both caches
     private let limit: Int
+    private let logManager: Logging
 
-    init(limit: Int = Constants.thumbnailCacheLimit) {
+    init(limit: Int = Constants.thumbnailCacheLimit, logManager: Logging) {
         self.limit = limit
+        self.logManager = logManager
     }
 
     /// Returns cached thumbnail data for the URL or generates it on demand.
@@ -181,22 +186,27 @@ actor ThumbnailCache {
     
     /// Generates thumbnail data using QuickLook framework
     private func generateThumbnailData(url: URL, size: CGSize) async -> Data? {
-        // Add debug logging for test troubleshooting
-        let logManager = LogManager()
+        // Add debug logging for test troubleshooting (DEBUG builds only)
+        #if DEBUG
         await logManager.debug("🔧 generateThumbnailData called for: \(url.path)", category: "TestDebugging")
+        #endif
         
         // First check if file actually exists and is a regular file (not directory)
         var isDirectory: ObjCBool = false
         let fileExists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
         let isRegularFile = fileExists && !isDirectory.boolValue
+        #if DEBUG
         await logManager.debug("🔧 File exists: \(fileExists), isDirectory: \(isDirectory.boolValue), isRegularFile: \(isRegularFile)", category: "TestDebugging")
+        #endif
         
         guard isRegularFile else {
+            #if DEBUG
             if !fileExists {
                 await logManager.debug("🔧 File does not exist, returning nil without calling QuickLook", category: "TestDebugging")
             } else if isDirectory.boolValue {
                 await logManager.debug("🔧 Path is a directory, returning nil without calling QuickLook", category: "TestDebugging")
             }
+            #endif
             return nil
         }
         
@@ -204,24 +214,34 @@ actor ThumbnailCache {
                                                    size: size,
                                                    scale: NSScreen.main?.backingScaleFactor ?? 1.0,
                                                    representationTypes: .all)
+        #if DEBUG
         await logManager.debug("🔧 About to call QLThumbnailGenerator.generateBestRepresentation", category: "TestDebugging")
+        #endif
         
         guard let rep = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
+            #if DEBUG
             await logManager.debug("🔧 QLThumbnailGenerator returned nil", category: "TestDebugging")
+            #endif
             return nil
         }
         
+        #if DEBUG
         await logManager.debug("🔧 QLThumbnailGenerator succeeded, converting to JPEG", category: "TestDebugging")
+        #endif
         
         // Convert NSImage to JPEG data for thread-safe storage with efficient compression
         guard let tiffData = rep.nsImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
               let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.8]) else {
+            #if DEBUG
             await logManager.debug("🔧 JPEG conversion failed", category: "TestDebugging")
+            #endif
             return nil
         }
         
+        #if DEBUG
         await logManager.debug("🔧 Successfully generated \(jpegData.count) bytes of thumbnail data", category: "TestDebugging")
+        #endif
         return jpegData
     }
     
