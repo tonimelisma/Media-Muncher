@@ -58,11 +58,24 @@ actor ThumbnailCache {
     private var imageCache: [String: Image] = [:]
     private var accessOrder: [String] = []   // Unified LRU order for both caches
     private let limit: Int
+    private let enableDebugTrace: Bool
     private let logManager: Logging
 
-    init(limit: Int = Constants.thumbnailCacheLimit, logManager: Logging) {
+    init(limit: Int = Constants.thumbnailCacheLimit, logManager: Logging, enableDebugTrace: Bool = false) {
         self.limit = limit
         self.logManager = logManager
+        self.enableDebugTrace = enableDebugTrace
+    }
+
+    // MARK: - Debug Trace Helper
+    private func trace(_ message: String, category: String) async {
+        var shouldTrace = enableDebugTrace
+        #if DEBUG
+        shouldTrace = true
+        #endif
+        if shouldTrace {
+            await logManager.debug(message, category: category)
+        }
     }
 
     /// Returns cached thumbnail data for the URL or generates it on demand.
@@ -186,27 +199,21 @@ actor ThumbnailCache {
     
     /// Generates thumbnail data using QuickLook framework
     private func generateThumbnailData(url: URL, size: CGSize) async -> Data? {
-        // Add debug logging for test troubleshooting (DEBUG builds only)
-        #if DEBUG
-        await logManager.debug("🔧 generateThumbnailData called for: \(url.path)", category: "TestDebugging")
-        #endif
+        // Add debug logging for test troubleshooting (DEBUG builds or when enabled via flag)
+        await trace("🔧 generateThumbnailData called for: \(url.path)", category: "TestDebugging")
         
         // First check if file actually exists and is a regular file (not directory)
         var isDirectory: ObjCBool = false
         let fileExists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
         let isRegularFile = fileExists && !isDirectory.boolValue
-        #if DEBUG
-        await logManager.debug("🔧 File exists: \(fileExists), isDirectory: \(isDirectory.boolValue), isRegularFile: \(isRegularFile)", category: "TestDebugging")
-        #endif
+        await trace("🔧 File exists: \(fileExists), isDirectory: \(isDirectory.boolValue), isRegularFile: \(isRegularFile)", category: "TestDebugging")
         
         guard isRegularFile else {
-            #if DEBUG
             if !fileExists {
-                await logManager.debug("🔧 File does not exist, returning nil without calling QuickLook", category: "TestDebugging")
+                await trace("🔧 File does not exist, returning nil without calling QuickLook", category: "TestDebugging")
             } else if isDirectory.boolValue {
-                await logManager.debug("🔧 Path is a directory, returning nil without calling QuickLook", category: "TestDebugging")
+                await trace("🔧 Path is a directory, returning nil without calling QuickLook", category: "TestDebugging")
             }
-            #endif
             return nil
         }
         
@@ -214,34 +221,24 @@ actor ThumbnailCache {
                                                    size: size,
                                                    scale: NSScreen.main?.backingScaleFactor ?? 1.0,
                                                    representationTypes: .all)
-        #if DEBUG
-        await logManager.debug("🔧 About to call QLThumbnailGenerator.generateBestRepresentation", category: "TestDebugging")
-        #endif
+        await trace("🔧 About to call QLThumbnailGenerator.generateBestRepresentation", category: "TestDebugging")
         
         guard let rep = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
-            #if DEBUG
-            await logManager.debug("🔧 QLThumbnailGenerator returned nil", category: "TestDebugging")
-            #endif
+            await trace("🔧 QLThumbnailGenerator returned nil", category: "TestDebugging")
             return nil
         }
         
-        #if DEBUG
-        await logManager.debug("🔧 QLThumbnailGenerator succeeded, converting to JPEG", category: "TestDebugging")
-        #endif
+        await trace("🔧 QLThumbnailGenerator succeeded, converting to JPEG", category: "TestDebugging")
         
         // Convert NSImage to JPEG data for thread-safe storage with efficient compression
         guard let tiffData = rep.nsImage.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.8]) else {
-            #if DEBUG
-            await logManager.debug("🔧 JPEG conversion failed", category: "TestDebugging")
-            #endif
+               let bitmap = NSBitmapImageRep(data: tiffData),
+               let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.8]) else {
+            await trace("🔧 JPEG conversion failed", category: "TestDebugging")
             return nil
         }
         
-        #if DEBUG
-        await logManager.debug("🔧 Successfully generated \(jpegData.count) bytes of thumbnail data", category: "TestDebugging")
-        #endif
+        await trace("🔧 Successfully generated \(jpegData.count) bytes of thumbnail data", category: "TestDebugging")
         return jpegData
     }
     

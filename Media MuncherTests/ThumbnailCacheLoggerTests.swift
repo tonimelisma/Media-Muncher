@@ -4,7 +4,7 @@ import XCTest
 final class ThumbnailCacheLoggerTests: XCTestCase {
     func testThumbnailCacheUsesInjectedLogger() async throws {
         let mock = MockLogManager()
-        let cache = ThumbnailCache(limit: 4, logManager: mock)
+        let cache = ThumbnailCache(limit: 4, logManager: mock, enableDebugTrace: true)
         let fakeURL = URL(fileURLWithPath: "/path/does/not/exist_\(UUID().uuidString).jpg")
 
         // Act: request thumbnail for a non-existent file (should log debug messages and return nil)
@@ -18,4 +18,3 @@ final class ThumbnailCacheLoggerTests: XCTestCase {
         XCTAssertTrue(calls.contains(where: { $0.category == "TestDebugging" }))
     }
 }
-

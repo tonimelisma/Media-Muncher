@@ -227,6 +227,10 @@ To prevent log-directory bloat the logger prunes any file older than **30 days**
 
 Developers interact with the logger only through the `Logging` protocol injected explicitly into every service via `AppContainer` (no default initializer parameters). A convenience extension provides `debug / info / error` helpers.
 
+Thumbnail pipeline debug tracing:
+- In Debug builds, `ThumbnailCache` emits verbose trace logs to help diagnose QuickLook behavior and file existence checks.
+- For tests or diagnostics in non-Debug configurations, pass `enableDebugTrace: true` to `ThumbnailCache`'s initializer to force-enable tracing.
+
 ### Log File Format
 **Location**: `~/Library/Logs/Media Muncher/`  
 **Filename Format**: `media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log`  

@@ -20,3 +20,12 @@ build/
 xcresult_snippet.txt
 test_debug.log
 logs/
+
+# Derived data and index caches (should never be committed)
+.derived/
+DerivedData/
+*/DerivedData/
+xcuserdata/
+project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+*.xccheckout
+*.xcscmblueprint

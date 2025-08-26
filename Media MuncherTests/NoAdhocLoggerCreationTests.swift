@@ -14,17 +14,29 @@ final class NoAdhocLoggerCreationTests: XCTestCase {
             return
         }
 
+        // Regex patterns capturing different construction forms
+        // - direct:   let x = LogManager()
+        // - default:  logManager: Logging = LogManager()
+        // - inferred: let x: LogManager = .init()
+        let patterns: [String] = [
+            #"\bLogManager\s*\("#,           // direct constructor call
+            #"[:=]\s*LogManager\s*=\s*\.init\s*\("#, // type-inferred .init()
+            #"[:=]\s*LogManager\s*\("#       // parameter default LogManager()
+        ]
+
         for case let url as URL in enumerator {
             guard url.pathExtension == "swift" else { continue }
             // Allow AppContainer to construct the single shared logger
             if url.lastPathComponent == "AppContainer.swift" { continue }
             guard let contents = try? String(contentsOf: url) else { continue }
-            if contents.contains("LogManager(") {
-                offenders.append(url.lastPathComponent)
+            for pattern in patterns {
+                if contents.range(of: pattern, options: .regularExpression) != nil {
+                    offenders.append(url.lastPathComponent)
+                    break
+                }
             }
         }
 
-        XCTAssertTrue(offenders.isEmpty, "Unexpected LogManager() creation in: \(offenders)")
+        XCTAssertTrue(offenders.isEmpty, "Unexpected LogManager construction in: \(offenders)")
     }
 }
-
