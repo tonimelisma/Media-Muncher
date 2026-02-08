@@ -72,6 +72,12 @@ enum AppError: Error, Identifiable, LocalizedError {
     /// This can occur when destination becomes unavailable or settings are invalid.
     /// - Parameter reason: Detailed explanation of the recalculation failure
     case recalculationFailed(reason: String)
+
+    /// Volume ejection failed after import completed.
+    /// - Parameters:
+    ///   - volumeName: Name of the volume that failed to eject
+    ///   - reason: Detailed explanation of the ejection failure
+    case ejectFailed(volumeName: String, reason: String)
     
     var errorDescription: String? {
         switch self {
@@ -89,6 +95,8 @@ enum AppError: Error, Identifiable, LocalizedError {
             return "Failed to create destination directory: \(reason)"
         case .recalculationFailed(let reason):
             return "Failed to recalculate file destinations: \(reason)"
+        case .ejectFailed(let volumeName, let reason):
+            return "Failed to eject \(volumeName): \(reason)"
         }
     }
     

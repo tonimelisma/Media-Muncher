@@ -29,4 +29,20 @@ extension Logging {
     func error(_ message: String, category: String = "General", metadata: [String: String]? = nil) async {
         await write(level: .error, category: category, message: message, metadata: metadata)
     }
+
+    // MARK: - Synchronous Fire-and-Forget Helpers
+    // Use these from non-async contexts (e.g. @MainActor didSet, Combine sinks)
+    // to avoid wrapping every log call in `Task { await ... }`.
+
+    nonisolated func debugSync(_ message: String, category: String = "General", metadata: [String: String]? = nil) {
+        Task { await write(level: .debug, category: category, message: message, metadata: metadata) }
+    }
+
+    nonisolated func infoSync(_ message: String, category: String = "General", metadata: [String: String]? = nil) {
+        Task { await write(level: .info, category: category, message: message, metadata: metadata) }
+    }
+
+    nonisolated func errorSync(_ message: String, category: String = "General", metadata: [String: String]? = nil) {
+        Task { await write(level: .error, category: category, message: message, metadata: metadata) }
+    }
 } 

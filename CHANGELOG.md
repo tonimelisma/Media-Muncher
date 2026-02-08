@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-02-07] - Sync Logging, Direct FileStore Writes, and Code Quality
+
+### Added
+- **Sync logging helpers**: `debugSync`/`infoSync`/`errorSync` on `Logging` protocol for fire-and-forget logging from non-async contexts (didSet, Combine sinks, initializers)
+- **AppError.ejectFailed**: New error case for volume ejection failures, surfaced via UI banner
+- **Streaming SHA-256**: `FileProcessorService` now computes checksums in 1 MB chunks instead of loading entire files into memory, preventing OOM on large video files
+
+### Changed
+- **RecalculationManager writes directly to FileStore**: Removed intermediate `@Published files` property; results go straight to `FileStore.setFiles()`, eliminating a publisher relay in AppState
+- **VolumeManager.ejectVolume now throws**: Error propagated to caller instead of swallowed; AppState catches and surfaces via `AppError.ejectFailed`
+- **Volume equality by devicePath**: More reliable than UUID which can be empty for some volume types
+- **ThumbnailCache O(1) LRU**: Replaced linear array-based access tracking with monotonic counter for O(1) updates
+- **O(1) sidecar lookup**: `fastEnumerateFiles` builds a dictionary keyed by base path instead of linear search per file
+- **DestinationPathBuilder simplification**: Removed redundant filesystem modification-date fallback (already handled upstream in `FileProcessorService.getFileMetadata()`)
+- **SettingsStore enhanced fallback**: Destination resolution now tries bookmark → stored path → default destination
+- **Logging migration**: All non-async logging calls across AppState, FileStore, VolumeManager, SettingsStore, RecalculationManager, FileProcessorService, and AppContainer migrated from `Task { await ... }` to sync helpers
+
+### Fixed
+- **MockLogManager.shared singleton removed**: Tests now use fresh instances for proper isolation
+- **AppContainerTests**: Replaced `Task.sleep` with `Task.yield()` for deterministic test behavior
+- **Missing newline at EOF**: Fixed across several source files
+
 ## [2026-02-07] - Documentation Refactoring
 
 ### Changed

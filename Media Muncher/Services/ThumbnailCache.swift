@@ -56,7 +56,8 @@ extension EnvironmentValues {
 actor ThumbnailCache {
     private var dataCache: [String: Data] = [:]
     private var imageCache: [String: Image] = [:]
-    private var accessOrder: [String] = []   // Unified LRU order for both caches
+    private var accessCounter: [String: Int] = [:]  // Tracks LRU order via monotonic counter
+    private var nextAccessNumber: Int = 0
     private let limit: Int
     private let enableDebugTrace: Bool
     private let logManager: Logging
@@ -192,7 +193,8 @@ actor ThumbnailCache {
     func clear() {
         dataCache.removeAll()
         imageCache.removeAll()
-        accessOrder.removeAll()
+        accessCounter.removeAll()
+        nextAccessNumber = 0
     }
     
     // MARK: - Private Methods
@@ -249,20 +251,24 @@ actor ThumbnailCache {
         enforceLimit()
     }
     
-    /// Updates the LRU access order for a key
+    /// Updates the LRU access order for a key (O(1) via monotonic counter)
     private func updateAccessOrder(key: String) {
-        accessOrder.removeAll { $0 == key }
-        accessOrder.append(key)
+        accessCounter[key] = nextAccessNumber
+        nextAccessNumber += 1
     }
-    
+
     /// Enforces cache size limit by evicting oldest entries from both caches
     private func enforceLimit() {
-        while accessOrder.count > limit {
-            if let oldest = accessOrder.first {
-                accessOrder.removeFirst()
-                dataCache.removeValue(forKey: oldest)
-                imageCache.removeValue(forKey: oldest)
-            }
+        let totalKeys = Set(dataCache.keys).union(Set(imageCache.keys))
+        guard totalKeys.count > limit else { return }
+
+        // Sort by access number and evict the oldest
+        let sorted = accessCounter.sorted { $0.value < $1.value }
+        let evictCount = totalKeys.count - limit
+        for (key, _) in sorted.prefix(evictCount) {
+            dataCache.removeValue(forKey: key)
+            imageCache.removeValue(forKey: key)
+            accessCounter.removeValue(forKey: key)
         }
     }
 } 

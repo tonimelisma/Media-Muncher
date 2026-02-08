@@ -15,6 +15,6 @@ struct Volume: Identifiable, Equatable {
     let volumeUUID: String
 
     static func == (lhs: Volume, rhs: Volume) -> Bool {
-        return lhs.volumeUUID == rhs.volumeUUID
+        return lhs.devicePath == rhs.devicePath
     }
 }

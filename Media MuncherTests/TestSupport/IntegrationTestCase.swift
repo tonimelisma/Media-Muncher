@@ -30,7 +30,7 @@ class IntegrationTestCase: MediaMuncherTestCase {
         
         // Initialize isolated settings store
         let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
-        settingsStore = SettingsStore(logManager: MockLogManager.shared, userDefaults: testDefaults)
+        settingsStore = SettingsStore(logManager: MockLogManager(), userDefaults: testDefaults)
         
         // cancellables initialized in parent class
     }

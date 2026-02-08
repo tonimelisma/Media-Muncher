@@ -81,7 +81,8 @@ final class AppContainer {
         self.recalculationManager = RecalculationManager(
             logManager: logManager,
             fileProcessorService: fileProcessorService,
-            settingsStore: settingsStore
+            settingsStore: settingsStore,
+            fileStore: fileStore
         )
 
         // Top-level state orchestrator
@@ -95,6 +96,6 @@ final class AppContainer {
             fileStore: fileStore
         )
         
-        Task.detached { await self.logManager.info("AppContainer initialized successfully", category: "AppContainer") }
+        logManager.infoSync("AppContainer initialized successfully", category: "AppContainer")
     }
 } 

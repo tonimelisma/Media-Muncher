@@ -43,12 +43,14 @@ final class AppStateRecalculationTests: XCTestCase {
         importService = ImportService(logManager: logManager)
         volumeManager = VolumeManager(logManager: logManager)
 
-        recalculationManager = RecalculationManager(
-            fileProcessorService: fileProcessorService,
-            settingsStore: settingsStore
-        )
-
         fileStore = FileStore(logManager: logManager)
+
+        recalculationManager = RecalculationManager(
+            logManager: logManager,
+            fileProcessorService: fileProcessorService,
+            settingsStore: settingsStore,
+            fileStore: fileStore
+        )
         
         appState = AppState(
             logManager: logManager,

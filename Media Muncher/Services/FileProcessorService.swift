@@ -188,8 +188,17 @@ actor FileProcessorService {
             allFileURLs.append(fileURL)
         }
 
+        // Build sidecar lookup dictionary for O(1) lookups (keyed by base path without extension)
+        var sidecarsByBase: [String: [URL]] = [:]
+        for url in allFileURLs {
+            let ext = url.pathExtension.lowercased()
+            if sidecarExtensions.contains(ext) {
+                let baseKey = url.deletingPathExtension().path.lowercased()
+                sidecarsByBase[baseKey, default: []].append(url)
+            }
+        }
+
         var mainFiles: [File] = []
-                let _ = Set(allFileURLs)
 
         for url in allFileURLs {
             let ext = url.pathExtension.lowercased()
@@ -211,23 +220,16 @@ actor FileProcessorService {
 
             if shouldInclude {
                 var file = File(sourcePath: url.path, mediaType: mediaType, status: .waiting)
-                
-                // Find and attach sidecars
-                let baseName = url.deletingPathExtension()
-                for sidecarExt in sidecarExtensions {
-                    // Perform case-insensitive lookup for sidecar files to support filesystems where
-                    // the actual on-disk extension casing may vary (e.g. ".THM", ".XMP").
-                    if let matchedURL = allFileURLs.first(where: {
-                        $0.deletingPathExtension() == baseName &&
-                        $0.pathExtension.lowercased() == sidecarExt
-                    }) {
-                        file.sidecarPaths.append(matchedURL.path)
-                    }
+
+                // O(1) sidecar lookup
+                let baseKey = url.deletingPathExtension().path.lowercased()
+                if let sidecars = sidecarsByBase[baseKey] {
+                    file.sidecarPaths = sidecars.map { $0.path }
                 }
                 mainFiles.append(file)
             }
         }
-        
+
         return mainFiles
     }
 
@@ -272,6 +274,22 @@ actor FileProcessorService {
         #endif
 
         return newFile
+    }
+
+    /// Computes SHA-256 digest by reading the file in 1 MB chunks to avoid loading
+    /// multi-GB files entirely into memory.
+    private func streamingSHA256(for url: URL) -> SHA256.Digest? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+
+        var hasher = SHA256()
+        while autoreleasepool(invoking: {
+            let chunk = handle.readData(ofLength: 1_048_576) // 1 MB chunks
+            guard !chunk.isEmpty else { return false }
+            hasher.update(data: chunk)
+            return true
+        }) {}
+        return hasher.finalize()
     }
 
     /// Multi-stage duplicate detection heuristic to determine if source and destination files are identical.
@@ -370,17 +388,14 @@ actor FileProcessorService {
                 return true
             }
 
-            // 4. SHA-256 checksum fallback
-            guard let srcData = try? Data(contentsOf: URL(fileURLWithPath: sourceFile.sourcePath)),
-                  let destData = try? Data(contentsOf: destinationURL) else {
+            // 4. SHA-256 checksum fallback (streaming to avoid OOM on large files)
+            guard let srcDigest = streamingSHA256(for: URL(fileURLWithPath: sourceFile.sourcePath)),
+                  let destDigest = streamingSHA256(for: destinationURL) else {
                 #if DEBUG
                 await logManager.debug("Failed to read file data for checksum → assuming different file", category: "FileProcessor", metadata: ["debugPrefix": debugPrefix])
                 #endif
                 return false
             }
-
-            let srcDigest = SHA256.hash(data: srcData)
-            let destDigest = SHA256.hash(data: destData)
 
             let isSame = srcDigest == destDigest
 #if DEBUG
@@ -542,12 +557,10 @@ private func calculateDestinationPath(
     var newFile = file
     newFile.sidecarPaths = file.sidecarPaths // Explicitly copy sidecarPaths
     
-    Task {
-        await logManager.debug("Calculating destination path", category: "FileProcessor", metadata: [
-            "fileName": file.sourceName,
-            "sidecars": file.sidecarPaths.joined(separator: ", ")
-        ])
-    }
+    logManager.debugSync("Calculating destination path", category: "FileProcessor", metadata: [
+        "fileName": file.sourceName,
+        "sidecars": file.sidecarPaths.joined(separator: ", ")
+    ])
     
     // Reset destination-dependent fields
     newFile.destPath = nil

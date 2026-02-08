@@ -28,7 +28,7 @@ struct VolumeView: View {
                                 Text(volume.name)
                                 Spacer()
                                 Button(action: {
-                                    volumeManager.ejectVolume(volume)
+                                    try? volumeManager.ejectVolume(volume)
                                 }) {
                                     Image(systemName: "eject.circle.fill")
                                 }

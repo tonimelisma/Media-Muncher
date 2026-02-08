@@ -34,12 +34,13 @@ final class TestAppContainer {
         self.importService = ImportService(logManager: mockLog)
         self.fileStore = FileStore(logManager: mockLog)
         
-        // RecalculationManager depends on fileProcessorService and settingsStore
+        // RecalculationManager depends on fileProcessorService, settingsStore, and fileStore
         // but doesn't create circular references as it only calls methods on them
         self.recalculationManager = RecalculationManager(
-            logManager: mockLog, 
-            fileProcessorService: fileProcessorService, 
-            settingsStore: settingsStore
+            logManager: mockLog,
+            fileProcessorService: fileProcessorService,
+            settingsStore: settingsStore,
+            fileStore: fileStore
         )
     }
 } 

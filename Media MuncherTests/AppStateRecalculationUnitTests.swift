@@ -24,8 +24,10 @@ final class AppStateRecalculationUnitTests: XCTestCase {
         
         let fileStore = FileStore(logManager: logManager)
         let recalculationManager = RecalculationManager(
+            logManager: logManager,
             fileProcessorService: fileProcessorService,
-            settingsStore: settingsStore
+            settingsStore: settingsStore,
+            fileStore: fileStore
         )
 
         appState = AppState(

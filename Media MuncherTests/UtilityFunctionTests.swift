@@ -19,13 +19,14 @@ final class UtilityFunctionTests: XCTestCase {
     }
 
     // MARK: Volume equality logic
-    func testVolumeEqualityUsesUUID() {
-        let uuid = "1234-ABCD"
-        let volumeA = Volume(name: "SD Card", devicePath: "/Volumes/SD1", volumeUUID: uuid)
-        let volumeB = Volume(name: "Backup", devicePath: "/Volumes/SD_BACKUP", volumeUUID: uuid)
-        let volumeC = Volume(name: "Other", devicePath: "/Volumes/OTHER", volumeUUID: "ZZZZ-1111")
+    func testVolumeEqualityUsesDevicePath() {
+        let volumeA = Volume(name: "SD Card", devicePath: "/Volumes/SD1", volumeUUID: "1234-ABCD")
+        let volumeB = Volume(name: "Backup", devicePath: "/Volumes/SD1", volumeUUID: "ZZZZ-1111")
+        let volumeC = Volume(name: "Other", devicePath: "/Volumes/OTHER", volumeUUID: "1234-ABCD")
 
-        XCTAssertEqual(volumeA.volumeUUID, volumeB.volumeUUID)
-        XCTAssertNotEqual(volumeA.volumeUUID, volumeC.volumeUUID)
+        // Volume equality is based on devicePath, not volumeUUID
+        XCTAssertEqual(volumeA, volumeB, "Same devicePath should be equal regardless of UUID")
+        XCTAssertNotEqual(volumeA, volumeC, "Different devicePath should be unequal regardless of UUID")
+        XCTAssertEqual(volumeA.id, volumeA.devicePath, "id should be devicePath")
     }
 } 

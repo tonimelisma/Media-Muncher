@@ -42,7 +42,7 @@
 | **Services/VolumeManager.swift** | Discovers, monitors, and ejects removable volumes. | `VolumeManager`|
 | **Services/FileProcessorService.swift** | Scans a volume for media files on a background thread with **count-based batching (50-file groups)** for UI performance, detects pre-existing files, extracts metadata, and computes destination paths using `DestinationPathBuilder`. Provides streaming via `AsyncStream<[File]>`. Thumbnails are handled by `ThumbnailCache`. | `FileProcessorService` |
 | **Services/SettingsStore.swift**| Persists user settings via `UserDefaults`. Uses security-scoped resources for folder access when needed. | `SettingsStore` |
-| **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
+| **Services/RecalculationManager.swift**| Dedicated state machine for handling destination change recalculations. Writes recalculated files directly to `FileStore`. Manages file path updates with proper error handling and cancellation support. | `RecalculationManager` |
 | **Services/ImportService.swift**| Copies files to the destination using security-scoped resource access. Uses the precomputed `destPath` from `FileProcessorService` (no path calculation). Deletes sidecar files (THM, XMP, LRC) from the source alongside the parent media when deletion is enabled. | `ImportService` |
 | **Services/ThumbnailCache.swift** | Actor-based thumbnail generation & dual LRU cache (Data + Image) shared across FileProcessorService and UI. Stores JPEG data for thread safety and SwiftUI Images for direct UI access. Keeps heavy QuickLook work off the MainActor. Available via SwiftUI environment injection. | `ThumbnailCache` |
 | **Helpers/DestinationPathBuilder.swift** | Pure helper providing `relativePath(for:organizeByDate:renameByDate:)` and `buildFinalDestinationURL(...)`; used by both **FileProcessorService** and **ImportService** to eliminate duplicated path-building logic and handle filename collisions. | `DestinationPathBuilder` |
@@ -98,8 +98,8 @@
 | `FileProcessorService` | **Phase 1:** fast filesystem walk that emits basic `File` structs (path, name, size) immediately; **Phase 2:** schedules asynchronous enrichment tasks that add heavy metadata (EXIF, thumbnails) without blocking the UI | Move initial `enumerateFiles()` here and spin-off a `MetadataEnricher` actor (or background `Task`) for phase 2. |
 | `ImportService` | Copy files, handle duplicates, **remove sidecar files (THM, XMP, LRC) after each successful copy**, and pre-calculate the aggregate byte total of an import queue to enable accurate progress reporting | Detached actor handling concurrency & error isolation. **Uses simple numerical suffix collision resolution (_1, _2, etc.) to ensure unique destination paths.** |
 | `SettingsStore` | Type-safe wrapper around `UserDefaults` with synchronous initialization and security-scoped resource access when needed | Provides Combine `@Published` properties for all user settings including RAW file filtering. Uses deterministic constructor with immediate default destination availability. |
-| `RecalculationManager` | Dedicated state machine for destination change recalculations | Handles file path updates when destination changes, with proper error handling and task cancellation. |
-| `LogManager` | Custom JSON-based logging system with persistent file storage | Centralized logging with category-based organization, rotating log files, and structured metadata for debugging and monitoring. All logging calls are fully `async`. |
+| `RecalculationManager` | Dedicated state machine for destination change recalculations | Handles file path updates when destination changes, writes results directly to `FileStore`, with proper error handling and task cancellation. |
+| `LogManager` | Custom JSON-based logging system with persistent file storage | Centralized logging with category-based organization, rotating log files, and structured metadata for debugging and monitoring. Async logging calls in async contexts; sync fire-and-forget helpers (`debugSync`, `infoSync`, `errorSync`) for non-async contexts. |
 | `AppState` | Pure composition root that orchestrates above services | Slimmed down, no heavy logic. |
 
 ### Dependency Flow
@@ -225,7 +225,7 @@ tail -f logs/media-muncher-*.log # Real-time monitoring
 
 To prevent log-directory bloat the logger prunes any file older than **30 days** at start-up; no size-based rotation is required.
 
-Developers interact with the logger only through the `Logging` protocol injected explicitly into every service via `AppContainer` (no default initializer parameters). A convenience extension provides `debug / info / error` helpers.
+Developers interact with the logger only through the `Logging` protocol injected explicitly into every service via `AppContainer` (no default initializer parameters). A convenience extension provides `debug / info / error` async helpers and `debugSync / infoSync / errorSync` fire-and-forget wrappers for non-async contexts (didSet, Combine sinks, initializers).
 
 Thumbnail pipeline debug tracing:
 - In Debug builds, `ThumbnailCache` emits verbose trace logs to help diagnose QuickLook behavior and file existence checks.

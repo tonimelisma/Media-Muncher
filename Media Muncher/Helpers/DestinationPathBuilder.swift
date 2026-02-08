@@ -83,12 +83,9 @@ struct DestinationPathBuilder {
     /// - Returns: Relative path string without collision resolution suffixes
     /// - Note: This method is deterministic and used by both duplicate detection and import operations
     static func relativePath(for file: File, organizeByDate: Bool, renameByDate: Bool) -> String {
-        // Determine the effective timestamp, preferring embedded metadata and falling back to filesystem modification date
-        let effectiveDate: Date? = {
-            if let d = file.date { return d }
-            let attrs = try? FileManager.default.attributesOfItem(atPath: file.sourcePath)
-            return attrs?[.modificationDate] as? Date
-        }()
+        // Use the file's date directly — FileProcessorService.getFileMetadata() already
+        // falls back through EXIF → creationDate → modificationDate before this is called.
+        let effectiveDate: Date? = file.date
 
         // Decide directory component
         var directory = ""

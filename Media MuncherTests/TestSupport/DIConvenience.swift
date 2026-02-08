@@ -55,6 +55,6 @@ extension VolumeManager {
 // MARK: - RecalculationManager
 extension RecalculationManager {
     convenience init(fileProcessorService: FileProcessorService, settingsStore: SettingsStore) {
-        self.init(logManager: MockLogManager(), fileProcessorService: fileProcessorService, settingsStore: settingsStore)
+        self.init(logManager: MockLogManager(), fileProcessorService: fileProcessorService, settingsStore: settingsStore, fileStore: FileStore(logManager: MockLogManager()))
     }
 }

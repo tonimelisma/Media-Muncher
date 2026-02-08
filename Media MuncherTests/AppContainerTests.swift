@@ -35,7 +35,7 @@ final class AppContainerTests: XCTestCase {
 
         // When: We write a test log entry
         // The LogManager actor ensures synchronizeFile() completes before await returns
-        try await Task.sleep(for: .milliseconds(100))
+        await Task.yield()
         await container.logManager.info("Test log entry", category: "AppContainerTest")
 
         // Then: The log file should contain our test message
