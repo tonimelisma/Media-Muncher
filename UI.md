@@ -82,36 +82,3 @@ This section details planned UI work required to meet all remaining requirements
 *   **[To-Do] Design Automation Settings:** Create mockups and implementation plan for the "Automation" tab in the Settings window, covering how users will manage per-volume import behaviors.
 *   **[To-Do] Design Richer Error States:** Design a more robust error reporting system. For example, an "Import Summary" sheet that appears after an import with partial failures, clearly listing which files succeeded and which failed, and why.
 
-## 5. Notes on 2025-06-27
-* No user-visible UI changes were made in this development cycle. All efforts focused on backend bug-fixing (EXIF time-zone) and expanding the automated test suite.
-* A developer-mode toggle now surfaces additional `print` statements to aid debugging. These remain behind `#if DEBUG` and do **not** affect production builds.
-
-### 2025-06-28
-* **Bottom Bar** now reflects read-only import results: after an import that succeeded but could not delete originals, an inline red banner shows "Import successful, but failed to delete some original files…". This is surfaced by a new `AppError.importSucceededWithDeletionErrors` case.
-* No visual changes – logic-only test coverage increase. Collision handling behaviour remains unchanged in UI.
-
-### 2025-06-29
-* No visual changes. Backend improvements (duplicate detection, mtime preservation, side-car handling) are invisible to the UI but ensure more accurate status icons in the grid.
-
-### 2025-01-15
-* No user-visible UI changes were made in this development cycle. All efforts focused on backend logging improvements. The `LogManager` system is designed for developer debugging and does not have a user-facing UI component. The `LogManager` writes one JSON log file per session.
-
-### 2025-07-21
-* No user-visible UI changes were made in this development cycle. Grid layout performance was improved through constants consolidation - MediaFilesGridView now uses centralized Constants.swift values instead of hard-coded numbers. The grid calculation logic was enhanced with helper functions for better maintainability, but the visual appearance and behavior remain unchanged.
-
-### 2025-07-22
-* Internal performance update: thumbnail generation now handled by new actor `ThumbnailCache`, reducing MainActor load and improving grid scrolling smoothness. No visual changes.
-
-### 2025-08-01
-* **MediaFileCellView performance optimization**: Changed thumbnail loading trigger from `file.sourcePath` to `file.thumbnailData` - eliminates unnecessary reloads during rapid status updates (copying→verifying→imported)
-* **Smart thumbnail loading**: Added direct Data→Image conversion path when thumbnailData exists, avoiding redundant cache lookups while maintaining fallback robustness
-* **UI responsiveness improvement**: Eliminated thumbnail flickering and unnecessary QuickLook operations during import operations
-* **Test coverage**: Added comprehensive MediaFileCellViewPerformanceTests validating optimization behavior and edge cases
-* No visual changes to user interface - purely internal performance improvements that reduce UI stuttering
-
-### 2025-07-23
-* **Performance optimization**: Eliminated all Data→Image conversions from UI layer through direct ThumbnailCache integration
-* **Architecture improvement**: MediaFileCellView now uses ThumbnailCache directly via SwiftUI environment injection
-* **Memory efficiency**: Enhanced ThumbnailCache with dual storage (JPEG data + SwiftUI Images) and unified LRU eviction
-* **Responsiveness**: Thumbnail Image generation moved completely off MainActor, improving grid scrolling performance
-* No visual changes to user interface - all improvements are internal performance optimizations

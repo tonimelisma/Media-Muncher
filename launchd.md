@@ -1,4 +1,6 @@
 
+> **Status: Research / Future Implementation (Epic 7 — Not Started)**
+> This document is a technical reference for the planned volume automation feature. No code from this document has been implemented yet.
 
 # **Architecting a Robust Volume-Aware Helper Application on macOS**
 

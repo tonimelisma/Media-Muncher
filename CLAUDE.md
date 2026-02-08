@@ -2,14 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Quick Start Commands
+## Ownership & Accountability
 
-### Building and Testing
+You are the sole engineering agent on this codebase. You own it end-to-end — from requirements through to a passing build on the main branch. There is no other engineer to blame, no "pre-existing issue" to defer to, no "unrelated flaky test" to ignore. If the build is broken, you broke it. If tests fail, you fix them. If there are code smells, temporary files, dead code, or stale documentation — those are your responsibility too.
+
+Be proactive. If you notice something wrong while working on an unrelated task, flag it, fix it, or at minimum create a tracking issue. Do not leave the codebase in a worse state than you found it. Every commit you produce must leave `main` green: building, passing all tests, and ready to ship.
+
+## Definition of Done
+
+A task is not complete until all of the following are true:
+
+1. **Build succeeds**: `xcodebuild -scheme "Media Muncher" build` passes with zero errors and zero warnings you introduced.
+2. **All tests pass**: `xcodebuild -scheme "Media Muncher" test` — every single test, not just the ones related to your change. You own the entire suite.
+3. **CHANGELOG.md updated**: Every user-visible change, bug fix, or architectural improvement gets a concise entry under the appropriate heading.
+4. **Git commit**: Staged, committed with a clear message, and pushed to the remote. The commit must include all modified files — source, tests, documentation, and changelog.
+5. **Documentation current**: If your change affects architecture, conventions, or public APIs described in CLAUDE.md or ARCHITECTURE.md, update them in the same commit. See *Self-Maintenance* below.
+
+## Self-Maintenance
+
+This file (CLAUDE.md) is a living document. Every time you make a change to the codebase, evaluate whether CLAUDE.md still accurately reflects reality. Ask yourself:
+
+- Does the architecture section still match the code?
+- Are the build/test commands still correct?
+- Have any conventions changed that should be reflected here?
+- Is this file getting too long? Should something be extracted to ARCHITECTURE.md or a new doc with a reference here?
+
+Keep CLAUDE.md concise and focused on what an agent needs to know to work effectively. Deep dives belong in ARCHITECTURE.md. If CLAUDE.md needs restructuring, do it — don't let it rot.
+
+## Build & Test Commands
+
 ```bash
-# Open project in Xcode
-open "Media Muncher.xcodeproj"
-
-# Build from command line
+# Build
 xcodebuild -scheme "Media Muncher" build
 
 # Run all tests
@@ -22,132 +45,65 @@ xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/Import
 xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/ImportServiceIntegrationTests/testBasicImportFlow"
 ```
 
-### Development Setup
-```bash
-# Install required tools (mentioned in ARCHITECTURE.md)
-xcode-select --install
-brew install swiftformat swiftlint jq  # jq for JSON log filtering
+This is a native macOS SwiftUI app (not iOS). No signing configuration is needed for local builds.
 
-# Build and run (use Xcode or press ⌘R)
-# Run tests (press ⌘U in Xcode)
-```
+## Debugging with Logs
 
-### Debugging with LogManager
-Media Muncher uses a custom JSON-based logging system for structured debug output and persistent logging. Use these commands to capture and analyze logs during development and testing:
+The app uses a custom actor-based JSON logging system. A `./logs/` symlink points to `~/Library/Logs/Media Muncher/`.
 
 ```bash
-# View recent logs (recommended for debugging)
-tail -n 50 logs/media-muncher-*.log
-
-# Follow logs in real-time during development
+# Follow logs in real-time
 tail -f logs/media-muncher-*.log
 
-# Filter by category using jq (install with: brew install jq)
-tail -n 100 logs/media-muncher-*.log | jq 'select(.category == "FileProcessor")'
-
-# Debug failing tests by running test then viewing logs
-xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/AppStateRecalculationTests/testRecalculationHandlesRapidDestinationChanges"
-tail -n 20 logs/media-muncher-*.log
-
-# Filter by log level
+# Filter by category or level with jq
+tail -n 100 logs/media-muncher-*.log | jq 'select(.category == "ImportService")'
 tail -n 100 logs/media-muncher-*.log | jq 'select(.level == "ERROR")'
-
-# Search for specific terms
-grep -r "Processing file" logs/
-
-# Show logs from last hour with metadata
-tail -n 500 logs/media-muncher-*.log | jq 'select(.timestamp > "'$(date -u -v-1H +%Y-%m-%dT%H:%M:%S)'.000Z")'
 ```
 
-**Log Categories Available:**
-- `AppState`: Main application state and lifecycle events
-- `VolumeManager`: Disk mount/unmount and volume discovery
-- `FileProcessor`: File scanning and metadata processing
-- `ImportService`: File copy/delete operations and progress
-- `SettingsStore`: User preference changes
-- `RecalculationManager`: Destination path recalculation events
+**Log categories:** `AppState`, `VolumeManager`, `FileProcessor`, `ImportService`, `SettingsStore`, `RecalculationManager`
 
-**Log Location:** `~/Library/Logs/Media Muncher/media-muncher-YYYY-MM-DD_HH-mm-ss-<pid>.log` (one file per process, files older than 30 days are automatically deleted at startup)
+## Architecture
 
-**Convenient Log Access:** The project includes a symbolic link `./logs/` that points to the log directory, allowing easy access with standard tools:
-```bash
-# Browse log files
-ls logs/
+The app follows an **Orchestrator + Service Actors** pattern: SwiftUI views bind to `AppState`, which delegates to actor-isolated services (`FileProcessorService`, `ImportService`, `VolumeManager`) with `FileStore` as the single owner of file state. All services are wired via constructor injection in `AppContainer` (production) and `TestAppContainer` (tests) — no singletons, no service locator. The `Logging` protocol is injected into every service; never create a `LogManager` directly.
 
-# View recent entries
-cat logs/media-muncher-2025-07-20_21-55-06-19965.log
+For the full source-code map, service responsibilities, concurrency model, and runtime flows, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-# Real-time monitoring
-tail -f logs/media-muncher-*.log
-```
+## Testing
 
-For detailed architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
+**Integration tests are primary.** Tests use real file system operations with fixtures in `Media MuncherTests/Fixtures/`. Prefer integration tests over mocks for anything touching the file system.
 
-## Testing Strategy
+### Test Infrastructure
 
-**Integration Tests (Primary)**: Tests run against real file system using fixtures in `Media MuncherTests/Fixtures/`. The `ImportServiceIntegrationTests` class validates the entire import pipeline from file discovery through copying/deletion.
+- **`TestAppContainer`**: Mirrors `AppContainer` with `MockLogManager` and isolated `UserDefaults`.
+- **`IntegrationTestCase`**: Base class for file-system integration tests. Creates temp directories and wires up services.
+- **`TestDataFactory`**: Factory methods for creating test `File`, `Volume`, and other model instances. Use these instead of calling model initializers directly in tests.
+- **`DIConvenience`**: Helper extensions for test service construction.
+- **`AsyncTestCoordinator`/`AsyncTestUtilities`**: Helpers for async test coordination without `Task.sleep()`.
 
-**Unit Tests (Targeted)**: Used only for pure business logic like `DestinationPathBuilder` that doesn't touch the file system. Now includes synchronous path calculation tests using `recalculatePathsOnly()` for fast, deterministic testing.
+### Test Conventions
 
-**Test Coverage**: Currently >90% on core logic (exceeds 70% requirement from PRD). All tests are confirmed free of `Task.sleep()` operations for improved reliability and deterministic execution.
+- Never use `Task.sleep()` in tests — use deterministic coordination instead. See [ASYNC_TEST_PATTERNS.md](ASYNC_TEST_PATTERNS.md) for the setup-then-trigger pattern and working examples.
+- Use `recalculatePathsOnly()` for synchronous path calculation tests.
+- Logging calls in async contexts use `await logManager.debug(...)`. In non-async contexts (didSet, Combine sinks, init), use `logManager.debugSync(...)` — sync fire-and-forget helpers that internally dispatch to the actor.
 
-## Key Implementation Details
+## Key Implementation Rules
 
-### File Processing Pipeline
-1. **Discovery**: FileProcessorService recursively scans volume for supported media types
-2. **Metadata extraction**: EXIF date parsing (forced UTC), file size calculation
-3. **Duplicate detection**: Uses date+size heuristic, falls back to SHA-256 checksum
-4. **Thumbnail generation**: Async thumbnail cache (2000 entry LRU) via QuickLookThumbnailing
-5. **Pre-existing detection**: Compares against destination using DestinationPathBuilder logic
-6. **Path recalculation**: Automatic destination path updates when settings change, with sync/async architecture split
+- **Concurrency**: Actors for file system operations, `@MainActor` only for UI state. `AppContainer` itself is `@MainActor`.
+- **Cancellation**: Long operations must check `Task.checkCancellation()`.
+- **EXIF dates**: `DateFormatter` forced to UTC to prevent timezone bugs.
+- **Security**: Not sandboxed, but uses security-scoped resources defensively. Destination folder stored as a security-scoped bookmark via `BookmarkStore`.
+- **Sidecar files**: THM, XMP, LRC are never copied to destination. They are only deleted from source alongside their parent media when deletion is enabled.
+- **Duplicate detection**: Date+size heuristic first, streaming SHA-256 checksum fallback (1 MB chunks to avoid OOM on large video files).
+- **Error handling**: Domain-specific `AppError` enum. Never crash on I/O errors — surface to user via UI banners.
 
-### Import Pipeline
-1. **Path calculation**: DestinationPathBuilder generates ideal destination paths
-2. **Collision resolution**: Numerical suffixes added before any copying begins
-3. **File copying**: Preserves modification and creation timestamps
-4. **Sidecar handling**: THM, XMP, LRC files are never copied to destination; they are deleted from source alongside the parent media when deletion is enabled
-5. **Source cleanup**: Original files deleted only after successful copy (if enabled)
+## Supported File Types
 
-### Supported File Types
-- **Photos**: jpg, jpeg, png, heif, heic, tiff, and other image formats
-- **Videos**: mp4, mov, avi, mkv, professional formats (braw, r3d, ari)  
+- **Photos**: jpg, jpeg, png, heif, heic, tiff, etc.
+- **Videos**: mp4, mov, avi, mkv, professional (braw, r3d, ari)
 - **Audio**: mp3, wav, aac
-- **RAW**: cr2, cr3, nef, arw, dng, and other RAW camera formats (separate filtering)
-- **Sidecars**: THM, XMP, LRC files automatically managed with parent media
+- **RAW**: cr2, cr3, nef, arw, dng, etc. (separate filter toggle)
+- **Sidecars**: THM, XMP, LRC (auto-managed with parent media)
 
-### Settings and Preferences
-- Destination folder with write-access validation
-- File organization: date-based subfolders (YYYY/MM/)
-- File renaming: capture date-based filenames
-- File type filters: enable/disable photos/videos/audio/RAW files separately
-- Delete originals after import
-- Auto-eject volume after import
+## Current Status
 
-## Important Constraints
-
-### Security Model
-- Application is **not sandboxed** for simplified file access.
-- **Security-scoped resources** are used defensively for removable volumes and user-selected destination folders. This means the app only ever gains access to the specific folders you choose, and nothing else.
-
-### Performance Requirements  
-- Import throughput ≥200 MB/s (hardware limited)
-- UI remains responsive during all operations
-- Async/await with proper cancellation support
-
-### Error Handling
-- Domain-specific `AppError` enum with context
-- Never crash on I/O errors - surface to user
-- Read-only volume support (shows banner, continues import)
-
-## Development Notes
-
-- **Concurrency**: Use actors for file system operations, MainActor only for UI updates
-- **Testing**: Prefer integration tests over mocks for file system code
-- **Path logic**: Always use DestinationPathBuilder for consistency
-- **Cancellation**: Long operations must check `Task.checkCancellation()`
-- **Thumbnails**: LRU cache prevents memory growth on large volumes
-- **EXIF parsing**: DateFormatter forced to UTC to prevent timezone bugs
-
-## Current Status (Per PRD)
-
-Core functionality is **Finished** including volume management, media discovery, import engine, and comprehensive testing. Logging infrastructure is complete. Automation/launch agents (Epic 7) remain **Not Started**.
+Core functionality complete: volume management, media discovery, import engine, logging, comprehensive tests (>90% coverage on core logic). Automation/launch agents (Epic 7) not started.

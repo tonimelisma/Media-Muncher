@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-02-07] - Documentation Refactoring
+
+### Changed
+- **README.md**: Rewrote stale todo-list README with proper project overview, status, build commands, and documentation links
+- **CLAUDE.md**: Replaced duplicated architecture bullet points (~30 lines) with concise summary paragraph and link to ARCHITECTURE.md; added ASYNC_TEST_PATTERNS.md reference in testing section
+- **PRD.md**: Removed ~100 lines of dated implementation notes (already captured in CHANGELOG.md); kept epics/stories table and legend
+- **UI.md**: Removed ~35 lines of dated "Notes on" entries (already captured in CHANGELOG.md); kept view catalogue and component details
+- **launchd.md**: Added "Status: Research / Future Implementation" header clarifying no code has been implemented
+
+### Removed
+- **AGENTS.md**: Deleted — fully superseded by CLAUDE.md
+- **PLAN.md**: Deleted — described completed rearchitecture work already captured in CHANGELOG.md
+- **PROMPT_DOCS.md**: Deleted — working prompt accidentally committed, not documentation
+
 ## [2025-08-25] - DI/Docs Sync and Bookmark Resilience
 
 ### Changed
