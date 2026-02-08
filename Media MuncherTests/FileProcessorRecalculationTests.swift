@@ -107,7 +107,7 @@ final class FileProcessorRecalculationTests: XCTestCase {
         let originalContent = Data(repeating: 0x11, count: 1000)
         fileManager.createFile(atPath: destFile2.path, contents: originalContent)
         
-        // === Scenario 3: Same content, different timestamps (should trigger SHA-256 comparison) ===
+        // === Scenario 3: Same content, different timestamps (should trigger CRC32 comparison) ===
         let sameContentFile = sourceDir.appendingPathComponent("timestamp_test.jpg")
         fileManager.createFile(atPath: sameContentFile.path, contents: identicalContent)
         
@@ -155,18 +155,18 @@ final class FileProcessorRecalculationTests: XCTestCase {
         // Scenario 2: Different content files should be waiting with collision suffix
         XCTAssertEqual(differentFile!.status, .waiting, 
                       "Different file should be waiting due to content difference")
-        XCTAssertTrue(differentFile!.destPath!.contains("different_1.jpg") || 
+        XCTAssertTrue(differentFile!.destPath!.contains("different_001.jpg") ||
                      differentFile!.destPath!.contains("different") && differentFile!.destPath! != destFile2.path,
                      "Different file should have collision suffix or different path")
         
-        // Scenario 3: Same content with different timestamp should be pre-existing (SHA-256 match)
-        XCTAssertEqual(timestampFile!.status, .pre_existing, 
-                      "File with same content but different timestamp should be pre-existing via SHA-256 comparison")
+        // Scenario 3: Same content with different timestamp should be pre-existing (CRC32 match)
+        XCTAssertEqual(timestampFile!.status, .pre_existing,
+                      "File with same content but different timestamp should be pre-existing via CRC32 comparison")
         
         // Scenario 4: Collision file should be waiting with suffix
         XCTAssertEqual(collisionFileResult!.status, .waiting, 
                       "Collision file should be waiting with collision resolution")
-        XCTAssertTrue(collisionFileResult!.destPath!.contains("collision_1.jpg") || 
+        XCTAssertTrue(collisionFileResult!.destPath!.contains("collision_001.jpg") ||
                      collisionFileResult!.destPath!.contains("collision") && collisionFileResult!.destPath! != destCollisionFile.path,
                      "Collision file should have suffix to avoid overwriting different file")
         
@@ -219,8 +219,8 @@ final class FileProcessorRecalculationTests: XCTestCase {
         // Files that were originally pre-existing should be detected as pre-existing again
         XCTAssertEqual(revertIdentical!.status, .pre_existing, 
                       "File should be detected as pre-existing again when recalculated back to original destination")
-        XCTAssertEqual(revertTimestamp!.status, .pre_existing, 
-                      "Timestamp test file should be pre-existing again via SHA-256")
+        XCTAssertEqual(revertTimestamp!.status, .pre_existing,
+                      "Timestamp test file should be pre-existing again via CRC32")
         
         // === Verify metadata preservation throughout pipeline ===
         for file in recalculatedFiles {

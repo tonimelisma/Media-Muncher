@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 import AVFoundation
-import CryptoKit // For SHA-256 checksum fallback when date/name heuristics fail
+import zlib // For CRC32 checksum fallback when date/name heuristics fail
 
 /// Actor responsible for file discovery, metadata extraction, and destination path calculation.
 /// 
@@ -276,20 +276,22 @@ actor FileProcessorService {
         return newFile
     }
 
-    /// Computes SHA-256 digest by reading the file in 1 MB chunks to avoid loading
+    /// Computes CRC32 checksum by reading the file in 1 MB chunks to avoid loading
     /// multi-GB files entirely into memory.
-    private func streamingSHA256(for url: URL) -> SHA256.Digest? {
+    private func streamingCRC32(for url: URL) -> UInt32? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
 
-        var hasher = SHA256()
+        var crc: uLong = zlib.crc32(0, nil, 0)
         while autoreleasepool(invoking: {
             let chunk = handle.readData(ofLength: 1_048_576) // 1 MB chunks
             guard !chunk.isEmpty else { return false }
-            hasher.update(data: chunk)
+            chunk.withUnsafeBytes { ptr in
+                crc = zlib.crc32(crc, ptr.bindMemory(to: Bytef.self).baseAddress, uInt(ptr.count))
+            }
             return true
         }) {}
-        return hasher.finalize()
+        return UInt32(crc)
     }
 
     /// Multi-stage duplicate detection heuristic to determine if source and destination files are identical.
@@ -318,12 +320,12 @@ actor FileProcessorService {
     /// **Rationale**: FAT filesystems round timestamps, GPS clock sync variations
     /// **Accuracy**: Very high for files from same source, low false positive rate
     /// 
-    /// ### Stage 4: SHA-256 Checksum O(n) where n = file size
-    /// **Purpose**: Definitive content comparison when heuristics are inconclusive
-    /// **Logic**: Cryptographic hash comparison for absolute certainty
+    /// ### Stage 4: CRC32 Checksum O(n) where n = file size
+    /// **Purpose**: Content comparison when heuristics are inconclusive
+    /// **Logic**: CRC32 hash comparison — not cryptographic, but sufficient for non-adversarial duplicate detection
     /// **Use Case**: Files renamed by date-based import, different cameras with similar timestamps
-    /// **Accuracy**: 100% - cryptographically impossible to have false positives
-    /// **Performance**: Expensive but only used as last resort (~1-10MB/s depending on storage)
+    /// **Accuracy**: Very high — CRC32 collision probability is negligible for typical media files
+    /// **Performance**: Fast, only used as last resort (~10-100MB/s depending on storage)
     /// 
     /// ## Performance Characteristics
     /// - **Stage 1-3**: ~1ms total (metadata operations only)
@@ -388,9 +390,9 @@ actor FileProcessorService {
                 return true
             }
 
-            // 4. SHA-256 checksum fallback (streaming to avoid OOM on large files)
-            guard let srcDigest = streamingSHA256(for: URL(fileURLWithPath: sourceFile.sourcePath)),
-                  let destDigest = streamingSHA256(for: destinationURL) else {
+            // 4. CRC32 checksum fallback (streaming to avoid OOM on large files)
+            guard let srcDigest = streamingCRC32(for: URL(fileURLWithPath: sourceFile.sourcePath)),
+                  let destDigest = streamingCRC32(for: destinationURL) else {
                 #if DEBUG
                 await logManager.debug("Failed to read file data for checksum → assuming different file", category: "FileProcessor", metadata: ["debugPrefix": debugPrefix])
                 #endif
@@ -429,13 +431,13 @@ actor FileProcessorService {
                 if let creationDate = try? await asset.load(.creationDate), let dateValue = try? await creationDate.load(.dateValue) {
                     mediaDate = dateValue
                 }
-            } else if mediaType == .image {
+            } else if mediaType == .image || mediaType == .raw {
                 if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
                    let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] {
                     let exifMetadata = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any]
                     let tiffMetadata = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any]
                     
-                    if let dateTimeOriginal = exifMetadata?["DateTimeOriginal"] as? String ?? tiffMetadata?["DateTime"] as? String {
+                    if let dateTimeOriginal = exifMetadata?["DateTimeOriginal"] as? String ?? exifMetadata?["DateTimeDigitized"] as? String ?? tiffMetadata?["DateTime"] as? String {
                         #if DEBUG
                         await logManager.debug("Exif dateString", category: "FileProcessor", metadata: ["dateTimeOriginal": dateTimeOriginal])
                         #endif

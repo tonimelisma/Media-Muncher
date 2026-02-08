@@ -19,7 +19,8 @@ final class AppStateRecalculationUnitTests: XCTestCase {
         let logManager = LogManager()
         let volumeManager = VolumeManager(logManager: logManager)
         let fileProcessorService = FileProcessorService(logManager: logManager, thumbnailCache: ThumbnailCache.testInstance(limit: 16))
-        self.settingsStore = SettingsStore(logManager: logManager)
+        let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        self.settingsStore = SettingsStore(logManager: logManager, userDefaults: testDefaults)
         let importService = ImportService(logManager: logManager)
         
         let fileStore = FileStore(logManager: logManager)

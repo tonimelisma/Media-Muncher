@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-02-08] - Algorithm Alignment with gomediaimport Reference Implementation
+
+### Fixed
+- **RAW file EXIF date extraction**: RAW files (CR2, CR3, NEF, ARW, DNG, etc.) now extract EXIF capture dates instead of falling back to filesystem dates, fixing organize-by-date and rename-by-date for RAW photos
+- **DateTimeDigitized EXIF fallback**: Added `DateTimeDigitized` as a fallback between `DateTimeOriginal` and TIFF `DateTime`, matching the reference implementation's `CreateDate` field priority
+- **Extension normalization scope**: File extensions are now only normalized (e.g., heic → heif, jpeg → jpg) when `renameByDate` is enabled; original extensions are preserved (lowercased) when keeping original filenames
+
+### Changed
+- **CRC32 checksums**: Replaced SHA-256 with CRC32 for duplicate detection checksum fallback — faster for non-adversarial media deduplication, using zlib's streaming CRC32 with 1 MB chunks
+- **Zero-padded collision suffixes**: Filename collision suffixes now use 3-digit zero-padding (`_001`, `_002`) instead of unpadded (`_1`, `_2`) for consistent sorting
+
 ## [2026-02-07] - Sync Logging, Direct FileStore Writes, and Code Quality
 
 ### Added

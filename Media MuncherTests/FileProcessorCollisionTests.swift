@@ -100,6 +100,6 @@ final class FileProcessorCollisionTests: XCTestCase {
 
         // Assert – should generate _1 suffix and remain .waiting
         XCTAssertEqual(result.status, .waiting)
-        XCTAssertTrue(result.destPath?.hasSuffix("clip_1.jpg") ?? false, "Expected destPath with _1 suffix, got \(result.destPath ?? "nil")")
+        XCTAssertTrue(result.destPath?.hasSuffix("clip_001.jpg") ?? false, "Expected destPath with _001 suffix, got \(result.destPath ?? "nil")")
     }
 } 

@@ -62,7 +62,8 @@ struct DestinationPathBuilder {
     ///    modification time
     /// 2. **Filename Generation**: When `renameByDate` is true, generates YYYYMMDD_HHMMSS format
     ///    using UTC timezone to prevent inconsistencies across different system timezones
-    /// 3. **Extension Normalization**: Always applies extension normalization for consistency
+    /// 3. **Extension Normalization**: When renaming by date, normalizes extensions (e.g., heic → heif).
+    ///    When preserving original filenames, only lowercases the extension.
     /// 
     /// ## Usage Examples
     /// ```swift
@@ -110,7 +111,7 @@ struct DestinationPathBuilder {
             base = file.filenameWithoutExtension
         }
 
-        let ext = preferredFileExtension(file.fileExtension)
+        let ext = renameByDate ? preferredFileExtension(file.fileExtension) : file.fileExtension.lowercased()
         return directory + base + "." + ext
     }
 
@@ -122,7 +123,7 @@ struct DestinationPathBuilder {
     /// ## Collision Resolution Algorithm
     /// When a collision is detected (suffix > 0), the method appends a numerical suffix
     /// to the base filename before the extension:
-    /// - Original: "photo.jpg" → Collision: "photo_1.jpg", "photo_2.jpg", etc.
+    /// - Original: "photo.jpg" → Collision: "photo_001.jpg", "photo_002.jpg", etc.
     /// - Preserves file extension and directory structure
     /// - Suffix counter increments until a unique filename is found
     /// 
@@ -150,7 +151,7 @@ struct DestinationPathBuilder {
         if let suffix = suffix {
             let baseFilename = idealURL.deletingPathExtension().lastPathComponent
             let fileExtension = idealURL.pathExtension
-            let newFilename = "\(baseFilename)_\(suffix).\(fileExtension)"
+            let newFilename = String(format: "%@_%03d.%@", baseFilename, suffix, fileExtension)
             idealURL = idealURL.deletingLastPathComponent().appendingPathComponent(newFilename)
         }
         

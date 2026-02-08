@@ -76,6 +76,6 @@ final class DestinationPathBuilderTests: MediaMuncherTestCase {
         let url = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings, suffix: 2)
 
         // Then
-        XCTAssertEqual(url.path, "/Library/Destination/2025/01/20250101_120000_2.aac")
+        XCTAssertEqual(url.path, "/Library/Destination/2025/01/20250101_120000_002.aac")
     }
 }

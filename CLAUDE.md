@@ -93,7 +93,7 @@ For the full source-code map, service responsibilities, concurrency model, and r
 - **EXIF dates**: `DateFormatter` forced to UTC to prevent timezone bugs.
 - **Security**: Not sandboxed, but uses security-scoped resources defensively. Destination folder stored as a security-scoped bookmark via `BookmarkStore`.
 - **Sidecar files**: THM, XMP, LRC are never copied to destination. They are only deleted from source alongside their parent media when deletion is enabled.
-- **Duplicate detection**: Date+size heuristic first, streaming SHA-256 checksum fallback (1 MB chunks to avoid OOM on large video files).
+- **Duplicate detection**: Date+size heuristic first, streaming CRC32 checksum fallback (1 MB chunks to avoid OOM on large video files).
 - **Error handling**: Domain-specific `AppError` enum. Never crash on I/O errors — surface to user via UI banners.
 
 ## Supported File Types

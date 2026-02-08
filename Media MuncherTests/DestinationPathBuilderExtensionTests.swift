@@ -36,7 +36,7 @@ final class DestinationPathBuilderExtensionTests: XCTestCase {
     func testRelativePath_OrganizeOnly() {
         let file = makeFile(name: "IMG_1234.JPEG")
         let rel = DestinationPathBuilder.relativePath(for: file, organizeByDate: true, renameByDate: false)
-        XCTAssertEqual(rel, "2025/01/IMG_1234.jpg") // ext normalised + directory added
+        XCTAssertEqual(rel, "2025/01/IMG_1234.jpeg") // ext lowercased (no normalization without rename) + directory added
     }
 
     func testBuildFinalDestinationURL_NoSuffix() {
@@ -55,7 +55,7 @@ final class DestinationPathBuilderExtensionTests: XCTestCase {
         let file = makeFile(name: "sound.aac", mediaType: .audio)
         let first = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings, suffix: 1)
         let second = DestinationPathBuilder.buildFinalDestinationURL(for: file, in: rootURL, settings: settings, suffix: 2)
-        XCTAssertEqual(first.path, "/DestinationRoot/2025/01/20250101_120000_1.aac")
-        XCTAssertEqual(second.path, "/DestinationRoot/2025/01/20250101_120000_2.aac")
+        XCTAssertEqual(first.path, "/DestinationRoot/2025/01/20250101_120000_001.aac")
+        XCTAssertEqual(second.path, "/DestinationRoot/2025/01/20250101_120000_002.aac")
     }
 } 
