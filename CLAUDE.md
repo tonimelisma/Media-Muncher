@@ -76,7 +76,7 @@ For the full source-code map, service responsibilities, concurrency model, and r
 
 **Integration tests are primary.** Tests use real file system operations with fixtures in `Media MuncherTests/Fixtures/`. Prefer integration tests over mocks for anything touching the file system.
 
-**UI tests** live in `Media MuncherUITests/` (XCUITest target). They cover accessibility audits, window structure, settings controls, and empty-state verification. UI tests run as part of `xcodebuild test`. See [UI_AUTOMATION.md](UI_AUTOMATION.md) for agent-driven workflows that complement the formal test suite.
+**UI tests** live in `Media MuncherUITests/` (XCUITest target, skipped by default). For interactive UI exploration, the agent can launch the app and interact via `osascript` + `screencapture` — see [UI_AUTOMATION.md](UI_AUTOMATION.md).
 
 ### Test Infrastructure
 
