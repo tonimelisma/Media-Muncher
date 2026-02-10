@@ -12,6 +12,7 @@
 - **Definition of Done**: Updated to include visual verification step for UI changes and explicit mention of UI tests in the test step
 - **CLAUDE.md**: Added UI test commands, UI test documentation reference, updated current status
 - **UI_AUTOMATION.md**: Added "Integration with Testing Flow" section documenting which workflows are formal tests vs. agent-driven
+- **UI tests skipped by default**: XCUITest target is disabled in the shared scheme to avoid ~96s of screen flickering during normal test runs; can be invoked explicitly with `-only-testing:"Media MuncherUITests"`
 
 ## [2026-02-08] - Algorithm Alignment with gomediaimport Reference Implementation
 

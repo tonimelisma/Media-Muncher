@@ -36,13 +36,10 @@ Keep CLAUDE.md concise and focused on what an agent needs to know to work effect
 # Build
 xcodebuild -scheme "Media Muncher" build
 
-# Run all tests (unit + integration + UI)
+# Run all tests (unit + integration; UI tests are skipped by default)
 xcodebuild -scheme "Media Muncher" test
 
-# Run only unit/integration tests
-xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests"
-
-# Run only UI tests
+# Run only UI tests (skipped by default in scheme — must be invoked explicitly)
 xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherUITests"
 
 # Run specific test class
