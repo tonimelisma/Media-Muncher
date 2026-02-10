@@ -29,6 +29,7 @@ struct MediaFilesGridView: View {
                     }
                 }
                 .padding()
+                .accessibilityIdentifier("mediaGrid")
                 .onAppear { updateColumns(for: geometry.size.width) }
                 .onChange(of: geometry.size.width) { _, newWidth in updateColumns(for: newWidth) }
             }

@@ -19,6 +19,14 @@ struct ErrorView: View {
                     .font(.caption)
                     .foregroundColor(.red)
             }
+            .accessibilityIdentifier("errorBanner")
         }
     }
 }
+
+#if DEBUG
+#Preview("No Error") {
+    ErrorView()
+        .environmentObject(PreviewHelpers.appState())
+}
+#endif

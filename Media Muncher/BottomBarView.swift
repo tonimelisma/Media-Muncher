@@ -22,12 +22,14 @@ struct BottomBarView: View {
                 Button("Stop") {
                     appState.cancelScan()
                 }
+                .accessibilityIdentifier("stopButton")
                 .buttonStyle(.plain)
                 .padding(.horizontal, 6)
             } else if appState.state == .importingFiles {
                 VStack(alignment: .leading, spacing: 4) {
                     ProgressView(value: Double(appState.importProgress.importedBytes), total: Double(appState.importProgress.totalBytesToImport > 0 ? appState.importProgress.totalBytesToImport : 1))
                         .progressViewStyle(LinearProgressViewStyle())
+                        .accessibilityIdentifier("progressBar")
                     
                     HStack {
                         Text("\(appState.importProgress.importedFileCount) / \(appState.importProgress.totalFilesToImport) files")
@@ -51,6 +53,7 @@ struct BottomBarView: View {
                 Button("Cancel") {
                     appState.cancelImport()
                 }
+                .accessibilityIdentifier("cancelButton")
                 .buttonStyle(.plain)
                 .padding(.horizontal, 6)
             }
@@ -60,6 +63,7 @@ struct BottomBarView: View {
                 Button("Import") {
                     appState.importFiles()
                 }
+                .accessibilityIdentifier("importButton")
                 .disabled(appState.state != .idle || fileStore.filesToImport.isEmpty)
             }
         }
@@ -81,4 +85,14 @@ private func formatTime(_ seconds: TimeInterval) -> String {
     formatter.allowedUnits = [.hour, .minute, .second]
     formatter.unitsStyle = .abbreviated
     return formatter.string(from: seconds) ?? ""
-} 
+}
+
+#if DEBUG
+#Preview("Idle") {
+    let appState = PreviewHelpers.appState()
+    let fileStore = PreviewHelpers.fileStore()
+    BottomBarView()
+        .environmentObject(appState)
+        .environmentObject(fileStore)
+}
+#endif

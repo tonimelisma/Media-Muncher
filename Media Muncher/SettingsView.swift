@@ -41,10 +41,12 @@ struct SettingsView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle("Organize into date-based folders", isOn: $settingsStore.organizeByDate)
+                            .accessibilityIdentifier("organizeByDateToggle")
                         Text("Creates folders in YYYY/MM format.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                         Toggle("Rename files by date and time", isOn: $settingsStore.renameByDate)
+                            .accessibilityIdentifier("renameByDateToggle")
                         Text("Renames files to 'YYYYMMDD_HHMMSS.ext'.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
@@ -58,9 +60,13 @@ struct SettingsView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle("Images", isOn: $settingsStore.filterImages)
+                            .accessibilityIdentifier("filterImagesToggle")
                         Toggle("Videos", isOn: $settingsStore.filterVideos)
+                            .accessibilityIdentifier("filterVideosToggle")
                         Toggle("Audio", isOn: $settingsStore.filterAudio)
+                            .accessibilityIdentifier("filterAudioToggle")
                         Toggle("RAW", isOn: $settingsStore.filterRaw)
+                            .accessibilityIdentifier("filterRawToggle")
                     }
                 }
 
@@ -71,7 +77,9 @@ struct SettingsView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle("Delete originals after successful import", isOn: $settingsStore.settingDeleteOriginals)
+                            .accessibilityIdentifier("deleteOriginalsToggle")
                         Toggle("Eject volume after successful import", isOn: $settingsStore.settingAutoEject)
+                            .accessibilityIdentifier("autoEjectToggle")
                     }
                 }
             }
@@ -81,3 +89,11 @@ struct SettingsView: View {
         .frame(width: 600) // Significantly increased width for more horizontal breathing room
     }
 }
+
+#if DEBUG
+#Preview {
+    SettingsView()
+        .environmentObject(PreviewHelpers.settingsStore())
+        .environmentObject(PreviewHelpers.volumeManager())
+}
+#endif

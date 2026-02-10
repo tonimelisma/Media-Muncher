@@ -19,6 +19,7 @@ struct VolumeView: View {
                     .padding()
                 Text("No removable drives detected.")
                     .font(.headline)
+                    .accessibilityIdentifier("noVolumesLabel")
             } else {
                 List(selection: $appState.selectedVolumeID) {
                     Section(header: Text("Devices")) {
@@ -38,6 +39,7 @@ struct VolumeView: View {
                         }
                     }
                 }
+                .accessibilityIdentifier("volumeList")
             }
         }
         .onAppear {
@@ -45,3 +47,11 @@ struct VolumeView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("No Volumes") {
+    VolumeView()
+        .environmentObject(PreviewHelpers.appState())
+        .environmentObject(PreviewHelpers.volumeManager())
+}
+#endif

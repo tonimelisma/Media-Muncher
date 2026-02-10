@@ -12,11 +12,12 @@ Be proactive. If you notice something wrong while working on an unrelated task, 
 
 A task is not complete until all of the following are true:
 
-1. **Build succeeds**: `xcodebuild -scheme "Media Muncher" build` passes with zero errors and zero warnings you introduced.
-2. **All tests pass**: `xcodebuild -scheme "Media Muncher" test` — every single test, not just the ones related to your change. You own the entire suite.
-3. **CHANGELOG.md updated**: Every user-visible change, bug fix, or architectural improvement gets a concise entry under the appropriate heading.
-4. **Git commit**: Staged, committed with a clear message, and pushed to the remote. The commit must include all modified files — source, tests, documentation, and changelog.
-5. **Documentation current**: If your change affects architecture, conventions, or public APIs described in CLAUDE.md or ARCHITECTURE.md, update them in the same commit. See *Self-Maintenance* below.
+1. **Build succeeds**: `xcodebuild -scheme "Media Muncher" build` — zero errors, zero new warnings.
+2. **All tests pass**: `xcodebuild -scheme "Media Muncher" test` — unit, integration, AND UI tests (includes accessibility audit). You own the entire suite.
+3. **Visual verification** (UI changes only): For changes touching view files, capture a screenshot or render a preview and confirm no visual regressions. Not required for non-UI changes.
+4. **CHANGELOG.md updated**: Every user-visible change, bug fix, or architectural improvement gets a concise entry under the appropriate heading.
+5. **Git commit**: Staged, committed with a clear message, and pushed to the remote. The commit must include all modified files — source, tests, documentation, and changelog.
+6. **Documentation current**: If your change affects architecture, conventions, or public APIs described in CLAUDE.md or ARCHITECTURE.md, update them in the same commit. See *Self-Maintenance* below.
 
 ## Self-Maintenance
 
@@ -35,8 +36,14 @@ Keep CLAUDE.md concise and focused on what an agent needs to know to work effect
 # Build
 xcodebuild -scheme "Media Muncher" build
 
-# Run all tests
+# Run all tests (unit + integration + UI)
 xcodebuild -scheme "Media Muncher" test
+
+# Run only unit/integration tests
+xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests"
+
+# Run only UI tests
+xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherUITests"
 
 # Run specific test class
 xcodebuild -scheme "Media Muncher" test -only-testing:"Media MuncherTests/ImportServiceIntegrationTests"
@@ -72,6 +79,8 @@ For the full source-code map, service responsibilities, concurrency model, and r
 
 **Integration tests are primary.** Tests use real file system operations with fixtures in `Media MuncherTests/Fixtures/`. Prefer integration tests over mocks for anything touching the file system.
 
+**UI tests** live in `Media MuncherUITests/` (XCUITest target). They cover accessibility audits, window structure, settings controls, and empty-state verification. UI tests run as part of `xcodebuild test`. See [UI_AUTOMATION.md](UI_AUTOMATION.md) for agent-driven workflows that complement the formal test suite.
+
 ### Test Infrastructure
 
 - **`TestAppContainer`**: Mirrors `AppContainer` with `MockLogManager` and isolated `UserDefaults`.
@@ -106,4 +115,4 @@ For the full source-code map, service responsibilities, concurrency model, and r
 
 ## Current Status
 
-Core functionality complete: volume management, media discovery, import engine, logging, comprehensive tests (>90% coverage on core logic). Automation/launch agents (Epic 7) not started.
+Core functionality complete: volume management, media discovery, import engine, logging, comprehensive tests (>90% coverage on core logic), XCUITest suite with accessibility audits. Automation/launch agents (Epic 7) not started.

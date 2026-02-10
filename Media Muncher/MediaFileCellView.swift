@@ -103,4 +103,41 @@ struct MediaFileCellView: View {
             }
         }
     }
-} 
+}
+
+#if DEBUG
+#Preview("Waiting") {
+    MediaFileCellView(file: File(sourcePath: "/Volumes/SD/DCIM/IMG_0001.jpg", mediaType: .image, status: .waiting))
+        .padding()
+}
+
+#Preview("Pre-existing") {
+    MediaFileCellView(file: File(sourcePath: "/Volumes/SD/DCIM/IMG_0002.jpg", mediaType: .image, status: .pre_existing))
+        .padding()
+}
+
+#Preview("Imported") {
+    MediaFileCellView(file: File(sourcePath: "/Volumes/SD/DCIM/MOV_0003.mov", mediaType: .video, status: .imported))
+        .padding()
+}
+
+#Preview("Copying") {
+    MediaFileCellView(file: File(sourcePath: "/Volumes/SD/DCIM/IMG_0004.cr3", mediaType: .raw, status: .copying))
+        .padding()
+}
+
+#Preview("Failed") {
+    MediaFileCellView(file: File(sourcePath: "/Volumes/SD/DCIM/IMG_0005.heic", mediaType: .image, status: .failed))
+        .padding()
+}
+
+#Preview("Duplicate in source") {
+    MediaFileCellView(file: File(sourcePath: "/Volumes/SD/DCIM/IMG_0006.dng", mediaType: .raw, status: .duplicate_in_source))
+        .padding()
+}
+
+#Preview("Deleted as duplicate") {
+    MediaFileCellView(file: File(sourcePath: "/Volumes/SD/DCIM/IMG_0007.jpg", mediaType: .image, status: .deleted_as_duplicate))
+        .padding()
+}
+#endif

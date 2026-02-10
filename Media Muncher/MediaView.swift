@@ -18,6 +18,7 @@ struct MediaView: View {
                 Text("Select a volume from the sidebar to begin scanning for media files.")
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("selectVolumeLabel")
                 Spacer()
             }
         } else if fileStore.files.isEmpty && appState.state != .enumeratingFiles {
@@ -26,6 +27,7 @@ struct MediaView: View {
                 Text("No media files found on this volume.")
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("noMediaFilesLabel")
                 Text("Looking for: Photos, Videos, Audio, and RAW files")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -37,3 +39,11 @@ struct MediaView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("No Volume Selected") {
+    MediaView()
+        .environmentObject(PreviewHelpers.appState())
+        .environmentObject(PreviewHelpers.fileStore())
+}
+#endif

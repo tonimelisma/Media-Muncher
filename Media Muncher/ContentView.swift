@@ -30,6 +30,7 @@ struct ContentView: View {
                 }) {
                     Label("Settings", systemImage: "gear")
                 }
+                .accessibilityIdentifier("settingsButton")
             }
         }
         .navigationTitle("Media Muncher")

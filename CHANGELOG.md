@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-02-09] - UI Testing Infrastructure
+
+### Added
+- **XCUITest target**: New `Media MuncherUITests` target with 4 test classes: `AccessibilityAuditTests`, `MainWindowStructureTests`, `SettingsWindowTests`, `EmptyStateTests`
+- **Accessibility identifiers**: Added `.accessibilityIdentifier()` to key UI elements across all views (settings button, import/cancel/stop buttons, progress bar, volume list, error banner, media grid, empty-state labels, all settings toggles)
+- **`#Preview` macros**: Added SwiftUI previews to `MediaFileCellView` (7 status states), `BottomBarView`, `SettingsView`, `VolumeView`, `MediaView`, `ErrorView`
+- **`PreviewHelpers.swift`**: Lightweight `#if DEBUG` factory for creating preview-ready environment objects without the full AppContainer, including sample file data
+
+### Changed
+- **Definition of Done**: Updated to include visual verification step for UI changes and explicit mention of UI tests in the test step
+- **CLAUDE.md**: Added UI test commands, UI test documentation reference, updated current status
+- **UI_AUTOMATION.md**: Added "Integration with Testing Flow" section documenting which workflows are formal tests vs. agent-driven
+
 ## [2026-02-08] - Algorithm Alignment with gomediaimport Reference Implementation
 
 ### Fixed
