@@ -25,8 +25,16 @@ swift -e 'import ApplicationServices; print("AX trusted:", AXIsProcessTrusted())
 # Build
 xcodebuild -scheme "Media Muncher" build
 
-# Launch (or re-launch)
-killall "Media Muncher" 2>/dev/null; sleep 0.5
+# Launch
+open "/path/to/DerivedData/.../Debug/Media Muncher.app"
+sleep 2
+
+# Quit gracefully (saves state, like Cmd+Q)
+osascript -e 'tell application "Media Muncher" to quit'
+
+# Re-launch (quit first, then open)
+osascript -e 'tell application "Media Muncher" to quit'
+sleep 0.5
 open "/path/to/DerivedData/.../Debug/Media Muncher.app"
 sleep 2
 
